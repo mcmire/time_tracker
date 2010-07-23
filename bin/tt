@@ -1,0 +1,10 @@
+#!/usr/bin/env ruby
+#-------------------------------------------------------------------------------
+# time-tracker
+# Author: Elliot Winkler
+#-------------------------------------------------------------------------------
+
+$:.unshift File.dirname(__FILE__) + '/lib'
+require 'tt'
+
+TimeTracker::Cli.start(ARGV)

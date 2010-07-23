@@ -1,0 +1,50 @@
+### Example session
+
+> tt start "put up laura bush limited edition book+box"
+Try switching to a project first.
+> tt switch pc
+Switched to project "pc".
+> tt start "put up laura bush limited edition book+box"
+Started clock for "put up laura bush limited edition book+box".
+> tt stop
+Stopped clock for "put up laura bush limited edition book+box".
+You worked for 39m on this task.
+> tt start "add feature X"
+Started clock for "add feature X".
+> tt switch amtees
+Switched to project "amtees".
+> tt start "add feature Y"
+Started clock for "add feature Y".
+(You're now working on 2 tasks.)
+> tt start "add feature Z"
+Started clock for "add feature Z".
+(You're now working on 3 tasks.)
+> tt stop
+Stopped clock for "add feature Z".
+You worked for 3h:53m on this task.
+> tt list     # also tt ls, tt current, tt working
+You're currently working on these tasks:
+1. add feature X [in "pc"]
+2. add feature Y [in "amtees"]
+> tt stop 1
+Stopped clock for "add feature X".
+You worked for 1d, 1h:19m on this task.
+> tt stop
+Stopped clock for "add feature Y".
+You worked for 1d, 3h:01m on this task.
+> tt past     # also tt archived, tt completed
+Completed tasks:
+1. put up laura bush limited edition book+box [39m]
+2. add feature Z [3h:53m]
+3. add feature X [1d, 1h:19m]
+4. add feature Y [1d, 3h:01m]
+> tt resume 3
+Resumed clock for "add feature X".
+> tt resume 4
+Resumed clock for "add feature Y".
+> tt stop
+Stopped clock for "add feature Y".
+You've now worked for 1d, 1h:30m on this task.
+> tt stop
+Stopped clock for "add feature X."
+You're now worked for 1d, 8h:24m on this task.
