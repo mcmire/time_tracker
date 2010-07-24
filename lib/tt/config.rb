@@ -1,4 +1,4 @@
-require 'mongo_mapper'
+require 'tt/mongo_mapper'
 
 module TimeTracker
   # Since the config collection will only ever have one document in it,

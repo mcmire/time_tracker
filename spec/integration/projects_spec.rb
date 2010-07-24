@@ -9,12 +9,12 @@ feature "Projects" do
   
   scenario "Switching to a project for the first time" do
     tt 'switch "some project"'
-    stdout.must =~ /Switched to project "some project"/
+    stdout.must == %{Switched to project "some project".}
     stderr.must == ""
   end
   scenario "Running 'tt switch' without giving a project name" do
     tt 'switch'
     stdout.must == ""
-    stderr.must =~ /I'm sorry, \*which\* project did you want to switch to\?/
+    stderr.must == %{Right, but which project do you want to switch to?}
   end
 end

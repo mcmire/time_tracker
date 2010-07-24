@@ -53,18 +53,7 @@ describe TimeTracker::Cli do
   end
   
   describe '#start' do
-    it "starts the clock for a task, if it exists under the current project" do
-      project = TimeTracker::Project.create!(:name => "some project")
-      project.tasks.create!(:name => "some task")
-      TimeTracker.config.update("current_project_id", project.id.to_s)
-      Timecop.freeze(@time) do
-        @cli.start("some task")
-      end
-      TimeTracker::Task.count.must == 1
-      task = TimeTracker::Task.first
-      task.started_at.must == @time
-    end
-    it "creates a new task under the current project if it doesn't exist" do
+    it "starts the clock for a task, creating it under the current project first" do
       project = TimeTracker::Project.create!(:name => "some project")
       TimeTracker.config.update("current_project_id", project.id.to_s)
       Timecop.freeze(@time) do
@@ -76,14 +65,19 @@ describe TimeTracker::Cli do
       task.name.must == "some task"
       task.started_at.must == @time
     end
-    #it "bails if there's a task under the current project but it's already started" do
-    #  project = TimeTracker::Project.new(:name => "some project")
-    #  stub(TimeTracker).current_project { project }
-    #  @cli.start("some task")
-    #end
+    it "bails if no name given" do
+      expect { @cli.start }.to raise_error("Right, but what do you want to call the new task?")
+    end
+    it "bails if no project has been set yet" do
+      expect { @cli.start("some task") }.to raise_error("Try switching to a project first.")
+    end
+    it "bails if there's a task under the current project but it's already started" do
+      project = TimeTracker::Project.new(:name => "some project")
+      project.tasks.create!(:name => "some task", :started_at => Time.now)
+      TimeTracker.config.update("current_project_id", project.id.to_s)
+      expect { @cli.start("some task") }.to raise_error("You're already working on that task.")
+    end
     it "bails if there's a task under the current project but it's already finished"
-    it "bails if no project has been set yet"
-    it "bails if no name given"
   end
   
 end

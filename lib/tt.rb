@@ -3,7 +3,7 @@ module TimeTracker
     attr_accessor :current_project
     
     def config
-      @config ||= Config.find()
+      @config ||= TimeTracker::Config.find()
     end
   end
   autoload :Cli, 'tt/cli'
