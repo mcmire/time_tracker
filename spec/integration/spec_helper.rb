@@ -9,8 +9,9 @@ module IntegrationExampleMethods
     interpreter  = File::join(config['bindir'], config['ruby_install_name']) + config['EXEEXT']
     cmd = "#{interpreter} #{args}"
     cmd << " 2> #{stderr}" unless stderr.nil?
-    #puts "Running command: <#{cmd}>"
-    `#{cmd}`
+    puts "Running command: <#{cmd}>"
+    # Set TEST environment variable here so that the test database will be used instead of the real one
+    `TEST=1 #{cmd}`
   end
   
   # Stolen from RSpec

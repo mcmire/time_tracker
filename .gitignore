@@ -4,3 +4,4 @@ tmp/*
 failed_examples.txt
 .bundle
 .ribeye
+log/*

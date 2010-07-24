@@ -1,2 +1,2 @@
 require 'mongo_mapper'
-MongoMapper.database = "tt"
+MongoMapper.database = $USE_TEST_DB ? "tt_test" : "tt"

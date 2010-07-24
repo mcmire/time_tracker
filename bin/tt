@@ -5,6 +5,7 @@
 #-------------------------------------------------------------------------------
 
 $:.unshift File.dirname(__FILE__) + '/../lib'
+$USE_TEST_DB = (ENV["TEST"] == "1")
 require 'tt'
 
 # We set this so that thor does not include namespaces in the help/usage text

@@ -29,8 +29,12 @@ module TimeTracker
       end
       
       def die(msg)
-        @stderr.puts msg
-        exit 1
+        if $RUNNING_TESTS == :units
+          raise(msg)
+        else
+          @stderr.puts msg
+          exit 1
+        end
       end
     end
     
@@ -38,13 +42,14 @@ module TimeTracker
     def switch(project_name=nil)
       die "I'm sorry, *which* project did you want to switch to?" if not project_name
       proj = TimeTracker::Project.first(:name => project_name) || TimeTracker::Project.create!(:name => project_name)
-      TimeTracker.current_project = proj
+      TimeTracker.config.update("current_project_id", proj.id)
       @stdout.puts %{Switched to project "#{project_name}".}
     end
     
     desc "start TASK", "Starts the clock on a task. The task is created if it does not already exist."
     def start(task_name)
-      proj = TimeTracker.current_project
+      proj = TimeTracker::Project.find TimeTracker.config["current_project_id"]
+      die "Try switching to a project first." if not proj
       task = proj.tasks.first(:name => task_name) || proj.tasks.build(:name => task_name)
       task.started_at = Time.now
       task.save!

@@ -12,20 +12,22 @@ feature "Starting, stopping, and resuming tasks" do
     tt 'switch "some project"'
     tt 'start "some task"'
     stdout.must =~ /Started clock for "some task"/
+    stderr.must == ""
   end
-  scenario "Starting a task without switching to a project" do
+  scenario "Starting a task without switching to a project first" do
     tt 'start "some task"'
-    stdout.must =~ /Try switching to a project first/
+    stdout.must == ""
+    stderr.must =~ /Try switching to a project first/
   end
-  scenario "Running 'tt start' without specifying a name"
-  scenario "Starting the same task after it's been started"
-  scenario "Stopping a task"
-  scenario "Starting a task while another one is running"
-  scenario "Stopping the last task"
-  scenario "Stopping a certain task"
-  scenario "Stopping a task that doesn't exist"
-  scenario "Running 'tt resume' without specifying a task"
-  scenario "Resuming a certain task"
-  scenario "Resuming a task that doesn't exist"
-  scenario "Resuming a task that hasn't stopped"
+  #scenario "Running 'tt start' without specifying a name"
+  #scenario "Starting the same task after it's been started"
+  #scenario "Stopping a task"
+  #scenario "Starting a task while another one is running"
+  #scenario "Stopping the last task"
+  #scenario "Stopping a certain task"
+  #scenario "Stopping a task that doesn't exist"
+  #scenario "Running 'tt resume' without specifying a task"
+  #scenario "Resuming a certain task"
+  #scenario "Resuming a task that doesn't exist"
+  #scenario "Resuming a task that hasn't stopped"
 end
