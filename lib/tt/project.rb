@@ -1,3 +1,5 @@
+require 'tt/mongo_mapper'
+
 module TimeTracker
   class Project
     include MongoMapper::Document

@@ -9,7 +9,19 @@ module IntegrationExampleMethods
     interpreter  = File::join(config['bindir'], config['ruby_install_name']) + config['EXEEXT']
     cmd = "#{interpreter} #{args}"
     cmd << " 2> #{stderr}" unless stderr.nil?
+    #puts "Running command: <#{cmd}>"
     `#{cmd}`
+  end
+  
+  # Stolen from RSpec
+  def ruby(args)
+    stderr_file = Tempfile.new('tt')
+    stderr_file.close
+    Dir.chdir(working_dir) do
+      @stdout = forked_ruby("-I #{tt_lib} #{args}", stderr_file.path)
+    end
+    @stderr = IO.read(stderr_file.path)
+    @exit_code = $?.to_i
   end
   
   # Stolen from RSpec
@@ -38,17 +50,6 @@ module IntegrationExampleMethods
   # Stolen from RSpec
   def exit_code
     @exit_code
-  end
-
-  # Stolen from RSpec
-  def ruby(args)
-    stderr_file = Tempfile.new('tt')
-    stderr_file.close
-    Dir.chdir(working_dir) do
-      @stdout = forked_ruby("-I #{tt_lib} #{args}", stderr_file.path)
-    end
-    @stderr = IO.read(stderr_file.path)
-    @exit_code = $?.to_i
   end
   
   # Stolen from RSpec

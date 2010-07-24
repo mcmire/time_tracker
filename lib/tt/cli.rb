@@ -1,10 +1,22 @@
+require 'thor'
+
 module TimeTracker
   class Cli < Thor
-    attr_reader :stdout, :stderr
-    def initialize(stdout=$stdout, stderr=$stderr)
-      @stdout = stdout
-      @stderr = stderr
-      super()
+    namespace :default
+    
+    attr_accessor :stdout, :stderr
+    
+    def self.build(stdout, stderr)
+      cli = new()
+      cli.stdout = stdout
+      cli.stderr = stderr
+      cli
+    end
+    
+    def initialize(*args)
+      @stdout = $stdout
+      @stderr = $stderr
+      super
     end
     
     no_tasks do
@@ -15,14 +27,28 @@ module TimeTracker
       def print(*args)
         @stdout.print(*args)
       end
+      
+      def die(msg)
+        @stderr.puts msg
+        exit 1
+      end
     end
     
-    desc "start TASK", "Starts the clock on a task"
-    def start(task)
-      TimeTracker::Task.create!(
-        :project => TimeTracker.current_project,
-        :name => task
-      )
+    desc "switch PROJECT", "Switches to a certain project. The project is created if it does not already exist."
+    def switch(project_name=nil)
+      die "I'm sorry, *which* project did you want to switch to?" if not project_name
+      proj = TimeTracker::Project.first(:name => project_name) || TimeTracker::Project.create!(:name => project_name)
+      TimeTracker.current_project = proj
+      @stdout.puts %{Switched to project "#{project_name}".}
+    end
+    
+    desc "start TASK", "Starts the clock on a task. The task is created if it does not already exist."
+    def start(task_name)
+      proj = TimeTracker.current_project
+      task = proj.tasks.first(:name => task_name) || proj.tasks.build(:name => task_name)
+      task.started_at = Time.now
+      task.save!
+      @stdout.puts %{Started clock for "#{task_name}".}
     end
     
     desc "stop [TASK]", "Stops the clock on a task"

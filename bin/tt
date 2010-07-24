@@ -4,7 +4,10 @@
 # Author: Elliot Winkler
 #-------------------------------------------------------------------------------
 
-$:.unshift File.dirname(__FILE__) + '/lib'
+$:.unshift File.dirname(__FILE__) + '/../lib'
 require 'tt'
 
+# We set this so that thor does not include namespaces in the help/usage text
+# when printing the names of tasks
+$thor_runner = false
 TimeTracker::Cli.start(ARGV)
