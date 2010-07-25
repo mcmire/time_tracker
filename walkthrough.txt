@@ -1,74 +1,72 @@
-### Example session (interactive)
+### Example session
 
 $ tt
 Starting session.
-> start "put up laura bush limited edition book+box"
-Try switching to a project first.
+> start
+Right, but what's the name of your task?
+> start "fix bug A"
+You need to switch to a project first.
 > switch pc
 Switched to project "pc".
-> start "put up laura bush limited edition book+box"
-Started clock for "put up laura bush limited edition book+box".
+> start "fix bug A"
+Started clock for "fix bug A".
 > stop
-Stopped clock for "put up laura bush limited edition book+box".
-You worked for 39m on this task.
+Stopped clock for "fix bug A", at 39m.
 > start "add feature X"
 Started clock for "add feature X".
 > switch amtees
+(Pausing clock for "add feature X" [pc], at 22m.)
 Switched to project "amtees".
 > start "add feature Y"
 Started clock for "add feature Y".
-(You're now working on 2 tasks.)
 > start "add feature Z"
+(Pausing clock for "add feature Y", at 1h:13m.)
 Started clock for "add feature Z".
-(You're now working on 3 tasks.)
 > stop
-Stopped clock for "add feature Z".
-You worked for 3h:53m on this task.
-> list     # also tt ls, tt current, tt working
-You're currently working on these tasks:
-#2. add feature X [in "pc"]
-#3. add feature Y [in "amtees"]
+Stopped clock for "add feature Z", at 3h:53m.
+(Resuming "add feature Y".)
+> list     # also ls
+Last 5 tasks:
+#4. add feature Z (stopped)
+#3. add feature Y <==
+> list outside
+Last 5 tasks:
+#1. fix bug A [pc] (stopped)
+#4. add feature Z [amtees] (stopped)
+#2. add feature X [pc] (paused)
+#3. add feature Y [amtees] <==
+> list all
+#1. fix bug A [pc] (stopped)
+#4. add feature Z [amtees] (stopped)
+#2. add feature X [pc] (paused)
+#3. add feature Y [amtees] <==
+> resume 2
+(Pausing clock for "add feature Y", at 1h:19m.)
+(Switching to project "pc".)
+Resumed "add feature X".
+> list all
+#1. fix bug A [pc] (stopped)
+#4. add feature Z [amtees] (stopped)
+#3. add feature Y [amtees] (paused)
+#2. add feature X [pc] <==
+> list stopped
+Stopped tasks:
+#1. fix bug A [39m]
+#4. add feature Z [3h:53m]
 > stop 2
-Stopped clock for "add feature X".
-You worked for 1d, 1h:19m on this task.
+Stopped clock for "add feature X", at 2h:29m.
+# Won't resume task in amtees until you switch to it
+> switch amtees
+Switching to project "amtees".
+(Resuming "add feature Y".)
 > stop
-Stopped clock for "add feature Y".
-You worked for 1d, 3h:01m on this task.
-> past     # also tt archived, tt completed
-Completed tasks:
-#1. put up laura bush limited edition book+box [39m]
-#2. add feature Z [3h:53m]
-#3. add feature X [1d, 1h:19m]
-#4. add feature Y [1d, 3h:01m]
-> resume 3
-Resumed clock for "add feature X".
-> resume 4
-Resumed clock for "add feature Y".
-> stop
-Stopped clock for "add feature Y".
-You've now worked for 1d, 1h:30m on this task.
-> stop
-Stopped clock for "add feature X."
-You're now worked for 1d, 8h:24m on this task.
+Stopped clock for "add feature Y", at 1d, 3h:01m.
 > search
-What do you want to search for?
+Er.. kind of hard to search without something to search for.
 > search "add feature"
 Matching tasks:
 #2. add feature Z [3h:53m]
-#3. add feature X [1d, 1h:30m]
-#4. add feature Y [1d, 8h:24m]
+#3. add feature X [2h:29m]
+#4. add feature Y [1d, 3h:01m]
 > search "something else"
 Sorry, no such tasks found.
-
-### Example session (non-interactive)
-
-$ tt start "put up laura bush limited edition book+box"
-Try switching to a project first.
-$ tt switch pc
-Switched to project "pc".
-$ tt start "put up laura bush limited edition book+box"
-Started clock for "put up laura bush limited edition book+box".
-$ tt stop
-Stopped clock for "put up laura bush limited edition book+box".
-You worked for 39m on this task.
-...
