@@ -33,7 +33,6 @@ feature "Starting, stopping, and resuming tasks" do
     tt 'start "another task"'
     output.must == %{Started clock for "another task".\n(You're now working on 2 tasks.)}
   end
-  #scenario "Starting a task that I've already stopped"
   
   scenario "Stopping the last task" do
     tt 'switch "some project"'
@@ -96,8 +95,14 @@ feature "Starting, stopping, and resuming tasks" do
     output.must == %{I think you've stopped that task already.}
   end
   
-  #scenario "Running 'tt resume' without specifying a task"
-  #scenario "Resuming a certain task"
-  #scenario "Resuming a task that I haven't started"
-  #scenario "Resuming a task that I haven't stopped"
+  #scenario "Resuming the last stopped task without switching to a project first"
+  #scenario "Resuming the last stopped task"
+  #scenario "Resuming the last stopped task all tasks are started"
+  #scenario "Resuming the last stopped task when no tasks exist"
+  #scenario "Resuming a task by name"
+  #scenario "Resuming a task by name that doesn't exist"
+  #scenario "Resuming a task by name that I haven't stopped"
+  #scenario "Resuming a task by number"
+  #scenario "Resuming a task by number that doesn't exist"
+  #scenario "Resuming a task by number that I haven't stopped"
 end
