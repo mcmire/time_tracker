@@ -292,12 +292,25 @@ describe TimeTracker::Cli do
       it "resumes the last stopped task in the current project" do
         project = TimeTracker::Project.create!(:name => "some project")
         TimeTracker.config.update("current_project_id", project.id.to_s)
-        task1 = project.tasks.create!(:name => "some task", :stopped_at => Time.local(2010, 1, 1, 0, 0, 0))
-        task2 = project.tasks.create!(:name => "another task")
+        task = project.tasks.create!(:name => "some task", :stopped_at => Time.now)
         @cli.resume
-        task1.reload
-        task1.stopped_at.must == nil
+        task.reload
+        task.stopped_at.must == nil
         stdout.must == %{Resumed clock for "some task".}
+      end
+      it "auto-pauses any task that's already running before resuming the last stopped task" do
+        project = TimeTracker::Project.create!(:name => "some project")
+        TimeTracker.config.update("current_project_id", project.id.to_s)
+        task1 = project.tasks.create!(:name => "some task", :stopped_at => Time.now)
+        task2 = project.tasks.create!(:name => "another task", :created_at => Time.local(2010, 1, 1, 0, 0, 0))
+        stopped_at = Time.local(2010, 1, 1, 3, 29, 0)
+        Timecop.freeze(stopped_at) do
+          @cli.resume
+        end
+        task2.reload
+        task2.stopped_at.must == stopped_at
+        task2.must be_paused
+        stdout.must == %{(Pausing clock for "another task", at 3h:29m.)\nResumed clock for "some task".}
       end
     end
     context "given a string" do
@@ -327,6 +340,20 @@ describe TimeTracker::Cli do
         task1 = project.tasks.create!(:name => "some task")
         expect { @cli.resume("some task") }.to raise_error("Yes, you're still working on that task.")
       end
+      it "auto-pauses any task that's already running before resuming the given task" do
+        project = TimeTracker::Project.create!(:name => "some project")
+        TimeTracker.config.update("current_project_id", project.id.to_s)
+        task1 = project.tasks.create!(:name => "some task", :stopped_at => Time.now)
+        task2 = project.tasks.create!(:name => "another task", :created_at => Time.local(2010, 1, 1, 0, 0, 0))
+        stopped_at = Time.local(2010, 1, 1, 3, 29, 0)
+        Timecop.freeze(stopped_at) do
+          @cli.resume("some task")
+        end
+        task2.reload
+        task2.stopped_at.must == stopped_at
+        task2.must be_paused
+        stdout.must == %{(Pausing clock for "another task", at 3h:29m.)\nResumed clock for "some task".}
+      end
     end
     context "given a number" do
       it "bails if no tasks exist in this project" do
@@ -337,7 +364,7 @@ describe TimeTracker::Cli do
       it "resumes the given task" do
         project = TimeTracker::Project.create!(:name => "some project")
         TimeTracker.config.update("current_project_id", project.id.to_s)
-        task1 = project.tasks.create!(:name => "some task", :stopped_at => Time.local(2010, 1, 1, 0, 0, 0))
+        task1 = project.tasks.create!(:name => "some task", :number => "1", :stopped_at => Time.local(2010, 1, 1, 0, 0, 0))
         @cli.resume("1")
         task1.reload
         task1.stopped_at.must == nil
@@ -352,8 +379,22 @@ describe TimeTracker::Cli do
       it "bails if the given task is already running" do
         project = TimeTracker::Project.create!(:name => "some project")
         TimeTracker.config.update("current_project_id", project.id.to_s)
-        task1 = project.tasks.create!(:name => "some task")
+        task1 = project.tasks.create!(:name => "some task", :number => "1")
         expect { @cli.resume("1") }.to raise_error("Yes, you're still working on that task.")
+      end
+      it "auto-pauses any task that's already running before resuming the given task" do
+        project = TimeTracker::Project.create!(:name => "some project")
+        TimeTracker.config.update("current_project_id", project.id.to_s)
+        task1 = project.tasks.create!(:name => "some task", :number => "1", :stopped_at => Time.now)
+        task2 = project.tasks.create!(:name => "another task", :number => "2", :created_at => Time.local(2010, 1, 1, 0, 0, 0))
+        stopped_at = Time.local(2010, 1, 1, 3, 29, 0)
+        Timecop.freeze(stopped_at) do
+          @cli.resume("1")
+        end
+        task2.reload
+        task2.stopped_at.must == stopped_at
+        task2.must be_paused
+        stdout.must == %{(Pausing clock for "another task", at 3h:29m.)\nResumed clock for "some task".}
       end
     end
   end

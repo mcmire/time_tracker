@@ -111,6 +111,10 @@ module TimeTracker
         die "I don't think that task exists." unless task
         die "Yes, you're still working on that task." if task.running?
       end
+      if running_task = curr_proj.tasks.running.last
+        running_task.pause!
+        @stdout.puts %{(Pausing clock for "#{running_task.name}", at #{running_task.running_time}.)}
+      end
       task.resume!
       @stdout.puts %{Resumed clock for "#{task.name}".}
     end

@@ -41,8 +41,23 @@ feature "Automatic commands" do
     output.must == %{Switched to project "some project".\n(Resuming "some task".)}
   end
   
-  scenario "Resuming a task when one is already running"
+  # No tests for resume() or resume(1) here -- they're unit tests though
+  scenario "Resuming one task when another is already running" do
+    tt 'switch "some project"'
+    tt 'start "some task"'
+    tt 'stop'
+    tt 'start "another task"'
+    tt 'resume "some task"'
+    output.must =~ %r{\(Pausing clock for "another task", at \ds\.\)\nResumed clock for "some task"\.}
+  end
   
-  scenario "Resuming a task in another project by number without switching to it first"
+  scenario "Resuming a task in another project by number without switching to it first" do
+    tt 'switch "some project"'
+    tt 'start "some task"'
+    tt 'stop'
+    tt 'switch "another project"'
+    tt 'resume 1'
+    output.must == %{(Switching to project "some project".)\nResumed clock for "some task".}
+  end
   
 end
