@@ -50,8 +50,15 @@ feature "Starting, stopping, and resuming tasks" do
     tt 'stop'
     output.must == %{It doesn't look like you're working on anything at the moment.}
   end
-  scenario "Stopping a task by name without switching to a project first"
-  scenario "Stopping a task by name without starting a task first"
+  scenario "Stopping a task by name without switching to a project first" do
+    tt 'stop "some task"'
+    output.must == %{Try switching to a project first.}
+  end
+  scenario "Stopping a task by name without starting a task first" do
+    tt 'switch "some project"'
+    tt 'stop "some task"'
+    output.must == %{You haven't started working on anything yet.}
+  end
   scenario "Stopping a task by name" do
     tt 'switch "some project"'
     tt 'start "some task"'
@@ -71,8 +78,15 @@ feature "Starting, stopping, and resuming tasks" do
     tt 'stop "some task"'
     output.must == %{I think you've stopped that task already.}
   end
-  scenario "Stopping a task by task number without switching to a project first"
-  scenario "Stopping a task by task number without starting a task first"
+  scenario "Stopping a task by task number without switching to a project first" do
+    tt 'stop 1'
+    output.must == %{Try switching to a project first.}
+  end
+  scenario "Stopping a task by task number without starting a task first" do
+    tt 'switch "some project"'
+    tt 'stop 1'
+    output.must == %{You haven't started working on anything yet.}
+  end
   scenario "Stopping a task by task number" do
     tt 'switch "some project"'
     tt 'start "some task"'
