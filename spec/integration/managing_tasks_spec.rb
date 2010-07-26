@@ -1,6 +1,6 @@
 require File.expand_path(File.dirname(__FILE__) + '/spec_helper')
 
-feature "Starting, stopping, and resuming tasks" do
+feature "Managing tasks" do
   story <<-EOT
     As a programmer,
     I want to be able to keep track of how long it takes for me to do stuff,

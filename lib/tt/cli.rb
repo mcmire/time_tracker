@@ -138,13 +138,19 @@ module TimeTracker
       @stdout.puts %{Resumed clock for "#{task.name}".}
     end
     
-    desc "current", "List current tasks"
-    def current
+    desc "list TYPE", "List tasks"
+    def list(type="lastfew")
       
     end
     
-    desc "completed", "List completed tasks"
-    def completed
+    desc "search QUERY", "Search for a task"
+    def search(query=nil)
+      
+    end
+    
+    desc "summary PERIOD", "Display a summary of activity within a period"
+    def summary(*period)
+      period = period.join(" ")
       
     end
   end
