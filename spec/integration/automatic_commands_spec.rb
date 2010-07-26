@@ -51,7 +51,7 @@ feature "Automatic commands" do
     output.must =~ %r{\(Pausing clock for "another task", at \ds\.\)\nResumed clock for "some task"\.}
   end
   
-  scenario "Resuming a task in another project by number without switching to it first" do
+  scenario "Resuming a task in another project by number without switching to that project first" do
     tt 'switch "some project"'
     tt 'start "some task"'
     tt 'stop'

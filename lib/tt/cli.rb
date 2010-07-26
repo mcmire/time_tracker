@@ -98,17 +98,36 @@ module TimeTracker
     desc "resume [TASK]", "Resumes the clock for a task, or the last task if no task given"
     def resume(task_name=:last)
       curr_proj = TimeTracker::Project.find TimeTracker.config["current_project_id"]
-      die "You haven't started working on anything yet." if curr_proj.tasks.empty?
       if task_name == :last
+        die "You haven't started working on anything yet." if curr_proj.tasks.empty?
         task = curr_proj.tasks.stopped.last
         die "Aren't you still working on something?" unless task
       elsif task_name =~ /^\d+$/
-        task = curr_proj.tasks.first(:number => task_name.to_i)
-        die "I don't think that task exists." unless task
-        die "Yes, you're still working on that task." if task.running?
+        if task = TimeTracker::Task.first(:number => task_name.to_i)        
+          if task.project_id != curr_proj.id
+            curr_proj = task.project
+            TimeTracker.config.update("current_project_id", curr_proj.id.to_s)
+            @stdout.puts %{(Switching to project "#{curr_proj.name}".)}
+          end
+          die "Yes, you're still working on that task." if task.running?
+        else
+          die "I don't think that task exists."
+        end
       else
         task = curr_proj.tasks.first(:name => task_name)
-        die "I don't think that task exists." unless task
+        unless task
+          tasks = TimeTracker::Task.stopped.where(:name => task_name, :project_id.ne => curr_proj.id)
+          if tasks.any?
+            # Might be better to do this w/ native Ruby driver
+            # See <http://groups.google.com/group/mongomapper/browse_thread/thread/1a5a5b548123e07e/0c65f3e770e04f29>
+            projects = tasks.map(&:project).uniq.
+                       map {|p| %{"#{p.name}"} }.
+                       to_sentence(:two_words_connector => " or ", :last_word_connector => ", or ")
+            die "That task doesn't exist here. Perhaps you meant to switch to #{projects}?"
+          else
+            die "I don't think that task exists." 
+          end
+        end
         die "Yes, you're still working on that task." if task.running?
       end
       if running_task = curr_proj.tasks.running.last

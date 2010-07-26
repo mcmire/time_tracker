@@ -328,11 +328,20 @@ describe TimeTracker::Cli do
         task1.stopped_at.must == nil
         stdout.must == %{Resumed clock for "some task".}
       end
-      it "bails if the given task can't be found" do
+      it "bails if the given task can't be found in this project" do
         project = Factory(:project, :name => "some project")
         TimeTracker.config.update("current_project_id", project.id.to_s)
         Factory(:task, :project => project, :name => "some task")
         expect { @cli.resume("another task") }.to raise_error("I don't think that task exists.")
+      end
+      it "bails if a task can be found by that name but it's in other projects" do
+        project1 = Factory(:project, :name => "some project")
+        Factory(:task, :project => project1, :name => "some task", :stopped_at => Time.now)
+        project2 = Factory(:project, :name => "another project")
+        Factory(:task, :project => project2, :name => "some task", :stopped_at => Time.now)
+        project3 = Factory(:project, :name => "a different project")
+        TimeTracker.config.update("current_project_id", project3.id.to_s)
+        expect { @cli.resume("some task") }.to raise_error(%{That task doesn't exist here. Perhaps you meant to switch to "some project" or "another project"?})
       end
       it "bails if the given task is already running" do
         project = Factory(:project, :name => "some project")
@@ -381,6 +390,15 @@ describe TimeTracker::Cli do
         TimeTracker.config.update("current_project_id", project.id.to_s)
         task1 = Factory(:task, :project => project, :name => "some task", :number => "1")
         expect { @cli.resume("1") }.to raise_error("Yes, you're still working on that task.")
+      end
+      it "auto-switches to another project if given task is present there" do
+        project1 = Factory(:project, :name => "some project")
+        task = Factory(:task, :project => project1, :name => "some task", :number => "1", :stopped_at => Time.now)
+        project2 = Factory(:project, :name => "another project")
+        TimeTracker.config.update("current_project_id", project2.id.to_s)
+        @cli.resume("1")
+        TimeTracker.config["current_project_id"].must == project1.id.to_s
+        stdout.must == %{(Switching to project "some project".)\nResumed clock for "some task".}
       end
       it "auto-pauses any task that's already running before resuming the given task" do
         project = Factory(:project, :name => "some project")

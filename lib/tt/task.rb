@@ -3,6 +3,7 @@ require 'tt/mongo_mapper'
 module TimeTracker
   class Task
     include MongoMapper::Document
+    plugin MongoMapper::Plugins::IdentityMap
     
     key :number, Integer
     key :project_id, ObjectId

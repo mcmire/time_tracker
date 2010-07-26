@@ -118,7 +118,7 @@ feature "Starting, stopping, and resuming tasks" do
     tt 'resume "some task"'
     output.must == %{Resumed clock for "some task".}
   end
-  scenario "Resuming a task by name when no tasks exist" do
+  scenario "Resuming a task by name when no tasks exist in this project" do
     tt 'switch "some project"'
     tt 'resume "some task"'
     output.must == %{You haven't started working on anything yet.}
@@ -129,6 +129,17 @@ feature "Starting, stopping, and resuming tasks" do
     tt 'stop'
     tt 'resume "another task"'
     output.must == %{I don't think that task exists.}
+  end
+  scenario "Resuming a task by name that may exist in other projects but not here" do
+    tt 'switch "some project"'
+    tt 'start "some task"'
+    tt 'stop'
+    tt 'switch "another project"'
+    tt 'start "some task"'
+    tt 'stop'
+    tt 'switch "a different project"'
+    tt 'resume "some task"'
+    output.must == %{That task doesn't exist here. Perhaps you meant to switch to "some project" or "another project"?}
   end
   scenario "Resuming a task by name that I haven't stopped" do
     tt 'switch "some project"'
