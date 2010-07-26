@@ -2,6 +2,7 @@
 
 $ tt
 Starting session.
+What do you want to do?
 > start
 Right, but what's the name of your task?
 > start "fix bug A"
@@ -70,3 +71,9 @@ Matching tasks:
 #4. add feature Y [1d, 3h:01m]
 > search "something else"
 Sorry, no such tasks found.
+
+$ tt
+Starting session.
+You're in the "amtees" project.
+What do you want to do?
+>

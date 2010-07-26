@@ -3,27 +3,53 @@ require 'tt/mongo_mapper'
 module TimeTracker
   class Task
     include MongoMapper::Document
+    
     key :number, Integer
     key :project_id, ObjectId
     key :name, String
-    key :started_at, Time
     key :stopped_at, Time
+    key :paused, Boolean
+    timestamps!
     
     belongs_to :project, :class_name => "TimeTracker::Project"
     
-    before_create :set_number
+    before_create :set_number, :unless => :number?
     
-    def started?
-      !!started_at
+    scope :running, where(:stopped_at => nil)
+    scope :stopped, where(:stopped_at.ne => nil)
+    scope :paused, where(:paused => true) # should :stopped_at.ne => nil too?
+    
+    def self.last
+      sort(:created_at.desc).first
+    end
+    
+    def running?
+      !new_record? && !stopped?
     end
     
     def stopped?
-      # assume that started_at is set
-      !!stopped_at
+      !new_record? && !!stopped_at
+    end
+    
+    def stop!
+      self.stopped_at = Time.now
+      save!
+    end
+    
+    def pause!
+      self.stopped_at = Time.now
+      self.paused = true
+      save!
+    end
+    
+    def resume!
+      self.stopped_at = nil
+      self.paused = false
+      save!
     end
     
     def running_time
-      Time.formatted_diff(stopped_at, started_at)
+      Time.formatted_diff(stopped_at, created_at)
     end
     
     def set_number

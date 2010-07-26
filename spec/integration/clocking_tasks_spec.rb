@@ -27,12 +27,6 @@ feature "Starting, stopping, and resuming tasks" do
     tt 'start "some task"'
     output.must == %{Aren't you already working on that task?}
   end
-  scenario "Starting a task while another one is running" do
-    tt 'switch "some project"'
-    tt 'start "some task"'
-    tt 'start "another task"'
-    output.must == %{Started clock for "another task".\n(You're now working on 2 tasks.)}
-  end
   
   scenario "Stopping the last task" do
     tt 'switch "some project"'
