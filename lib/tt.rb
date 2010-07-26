@@ -6,7 +6,11 @@ module TimeTracker
     
     def config
       # TODO: Maybe this should not be stored in the db, but just in memory or in /tmp
-      @config ||= TimeTracker::Config.find()
+      @config || reload_config
+    end
+    
+    def reload_config
+      @config = TimeTracker::Config.find()
     end
   end
   autoload :Cli, 'tt/cli'

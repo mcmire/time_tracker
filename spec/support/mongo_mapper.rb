@@ -1,4 +1,4 @@
-require 'mongo_mapper'
+#require 'mongo_mapper'
 
 Spec::Runner.configuration.before(:each) do
   # Remove all collections

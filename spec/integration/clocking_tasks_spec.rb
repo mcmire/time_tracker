@@ -118,7 +118,7 @@ feature "Starting, stopping, and resuming tasks" do
     tt 'resume "some task"'
     output.must == %{Resumed clock for "some task".}
   end
-  scenario "Resuming a task by name when no tasks exist in this project" do
+  scenario "Resuming a task by name when no tasks exist at all" do
     tt 'switch "some project"'
     tt 'resume "some task"'
     output.must == %{You haven't started working on anything yet.}

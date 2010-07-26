@@ -88,11 +88,12 @@ describe TimeTracker::Cli do
   end
   
   describe '#start' do
-    it "bails if no project has been set yet" do
-      expect { @cli.start("some task") }.to raise_error("Try switching to a project first.")
-    end
     it "bails if no name given" do
       expect { @cli.start }.to raise_error("Right, but what's the name of your task?")
+    end
+    it "bails if no project has been set yet" do
+      TimeTracker.config["current_project_id"]
+      expect { @cli.start("some task") }.to raise_error("Try switching to a project first.")
     end
     it "bails if there's already task under the current project that hasn't been stopped yet" do
       project = TimeTracker::Project.new(:name => "some project")
@@ -314,7 +315,7 @@ describe TimeTracker::Cli do
       end
     end
     context "given a string" do
-      it "bails if no tasks exist in this project" do
+      it "bails if no tasks exist at all" do
         project = Factory(:project, :name => "some project")
         TimeTracker.config.update("current_project_id", project.id.to_s)
         expect { @cli.resume("some task") }.to raise_error("You haven't started working on anything yet.")
@@ -365,7 +366,7 @@ describe TimeTracker::Cli do
       end
     end
     context "given a number" do
-      it "bails if no tasks exist in this project" do
+      it "bails if no tasks exist at all" do
         project = Factory(:project, :name => "some project")
         TimeTracker.config.update("current_project_id", project.id.to_s)
         expect { @cli.resume("1") }.to raise_error("You haven't started working on anything yet.")

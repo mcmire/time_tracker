@@ -98,8 +98,8 @@ module TimeTracker
     desc "resume [TASK]", "Resumes the clock for a task, or the last task if no task given"
     def resume(task_name=:last)
       curr_proj = TimeTracker::Project.find TimeTracker.config["current_project_id"]
+      die "You haven't started working on anything yet." unless TimeTracker::Task.exists?
       if task_name == :last
-        die "You haven't started working on anything yet." if curr_proj.tasks.empty?
         task = curr_proj.tasks.stopped.last
         die "Aren't you still working on something?" unless task
       elsif task_name =~ /^\d+$/

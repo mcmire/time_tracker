@@ -27,7 +27,7 @@ feature "Automatic commands" do
     tt 'start "some task"'
     tt 'start "another task"'
     tt 'stop'
-    output.must =~ %r{Stopped clock for "another task", at \ds\.\n\(Resuming "some task"\.\)}
+    output.must =~ %r{Stopped clock for "another task", at \ds\.\n\(Resuming clock for "some task"\.\)}
   end
   
   scenario "Starting a task in one project, starting another task in another project, stopping that task, switching back to the other project" do
@@ -38,7 +38,7 @@ feature "Automatic commands" do
     tt 'stop'
     output.must =~ %r{Stopped clock for "another task"}
     tt 'switch "some project"'
-    output.must == %{Switched to project "some project".\n(Resuming "some task".)}
+    output.must == %{Switched to project "some project".\n(Resuming clock for "some task".)}
   end
   
   # No tests for resume() or resume(1) here -- they're unit tests though
