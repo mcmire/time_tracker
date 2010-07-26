@@ -1,10 +1,10 @@
 require File.expand_path(File.dirname(__FILE__) + '/spec_helper')
 
-feature "Auto-pausing and -resuming" do
+feature "Automatic commands" do
   story <<-EOT
     As a power user
-    I want the system to take care of auto-pausing and auto-resuming tasks
-    So I don't have to do it myself
+    I want the system to take care of executing certain commands automatically
+    Since that's how I'm thinking mentally anyway
   EOT
   
   scenario "Switching to another project while a task in this project is still running" do
@@ -40,5 +40,9 @@ feature "Auto-pausing and -resuming" do
     tt 'switch "some project"'
     output.must == %{Switched to project "some project".\n(Resuming "some task".)}
   end
+  
+  scenario "Resuming a task when one is already running"
+  
+  scenario "Resuming a task in another project by number without switching to it first"
   
 end

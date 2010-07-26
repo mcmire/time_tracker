@@ -60,7 +60,7 @@ describe TimeTracker::Cli do
       TimeTracker.config["current_project_id"].must_not be_nil
       stdout.must == %{Switched to project "some project".}
     end
-    it "pauses any task that's running in the current project before switching to the given one" do
+    it "auto-pauses any task that's running in the current project before switching to the given one" do
       project = TimeTracker::Project.create!(:name => "some project")
       TimeTracker.config.update("current_project_id", project.id.to_s)
       time1 = Time.utc(2010, 1, 1, 0, 0, 0)
@@ -74,7 +74,7 @@ describe TimeTracker::Cli do
       task.must be_paused
       stdout.must == %{(Pausing clock for "some task", at 1m.)\nSwitched to project "another project".}
     end
-    it "resumes a task that had been paused in this project prior to switching to another one" do
+    it "auto-resumes a task that had been paused in this project prior to switching to another one" do
       project1 = TimeTracker::Project.create!(:name => "some project")
       task = project1.tasks.create!(:name => "some task", :stopped_at => Time.now, :paused => true)
       project2 = TimeTracker::Project.create!(:name => "another project")
@@ -83,7 +83,7 @@ describe TimeTracker::Cli do
       task.reload
       task.stopped_at.must == nil
       task.must_not be_paused
-      stdout.must == %{Switched to project "some project".\n(Resuming "some task".)}
+      stdout.must == %{Switched to project "some project".\n(Resuming clock for "some task".)}
     end
   end
   
@@ -113,7 +113,7 @@ describe TimeTracker::Cli do
       task.created_at.must == @time
       stdout.must == %{Started clock for "some task".}
     end
-    it "pauses any task that's currently running before starting a new one" do
+    it "auto-pauses any task that's currently running before starting a new one" do
       project = TimeTracker::Project.create!(:name => "some project")
       TimeTracker.config.update("current_project_id", project.id.to_s)
       time1 = Time.utc(2010, 1, 1, 0, 0, 0)
@@ -134,16 +134,16 @@ describe TimeTracker::Cli do
   end
   
   describe '#stop' do
-    it "bails if no project has been set yet" do
-      expect { @cli.stop }.to raise_error("Try switching to a project first.")
-    end
-    it "bails if no tasks have been created under this project yet" do
-      project = TimeTracker::Project.create!(:name => "some project")
-      TimeTracker.config.update("current_project_id", project.id.to_s)
-      expect { @cli.stop }.to raise_error("You haven't started a task under this project yet.")
-    end
     context "with no argument" do
-      it "stops the last running task" do
+      it "bails if no project has been set yet" do
+        expect { @cli.stop }.to raise_error("Try switching to a project first.")
+      end
+      it "bails if no tasks have been created under this project yet" do
+        project = TimeTracker::Project.create!(:name => "some project")
+        TimeTracker.config.update("current_project_id", project.id.to_s)
+        expect { @cli.stop }.to raise_error("You haven't started working on anything yet.")
+      end
+      it "stops the last running task in the current project" do
         project = TimeTracker::Project.create!(:name => "some project")
         TimeTracker.config.update("current_project_id", project.id.to_s)
         task1 = project.tasks.create!(:name => "some task", :created_at => Time.local(2010, 1, 1, 0, 0, 0))
@@ -160,9 +160,9 @@ describe TimeTracker::Cli do
         project = TimeTracker::Project.create!(:name => "some project")
         TimeTracker.config.update("current_project_id", project.id.to_s)
         project.tasks.create!(:name => "some task", :created_at => Time.now, :stopped_at => Time.now)
-        expect { @cli.stop }.to raise_error("It looks like all the tasks under this project are stopped.")
+        expect { @cli.stop }.to raise_error("It doesn't look like you're working on anything at the moment.")
       end
-      it "resumes the last task under this project that was paused" do
+      it "auto-resumes the last task under this project that was paused" do
         project = TimeTracker::Project.create!(:name => "some project")
         TimeTracker.config.update("current_project_id", project.id.to_s)
         task1 = project.tasks.create!(:name => "some task", :stopped_at => Time.now, :paused => true)
@@ -174,10 +174,18 @@ describe TimeTracker::Cli do
         task1.reload
         task1.stopped_at.must == nil
         task1.must_not be_paused
-        stdout.must == %{Stopped clock for "another task", at 3h:29m.\n(Resuming "some task".)}
+        stdout.must == %{Stopped clock for "another task", at 3h:29m.\n(Resuming clock for "some task".)}
       end
     end
     context "given a string" do
+      it "bails if no project has been set yet" do
+        expect { @cli.stop("some task") }.to raise_error("Try switching to a project first.")
+      end
+      it "bails if no tasks have been created under this project yet" do
+        project = TimeTracker::Project.create!(:name => "some project")
+        TimeTracker.config.update("current_project_id", project.id.to_s)
+        expect { @cli.stop("some task") }.to raise_error("You haven't started working on anything yet.")
+      end
       it "stops the given task by name" do
         project = TimeTracker::Project.create!(:name => "some project")
         TimeTracker.config.update("current_project_id", project.id.to_s)
@@ -194,7 +202,7 @@ describe TimeTracker::Cli do
         project = TimeTracker::Project.create!(:name => "some project")
         TimeTracker.config.update("current_project_id", project.id.to_s)
         project.tasks.create!(:name => "another task")
-        expect { @cli.stop("some task") }.to raise_error("It looks like that task doesn't exist.")
+        expect { @cli.stop("some task") }.to raise_error("I don't think that task exists.")
       end
       it "bails if a task can be found by that name but it's already been stopped" do
         project = TimeTracker::Project.create!(:name => "some project")
@@ -202,7 +210,7 @@ describe TimeTracker::Cli do
         project.tasks.create!(:name => "some task", :stopped_at => Time.now)
         expect { @cli.stop("some task") }.to raise_error("I think you've stopped that task already.")
       end
-      it "resumes the last task under this project that was paused" do
+      it "auto-resumes the last task under this project that was paused" do
         project = TimeTracker::Project.create!(:name => "some project")
         TimeTracker.config.update("current_project_id", project.id.to_s)
         task1 = project.tasks.create!(:name => "some task", :stopped_at => Time.now, :paused => true)
@@ -214,10 +222,18 @@ describe TimeTracker::Cli do
         task1.reload
         task1.stopped_at.must == nil
         task1.must_not be_paused
-        stdout.must == %{Stopped clock for "another task", at 3h:29m.\n(Resuming "some task".)}
+        stdout.must == %{Stopped clock for "another task", at 3h:29m.\n(Resuming clock for "some task".)}
       end
     end
     context "given a number" do
+      it "bails if no project has been set yet" do
+        expect { @cli.stop("1") }.to raise_error("Try switching to a project first.")
+      end
+      it "bails if no tasks have been created under this project yet" do
+        project = TimeTracker::Project.create!(:name => "some project")
+        TimeTracker.config.update("current_project_id", project.id.to_s)
+        expect { @cli.stop("1") }.to raise_error("You haven't started working on anything yet.")
+      end
       it "stops the given task by task number" do
         project = TimeTracker::Project.create!(:name => "some project")
         TimeTracker.config.update("current_project_id", project.id.to_s)
@@ -235,7 +251,7 @@ describe TimeTracker::Cli do
         project = TimeTracker::Project.create!(:name => "some project")
         TimeTracker.config.update("current_project_id", project.id.to_s)
         project.tasks.create!(:name => "another task")
-        expect { @cli.stop("2") }.to raise_error("It looks like that task doesn't exist.")
+        expect { @cli.stop("2") }.to raise_error("I don't think that task exists.")
       end
       it "bails if a task can be found by that number but it's already been stopped" do
         project = TimeTracker::Project.create!(:name => "some project")
@@ -243,7 +259,7 @@ describe TimeTracker::Cli do
         project.tasks.create!(:name => "some task", :number => "1", :stopped_at => Time.now)
         expect { @cli.stop("1") }.to raise_error("I think you've stopped that task already.")
       end
-      it "resumes the last task under this project that was paused" do
+      it "auto-resumes the last task under this project that was paused" do
         project = TimeTracker::Project.create!(:name => "some project")
         TimeTracker.config.update("current_project_id", project.id.to_s)
         task1 = project.tasks.create!(:name => "some task", :number => "1", :stopped_at => Time.now, :paused => true)
@@ -255,7 +271,89 @@ describe TimeTracker::Cli do
         task1.reload
         task1.stopped_at.must == nil
         task1.must_not be_paused
-        stdout.must == %{Stopped clock for "another task", at 3h:29m.\n(Resuming "some task".)}
+        stdout.must == %{Stopped clock for "another task", at 3h:29m.\n(Resuming clock for "some task".)}
+      end
+    end
+  end
+  
+  describe '#resume' do
+    context "with no argument" do
+      it "bails if no tasks exist in this project" do
+        project = TimeTracker::Project.create!(:name => "some project")
+        TimeTracker.config.update("current_project_id", project.id.to_s)
+        expect { @cli.resume }.to raise_error("You haven't started working on anything yet.")
+      end
+      it "bails if all tasks in this project are running" do
+        project = TimeTracker::Project.create!(:name => "some project")
+        TimeTracker.config.update("current_project_id", project.id.to_s)
+        task = project.tasks.create!(:name => "some task")
+        expect { @cli.resume }.to raise_error("Aren't you still working on something?")
+      end
+      it "resumes the last stopped task in the current project" do
+        project = TimeTracker::Project.create!(:name => "some project")
+        TimeTracker.config.update("current_project_id", project.id.to_s)
+        task1 = project.tasks.create!(:name => "some task", :stopped_at => Time.local(2010, 1, 1, 0, 0, 0))
+        task2 = project.tasks.create!(:name => "another task")
+        @cli.resume
+        task1.reload
+        task1.stopped_at.must == nil
+        stdout.must == %{Resumed clock for "some task".}
+      end
+    end
+    context "given a string" do
+      it "bails if no tasks exist in this project" do
+        project = TimeTracker::Project.create!(:name => "some project")
+        TimeTracker.config.update("current_project_id", project.id.to_s)
+        expect { @cli.resume("some task") }.to raise_error("You haven't started working on anything yet.")
+      end
+      it "resumes the given task" do
+        project = TimeTracker::Project.create!(:name => "some project")
+        TimeTracker.config.update("current_project_id", project.id.to_s)
+        task1 = project.tasks.create!(:name => "some task", :stopped_at => Time.local(2010, 1, 1, 0, 0, 0))
+        @cli.resume("some task")
+        task1.reload
+        task1.stopped_at.must == nil
+        stdout.must == %{Resumed clock for "some task".}
+      end
+      it "bails if the given task can't be found" do
+        project = TimeTracker::Project.create!(:name => "some project")
+        TimeTracker.config.update("current_project_id", project.id.to_s)
+        project.tasks.create!(:name => "some task")
+        expect { @cli.resume("another task") }.to raise_error("I don't think that task exists.")
+      end
+      it "bails if the given task is already running" do
+        project = TimeTracker::Project.create!(:name => "some project")
+        TimeTracker.config.update("current_project_id", project.id.to_s)
+        task1 = project.tasks.create!(:name => "some task")
+        expect { @cli.resume("some task") }.to raise_error("Yes, you're still working on that task.")
+      end
+    end
+    context "given a number" do
+      it "bails if no tasks exist in this project" do
+        project = TimeTracker::Project.create!(:name => "some project")
+        TimeTracker.config.update("current_project_id", project.id.to_s)
+        expect { @cli.resume("1") }.to raise_error("You haven't started working on anything yet.")
+      end
+      it "resumes the given task" do
+        project = TimeTracker::Project.create!(:name => "some project")
+        TimeTracker.config.update("current_project_id", project.id.to_s)
+        task1 = project.tasks.create!(:name => "some task", :stopped_at => Time.local(2010, 1, 1, 0, 0, 0))
+        @cli.resume("1")
+        task1.reload
+        task1.stopped_at.must == nil
+        stdout.must == %{Resumed clock for "some task".}
+      end
+      it "bails if the given task can't be found" do
+        project = TimeTracker::Project.create!(:name => "some project")
+        TimeTracker.config.update("current_project_id", project.id.to_s)
+        project.tasks.create!(:name => "some task")
+        expect { @cli.resume("2") }.to raise_error("I don't think that task exists.")
+      end
+      it "bails if the given task is already running" do
+        project = TimeTracker::Project.create!(:name => "some project")
+        TimeTracker.config.update("current_project_id", project.id.to_s)
+        task1 = project.tasks.create!(:name => "some task")
+        expect { @cli.resume("1") }.to raise_error("Yes, you're still working on that task.")
       end
     end
   end
