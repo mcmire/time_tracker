@@ -41,7 +41,7 @@ feature "Managing tasks" do
   scenario "Stopping the last task without starting a task first" do
     tt 'switch "some project"'
     tt 'stop'
-    output.must == %{You haven't started working on anything yet.}
+    output.must == %{It doesn't look like you've started any tasks yet.}
   end
   scenario "Stopping the last task when all the tasks I've started have been stopped since" do
     tt 'switch "some project"'
@@ -57,7 +57,7 @@ feature "Managing tasks" do
   scenario "Stopping a task by name without starting a task first" do
     tt 'switch "some project"'
     tt 'stop "some task"'
-    output.must == %{You haven't started working on anything yet.}
+    output.must == %{It doesn't look like you've started any tasks yet.}
   end
   scenario "Stopping a task by name" do
     tt 'switch "some project"'
@@ -85,7 +85,7 @@ feature "Managing tasks" do
   scenario "Stopping a task by task number without starting a task first" do
     tt 'switch "some project"'
     tt 'stop 1'
-    output.must == %{You haven't started working on anything yet.}
+    output.must == %{It doesn't look like you've started any tasks yet.}
   end
   scenario "Stopping a task by task number" do
     tt 'switch "some project"'
@@ -118,12 +118,12 @@ feature "Managing tasks" do
     tt 'switch "some project"'
     tt 'start "some task"'
     tt 'resume'
-    output.must == %{Aren't you still working on something?}
+    output.must == %{Aren't you still working on a task?}
   end
   scenario "Resuming the last stopped task when no tasks exist" do
     tt 'switch "some project"'
     tt 'resume'
-    output.must == %{You haven't started working on anything yet.}
+    output.must == %{It doesn't look like you've started any tasks yet.}
   end
   scenario "Resuming a task by name" do
     tt 'switch "some project"'
@@ -135,7 +135,7 @@ feature "Managing tasks" do
   scenario "Resuming a task by name when no tasks exist at all" do
     tt 'switch "some project"'
     tt 'resume "some task"'
-    output.must == %{You haven't started working on anything yet.}
+    output.must == %{It doesn't look like you've started any tasks yet.}
   end
   scenario "Resuming a task by name that doesn't exist" do
     tt 'switch "some project"'
@@ -171,7 +171,7 @@ feature "Managing tasks" do
   scenario "Resuming a task by number when no tasks exist" do
     tt 'switch "some project"'
     tt 'resume 1'
-    output.must == %{You haven't started working on anything yet.}
+    output.must == %{It doesn't look like you've started any tasks yet.}
   end
   scenario "Resuming a task by number that doesn't exist" do
     tt 'switch "some project"'

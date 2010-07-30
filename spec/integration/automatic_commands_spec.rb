@@ -11,14 +11,20 @@ feature "Automatic commands" do
     tt 'switch "some project"'
     tt 'start "some task"'
     tt 'switch "another project"'
-    output.must =~ %r{\(Pausing clock for "some task", at \ds\.\)\nSwitched to project "another project"\.}
+    output.lines.must smart_match([
+      /\(Pausing clock for "some task", at \ds\.\)/,
+      %{Switched to project "another project".}
+    ])
   end
   
   scenario "Starting a task while another one is running" do
     tt 'switch "some project"'
     tt 'start "some task"'
     tt 'start "another task"'
-    output.must =~ %r{\(Pausing clock for "some task", at \ds\.\)\nStarted clock for "another task"\.}
+    output.lines.must smart_match([
+      /\(Pausing clock for "some task", at \ds\.\)/,
+      %{Started clock for "another task".}
+    ])
   end
   
   # No tests for stop 1 or stop "another task" here -- they're unit tests though
@@ -27,7 +33,10 @@ feature "Automatic commands" do
     tt 'start "some task"'
     tt 'start "another task"'
     tt 'stop'
-    output.must =~ %r{Stopped clock for "another task", at \ds\.\n\(Resuming clock for "some task"\.\)}
+    output.lines.must smart_match([
+      /Stopped clock for "another task", at \ds\./,
+      %{(Resuming clock for "some task".)}
+    ])
   end
   
   scenario "Starting a task in one project, starting another task in another project, stopping that task, switching back to the other project" do
@@ -38,7 +47,10 @@ feature "Automatic commands" do
     tt 'stop'
     output.must =~ %r{Stopped clock for "another task"}
     tt 'switch "some project"'
-    output.must == %{Switched to project "some project".\n(Resuming clock for "some task".)}
+    output.lines.must smart_match([
+      %{Switched to project "some project".},
+      %{(Resuming clock for "some task".)}
+    ])
   end
   
   # No tests for resume() or resume(1) here -- they're unit tests though
@@ -48,7 +60,10 @@ feature "Automatic commands" do
     tt 'stop'
     tt 'start "another task"'
     tt 'resume "some task"'
-    output.must =~ %r{\(Pausing clock for "another task", at \ds\.\)\nResumed clock for "some task"\.}
+    output.lines.must smart_match([
+      /\(Pausing clock for "another task", at \ds\.\)/,
+      %{Resumed clock for "some task".}
+    ])
   end
   
   scenario "Resuming a task in another project by number without switching to that project first" do
@@ -57,7 +72,24 @@ feature "Automatic commands" do
     tt 'stop'
     tt 'switch "another project"'
     tt 'resume 1'
-    output.must == %{(Switching to project "some project".)\nResumed clock for "some task".}
+    output.lines.must smart_match([
+      %{(Switching to project "some project".)},
+      %{Resumed clock for "some task".}
+    ])
+  end
+  
+  scenario "Resuming a task in another project when one in this project is already running" do
+    tt 'switch "some project"'
+    tt 'start "some task"'
+    tt 'stop'
+    tt 'switch "another project"'
+    tt 'start "another task"'
+    tt 'resume 1'
+    output.lines.must smart_match([
+      /\(Pausing clock for "another task", at \ds\.\)/,
+      %{(Switching to project "some project".)},
+      %{Resumed clock for "some task".}
+    ])
   end
   
 end

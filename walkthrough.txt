@@ -45,15 +45,16 @@ Last 5 tasks:
 (Pausing clock for "add feature Y", at 1h:19m.)
 (Switching to project "pc".)
 Resumed "add feature X".
-> list all
+> list all # also just "all"
 #1. fix bug A [pc] (stopped)
 #4. add feature Z [amtees] (stopped)
 #3. add feature Y [amtees] (paused)
 #2. add feature X [pc] <==
-> list stopped
+> list stopped # also just "stopped"
 Stopped tasks:
-#1. fix bug A [39m]
-#4. add feature Z [3h:53m]
+#1. fix bug A [pc] (39m)
+#4. add feature Z [amtees] (3h:53m)
+#3. add feature Y [amtees] (paused)
 > stop 2
 Stopped clock for "add feature X", at 2h:29m.
 # Won't resume task in amtees until you switch to it
@@ -62,8 +63,16 @@ Switching to project "amtees".
 (Resuming "add feature Y".)
 > stop
 Stopped clock for "add feature Y", at 1d, 3h:01m.
+> completed today # also just "today"
+Today's completed tasks:
+#2. add feature X [pc] (2h:29m)
+#3. add feature Y [amtees] (1d, 3h:01m)
+> completed this week # also just "this week"
+...
+> completed this month # also just "this month"
+...
 > search
-Er.. kind of hard to search without something to search for.
+Kind of hard to search without something to search for.
 > search "add feature"
 Matching tasks:
 #2. add feature Z [3h:53m]

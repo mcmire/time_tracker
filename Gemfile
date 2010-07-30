@@ -13,4 +13,5 @@ group :test do
   gem "ruby2ruby", :require => false
   gem "timecop"
   gem "factory_girl", :require => false
+  gem "term-ansicolor", :require => "term/ansicolor"
 end

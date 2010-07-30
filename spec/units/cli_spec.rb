@@ -142,7 +142,7 @@ describe TimeTracker::Cli do
       it "bails if no tasks have been created under this project yet" do
         project = Factory(:project, :name => "some project")
         TimeTracker.config.update("current_project_id", project.id.to_s)
-        expect { @cli.stop }.to raise_error("You haven't started working on anything yet.")
+        expect { @cli.stop }.to raise_error("It doesn't look like you've started any tasks yet.")
       end
       it "stops the last running task in the current project" do
         project = Factory(:project, :name => "some project")
@@ -185,7 +185,7 @@ describe TimeTracker::Cli do
       it "bails if no tasks have been created under this project yet" do
         project = Factory(:project, :name => "some project")
         TimeTracker.config.update("current_project_id", project.id.to_s)
-        expect { @cli.stop("some task") }.to raise_error("You haven't started working on anything yet.")
+        expect { @cli.stop("some task") }.to raise_error("It doesn't look like you've started any tasks yet.")
       end
       it "stops the given task by name" do
         project = Factory(:project, :name => "some project")
@@ -233,7 +233,7 @@ describe TimeTracker::Cli do
       it "bails if no tasks have been created under this project yet" do
         project = Factory(:project, :name => "some project")
         TimeTracker.config.update("current_project_id", project.id.to_s)
-        expect { @cli.stop("1") }.to raise_error("You haven't started working on anything yet.")
+        expect { @cli.stop("1") }.to raise_error("It doesn't look like you've started any tasks yet.")
       end
       it "stops the given task by task number" do
         project = Factory(:project, :name => "some project")
@@ -278,11 +278,12 @@ describe TimeTracker::Cli do
   end
   
   describe '#resume' do
+    # XXX: Should we really allow this?
     context "with no argument" do
       it "bails if no tasks exist in this project" do
         project = Factory(:project, :name => "some project")
         TimeTracker.config.update("current_project_id", project.id.to_s)
-        expect { @cli.resume }.to raise_error("You haven't started working on anything yet.")
+        expect { @cli.resume }.to raise_error("It doesn't look like you've started any tasks yet.")
       end
       it "bails if all tasks in this project are running" do
         project = Factory(:project, :name => "some project")
@@ -318,7 +319,7 @@ describe TimeTracker::Cli do
       it "bails if no tasks exist at all" do
         project = Factory(:project, :name => "some project")
         TimeTracker.config.update("current_project_id", project.id.to_s)
-        expect { @cli.resume("some task") }.to raise_error("You haven't started working on anything yet.")
+        expect { @cli.resume("some task") }.to raise_error("It doesn't look like you've started any tasks yet.")
       end
       it "resumes the given task" do
         project = Factory(:project, :name => "some project")
@@ -369,7 +370,7 @@ describe TimeTracker::Cli do
       it "bails if no tasks exist at all" do
         project = Factory(:project, :name => "some project")
         TimeTracker.config.update("current_project_id", project.id.to_s)
-        expect { @cli.resume("1") }.to raise_error("You haven't started working on anything yet.")
+        expect { @cli.resume("1") }.to raise_error("It doesn't look like you've started any tasks yet.")
       end
       it "resumes the given task" do
         project = Factory(:project, :name => "some project")
@@ -401,6 +402,21 @@ describe TimeTracker::Cli do
         TimeTracker.config["current_project_id"].must == project1.id.to_s
         stdout.must == %{(Switching to project "some project".)\nResumed clock for "some task".}
       end
+      it "auto-pauses any task that's already running before auto-switching to another project" do
+        project1 = Factory(:project, :name => "some project")
+        task1 = Factory(:task, :project => project1, :name => "some task", :number => "1", :stopped_at => Time.now)
+        project2 = Factory(:project, :name => "another project")
+        task2 = Factory(:task, :project => project2, :name => "another task", :created_at => Time.local(2010, 1, 1, 0, 0, 0))
+        TimeTracker.config.update("current_project_id", project2.id.to_s)
+        stopped_at = Time.local(2010, 1, 1, 3, 29, 0)
+        Timecop.freeze(stopped_at) do
+          @cli.resume("1")
+        end
+        task2.reload
+        task2.stopped_at.must == stopped_at
+        task2.must be_paused
+        stdout.must == %{(Pausing clock for "another task", at 3h:29m.)\n(Switching to project "some project".)\nResumed clock for "some task".}
+      end
       it "auto-pauses any task that's already running before resuming the given task" do
         project = Factory(:project, :name => "some project")
         TimeTracker.config.update("current_project_id", project.id.to_s)
@@ -414,6 +430,274 @@ describe TimeTracker::Cli do
         task2.stopped_at.must == stopped_at
         task2.must be_paused
         stdout.must == %{(Pausing clock for "another task", at 3h:29m.)\nResumed clock for "some task".}
+      end
+    end
+  end
+  
+  describe '#list' do
+    context "lastfew subcommand", :shared => true do
+      it "prints a list of the last 5 tasks, ordered by last updated time" do
+        project1 = Factory(:project, :name => "some project")
+        project2 = Factory(:project, :name => "another project")
+        task1 = Factory(:task,
+          :number => "1",
+          :project => project1,
+          :name => "some task",
+          :created_at => Time.local(2010),
+          :stopped_at => Time.local(2010, 1, 1, 0, 29, 0),
+          :paused => true,
+          :updated_at => Time.local(2010, 1, 2)
+        )
+        task2 = Factory(:task,
+          :number => "2",
+          :project => project2, 
+          :name => "another task", 
+          :created_at => Time.local(2010), 
+          :stopped_at => Time.local(2010, 1, 1, 0, 32, 0), 
+          :paused => true, 
+          :updated_at => Time.local(2010, 1, 1)
+        )
+        task3 = Factory(:task, 
+          :number => "3", 
+          :project => project1, 
+          :name => "yet another task", 
+          :updated_at => Time.local(2010, 1, 3)
+        )
+        @cli.list(*@args)
+        stdout.must == <<-EOT.strip
+Last 5 tasks:
+#3. yet another task [some project] <==
+#1. some task [some project] (paused at 29m)
+#2. another task [another project] (paused at 32m)
+        EOT
+      end
+      it "prints a notice message if no tasks are in the database" do
+        @cli.list(*@args)
+        stdout.must == "It doesn't look like you've started any tasks yet."
+      end
+    end
+    context "lastfew" do
+      before do
+        @args = ["lastfew"]
+      end
+      it_should_behave_like "lastfew subcommand"
+    end
+    context "implied lastfew" do
+      before do
+        @args = []
+      end
+      it_should_behave_like "lastfew subcommand"
+    end
+    context "completed" do
+      it "prints a list of all the stopped tasks, ordered by last updated time" do
+        project1 = Factory(:project, :name => "some project")
+        project2 = Factory(:project, :name => "another project")
+        task1 = Factory(:task,
+          :number => "1",
+          :project => project1,
+          :name => "some task",
+          :created_at => Time.local(2010),
+          :stopped_at => Time.local(2010, 1, 1, 0, 32, 0),
+          :updated_at => Time.local(2010, 1, 1, 3)
+        )
+        task2 = Factory(:task,
+          :number => "2",
+          :project => project2, 
+          :name => "another task", 
+          :created_at => Time.local(2010), 
+          :stopped_at => Time.local(2010, 1, 1, 0, 29, 0),
+          :updated_at => Time.local(2010, 1, 1, 4)
+        )
+        task3 = Factory(:task, 
+          :number => "3", 
+          :project => project1, 
+          :name => "yet another task", 
+          :updated_at => Time.local(2010, 1, 3)
+        )
+        @cli.list("completed")
+        stdout.must == <<-EOT.strip
+Completed tasks:
+#2. another task [another project] (stopped at 29m)
+#1. some task [some project] (stopped at 32m)
+        EOT
+      end
+      it "prints a notice message if no tasks are in the database" do
+        @cli.list("completed")
+        stdout.must == "It doesn't look like you've started any tasks yet."
+      end
+    end
+    context "all" do
+      it "prints a list of all tasks, ordered by last updated time" do
+        project1 = Factory(:project, :name => "project 1")
+        task1 = Factory(:task,
+          :number => "1",
+          :project => project1,
+          :name => "task 1",
+          :created_at => Time.local(2010),
+          :stopped_at => Time.local(2010, 1, 1, 0, 32, 0),
+          :updated_at => Time.local(2010, 1, 1, 3),
+          :paused => true
+        )
+        task2 = Factory(:task,
+          :number => "2",
+          :project => project1, 
+          :name => "task 2", 
+          :created_at => Time.local(2010), 
+          :stopped_at => Time.local(2010, 1, 1, 0, 29, 0),
+          :updated_at => Time.local(2010, 1, 1, 1)
+        )
+        task3 = Factory(:task, 
+          :number => "3", 
+          :project => project1, 
+          :name => "task 3", 
+          :updated_at => Time.local(2010, 1, 1, 4)
+        )
+        project2 = Factory(:project, :name => "project 2")
+        task4 = Factory(:task,
+          :number => "4",
+          :project => project2,
+          :name => "task 4",
+          :created_at => Time.local(2010),
+          :stopped_at => Time.local(2010, 1, 1, 3, 0, 0),
+          :updated_at => Time.local(2010, 1, 1, 10),
+          :paused => true
+        )
+        task5 = Factory(:task,
+          :number => "5",
+          :project => project2, 
+          :name => "task 5", 
+          :created_at => Time.local(2010), 
+          :stopped_at => Time.local(2010, 1, 1, 18, 0, 0),
+          :updated_at => Time.local(2010, 1, 1, 8)
+        )
+        @cli.list("all")
+        stdout.must == <<-EOT.strip
+All tasks:
+#4. task 4 [project 2] (paused at 3h)
+#5. task 5 [project 2] (stopped at 18h)
+#3. task 3 [project 1] <==
+#1. task 1 [project 1] (paused at 32m)
+#2. task 2 [project 1] (stopped at 29m)
+        EOT
+      end
+      it "prints a notice message if no tasks are in the database" do
+        @cli.list("all")
+        stdout.must == "It doesn't look like you've started any tasks yet."
+      end
+    end
+    context "today" do
+      it "prints a list of tasks updated today, ordered by last updated time" do
+        Timecop.freeze(2010, 1, 2)
+        project1 = Factory(:project, :name => "project 1")
+        task1 = Factory(:task,
+          :number => "1",
+          :project => project1,
+          :name => "task 1",
+          :created_at => Time.local(2010),
+          :stopped_at => Time.local(2010, 1, 1, 0, 32, 0),
+          :updated_at => Time.local(2010, 1, 2, 3),
+          :paused => true
+        )
+        task2 = Factory(:task,
+          :number => "2",
+          :project => project1, 
+          :name => "task 2", 
+          :created_at => Time.local(2010), 
+          :stopped_at => Time.local(2010, 1, 1, 0, 29, 0),
+          :updated_at => Time.local(2010, 1, 1, 1)
+        )
+        task3 = Factory(:task, 
+          :number => "3", 
+          :project => project1, 
+          :name => "task 3", 
+          :updated_at => Time.local(2010, 1, 2, 4)
+        )
+        project2 = Factory(:project, :name => "project 2")
+        task4 = Factory(:task,
+          :number => "4",
+          :project => project2,
+          :name => "task 4",
+          :created_at => Time.local(2010),
+          :stopped_at => Time.local(2010, 1, 1, 3, 0, 0),
+          :updated_at => Time.local(2010, 1, 1, 10),
+          :paused => true
+        )
+        task5 = Factory(:task,
+          :number => "5",
+          :project => project2, 
+          :name => "task 5", 
+          :created_at => Time.local(2010), 
+          :stopped_at => Time.local(2010, 1, 1, 18, 0, 0),
+          :updated_at => Time.local(2010, 1, 1, 8)
+        )
+        @cli.list("today")
+        stdout.must == <<-EOT.strip
+Today's tasks:
+#3. task 3 [project 1] <==
+#1. task 1 [project 1] (paused at 32m)
+        EOT
+      end
+      it "prints a notice message if no tasks are in the database" do
+        @cli.list("today")
+        stdout.must == "It doesn't look like you've started any tasks yet."
+      end
+    end
+    context "this week" do
+      it "prints a list of tasks updated this week, ordered by last updated time" do
+        Timecop.freeze(2010, 7, 30)
+        project1 = Factory(:project, :name => "project 1")
+        task1 = Factory(:task,
+          :number => "1",
+          :project => project1,
+          :name => "task 1",
+          :created_at => Time.local(2010),
+          :stopped_at => Time.local(2010, 1, 1, 0, 32, 0),
+          :updated_at => Time.local(2010, 7, 29, 3),
+          :paused => true
+        )
+        task2 = Factory(:task,
+          :number => "2",
+          :project => project1, 
+          :name => "task 2", 
+          :created_at => Time.local(2010), 
+          :stopped_at => Time.local(2010, 1, 1, 0, 29, 0),
+          :updated_at => Time.local(2010, 7, 20, 1)
+        )
+        task3 = Factory(:task, 
+          :number => "3", 
+          :project => project1, 
+          :name => "task 3", 
+          :updated_at => Time.local(2010, 7, 31, 4)
+        )
+        project2 = Factory(:project, :name => "project 2")
+        task4 = Factory(:task,
+          :number => "4",
+          :project => project2,
+          :name => "task 4",
+          :created_at => Time.local(2010),
+          :stopped_at => Time.local(2010, 1, 1, 3, 0, 0),
+          :updated_at => Time.local(2010, 7, 24, 10),
+          :paused => true
+        )
+        task5 = Factory(:task,
+          :number => "5",
+          :project => project2, 
+          :name => "task 5", 
+          :created_at => Time.local(2010), 
+          :stopped_at => Time.local(2010, 1, 1, 18, 0, 0),
+          :updated_at => Time.local(2010, 7, 26, 8)
+        )
+        @cli.list("this week")
+        stdout.must == <<-EOT.strip
+This week's tasks:
+#3. task 3 [project 1] <==
+#1. task 1 [project 1] (paused at 32m)
+#5. task 5 [project 2] (stopped at 18h)
+        EOT
+      end
+      it "prints a notice message if no tasks are in the database" do
+        @cli.list("this week")
+        stdout.must == "It doesn't look like you've started any tasks yet."
       end
     end
   end

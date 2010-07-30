@@ -41,6 +41,8 @@ end
 Spork.each_run do
   Dir[File.dirname(__FILE__) + "/support/**/*.rb"].each {|f| require f }
   
+  Spec::Runner.configuration.include(ExampleMethods)
+  
   Spec::Runner.configuration.before(:each) do
     TimeTracker.reload_config
   end

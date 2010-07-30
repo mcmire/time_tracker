@@ -17,4 +17,5 @@ module TimeTracker
   autoload :Config, 'tt/config'
   autoload :Project, 'tt/project'
   autoload :Task, 'tt/task'
+  autoload :Timestamps, 'tt/timestamps'
 end

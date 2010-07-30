@@ -1,8 +1,10 @@
+require 'yaml'
 require 'fileutils'
 
 module IntegrationExampleMethods
   extend self
   
+=begin
   # Forks a ruby interpreter with same type as ourself.
   # juby will fork jruby, ruby will fork ruby etc.
   # Stolen from RSpec
@@ -26,6 +28,7 @@ module IntegrationExampleMethods
     @stderr = IO.read(stderr_file.path)
     @exit_code = $?.to_i
   end
+=end
   
   # Stolen from RSpec
   def working_dir
@@ -65,12 +68,15 @@ module IntegrationExampleMethods
   end
   
   def parse_args(args)
+    puts "> tt #{args}".bold.yellow if Ribeye.debug?
     args_parser_path = File.expand_path(File.dirname(__FILE__) + '/../support/args_parser.rb')
     `ruby #{args_parser_path} #{args}`
     YAML.load_file File.join(working_dir, "argv.yml")
   end
   
   def capture_output
+    old_stdout = $stdout
+    old_stderr = $stderr
     thr = Thread.new do
       begin
         $stdout = File.open(File.join(working_dir, "stdout.txt"), "w")
@@ -82,6 +88,7 @@ module IntegrationExampleMethods
         ##STDOUT.puts "Got a: #{e.class} - #{e.message}"
         # do nothing
       ensure
+        # write to the files
         $stdout.close
         $stderr.close
       end
@@ -90,5 +97,45 @@ module IntegrationExampleMethods
     thr.join
     @stdout = File.read(File.join(working_dir, "stdout.txt"))
     @stderr = File.read(File.join(working_dir, "stderr.txt"))
+  ensure
+    old_stdout.write(@stdout) if Ribeye.debug?
+    old_stderr.write(@stderr) if Ribeye.debug?
+    $stdout = old_stdout
+    $stderr = old_stderr
+  end
+  
+  def tt(args)
+    freeze_time_and_skip_ahead do
+      args = parse_args(args)
+      capture_output do
+        TimeTracker::Cli.start(args)
+      end
+    end
+  end
+  
+  def freeze_time_and_skip_ahead
+    ##return yield unless @time_travel
+    # If we've already mocked Time with Timecop, or if we've changed it since
+    # the last time 'tt' was called, then start with that mocked time.
+    @frozen_time = Time.mock_time if Time.mock_time && Time.mock_time != @last_mock_time
+    @frozen_time ||= Time.local(2010, 1, 1, 0, 0, 0)
+    Timecop.freeze(@frozen_time)
+    ret = yield
+    # Next time 'tt' is run, pretend that 2 seconds have passed.
+    # This is so that events don't happen too quickly and ensures that if
+    # updated_at for a task is set, it's never the same time as what we
+    # froze Time.now at just now.
+    @frozen_time += 2
+    # Store the value of Time.now as we've mocked it with Timecop so we can
+    # verify whether Time.now has been re-mocked the next call to 'tt'.
+    @last_mock_time = Time.mock_time
+    return ret
+  end
+  
+  def simulating_slower_execution
+    @time_travel = true
+    ret = yield
+    @time_travel = false
+    return ret
   end
 end

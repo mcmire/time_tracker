@@ -89,3 +89,9 @@ class Array
     end
   end
 end
+
+class String
+  def lines
+    split(/\n/)
+  end
+end

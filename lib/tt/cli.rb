@@ -74,7 +74,7 @@ module TimeTracker
     def stop(task_name=:last)
       curr_proj = TimeTracker::Project.find TimeTracker.config["current_project_id"]
       die "Try switching to a project first." unless curr_proj
-      die "You haven't started working on anything yet." if curr_proj.tasks.empty?
+      die "It doesn't look like you've started any tasks yet." if curr_proj.tasks.empty?
       if task_name == :last
         task = curr_proj.tasks.running.last
         die "It doesn't look like you're working on anything at the moment." unless task
@@ -98,13 +98,19 @@ module TimeTracker
     desc "resume [TASK]", "Resumes the clock for a task, or the last task if no task given"
     def resume(task_name=:last)
       curr_proj = TimeTracker::Project.find TimeTracker.config["current_project_id"]
-      die "You haven't started working on anything yet." unless TimeTracker::Task.exists?
+      die "It doesn't look like you've started any tasks yet." unless TimeTracker::Task.exists?
+      already_paused = false
       if task_name == :last
         task = curr_proj.tasks.stopped.last
         die "Aren't you still working on something?" unless task
       elsif task_name =~ /^\d+$/
         if task = TimeTracker::Task.first(:number => task_name.to_i)        
           if task.project_id != curr_proj.id
+            if running_task = curr_proj.tasks.running.last
+              running_task.pause!
+              @stdout.puts %{(Pausing clock for "#{running_task.name}", at #{running_task.running_time}.)}
+              already_paused = true
+            end
             curr_proj = task.project
             TimeTracker.config.update("current_project_id", curr_proj.id.to_s)
             @stdout.puts %{(Switching to project "#{curr_proj.name}".)}
@@ -130,7 +136,7 @@ module TimeTracker
         end
         die "Yes, you're still working on that task." if task.running?
       end
-      if running_task = curr_proj.tasks.running.last
+      if running_task = curr_proj.tasks.running.last and !already_paused
         running_task.pause!
         @stdout.puts %{(Pausing clock for "#{running_task.name}", at #{running_task.running_time}.)}
       end
@@ -139,8 +145,39 @@ module TimeTracker
     end
     
     desc "list TYPE", "List tasks"
-    def list(type="lastfew")
-      
+    def list(*args)
+      type = args.join(" ")
+      type = "lastfew" if type.empty?
+      case type
+      when "lastfew"
+        tasks = TimeTracker::Task.limit(5)
+        header = "Last 5 tasks:"
+      when "completed"
+        tasks = TimeTracker::Task.stopped
+        header = "Completed tasks:"
+      when "all"
+        header = "All tasks:"
+        tasks = TimeTracker::Task
+      when "today"
+        tasks = TimeTracker::Task.updated_today
+        header = "Today's tasks:"
+      when "this week"
+        tasks = TimeTracker::Task.updated_this_week
+        header = "This week's tasks:"
+      #else
+      #  raise ArgumentError
+      end
+      unless TimeTracker::Task.exists?
+        @stdout.puts "It doesn't look like you've started any tasks yet."
+        return
+      end
+      tasks = tasks.sort(:updated_at.desc, :id.desc)
+      @stdout.puts(header)
+      for task in tasks
+        info = task.info
+        info += " <==" if task.running?
+        @stdout.puts(info)
+      end
     end
     
     desc "search QUERY", "Search for a task"
@@ -148,10 +185,12 @@ module TimeTracker
       
     end
     
-    desc "summary PERIOD", "Display a summary of activity within a period"
-    def summary(*period)
-      period = period.join(" ")
-      
+    desc "clear", "Clears everything"
+    def clear
+      TimeTracker::Project.delete_all
+      TimeTracker::Task.delete_all
+      TimeTracker::Config.collection.drop
+      @stdout.puts "Everything cleared."
     end
   end
 end
