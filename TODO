@@ -1,0 +1,6 @@
+* Time periods
+* Search for pre-existing task before adding one
+* Search command
+* Integrate with Pivotal
+  * Is there already a command-line version of Pivotal we can borrow code from?
+  * Don't auto-create a task before starting it since creating it would upload it to Pivotal

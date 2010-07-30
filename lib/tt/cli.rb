@@ -2,16 +2,25 @@ require 'thor'
 
 module TimeTracker
   class Cli < Thor
+    # Is this needed anymore?
     namespace :default
     
-    attr_accessor :stdout, :stderr
-    
-    def self.build(stdout, stderr)
-      cli = new()
-      cli.stdout = stdout
-      cli.stderr = stderr
-      cli
+    class << self
+      def build(stdout, stderr)
+        cli = new()
+        cli.stdout = stdout
+        cli.stderr = stderr
+        cli
+      end
+      
+    protected
+      # Override Thor's handle_argument_error method to give a nicer message
+      def handle_argument_error(task, error)
+        raise Thor::InvocationError, "Oops! That isn't the right way to call #{task.name.inspect}. Try this instead: #{self.banner(task)}."
+      end
     end
+    
+    attr_accessor :stdout, :stderr
     
     def initialize(*args)
       @stdout = $stdout
@@ -34,6 +43,16 @@ module TimeTracker
         else
           @stderr.puts msg
           exit 1
+        end
+      end
+      
+      def raise_invalid_argument_error
+        # We have to do this mad hackery b/c thor doesn't let us get this info straightforwardly
+        if thor_task = self.instance_variable_get("@_initializer")[2][:current_task]
+          self.class.send(:handle_argument_error, thor_task, nil)
+        else
+          # okay, must be running a unit test.
+          raise ArgumentError
         end
       end
     end
@@ -144,7 +163,7 @@ module TimeTracker
       @stdout.puts %{Resumed clock for "#{task.name}".}
     end
     
-    desc "list TYPE", "List tasks"
+    desc "list {lastfew|completed|all|today|this week}", "List tasks"
     def list(*args)
       type = args.join(" ")
       type = "lastfew" if type.empty?
@@ -164,8 +183,8 @@ module TimeTracker
       when "this week"
         tasks = TimeTracker::Task.updated_this_week
         header = "This week's tasks:"
-      #else
-      #  raise ArgumentError
+      else
+        raise_invalid_argument_error
       end
       unless TimeTracker::Task.exists?
         @stdout.puts "It doesn't look like you've started any tasks yet."

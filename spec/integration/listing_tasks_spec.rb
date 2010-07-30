@@ -145,9 +145,8 @@ feature "Listing tasks" do
   end
   #scenario "Listing today's completed tasks with 'this week' when no tasks created yet"
   
-  # TODO: Fix when we upgrade to Thor 0.14
-  #scenario "Unknown subcommand" do
-  #  tt 'list yourmom'
-  #  output.must == "Task called incorrectly. Call this task as: tt list {lastfew|completed|all|today|this week}."
-  #end
+  scenario "Unknown subcommand" do
+    tt 'list yourmom'
+    output.must =~ /Oops! That isn't the right way to call "list"/
+  end
 end

@@ -700,6 +700,11 @@ This week's tasks:
         stdout.must == "It doesn't look like you've started any tasks yet."
       end
     end
+    context "unknown command" do
+      it "fails with an ArgumentError" do
+        expect { @cli.list("yourmom") }.to raise_error(ArgumentError)
+      end
+    end
   end
   
 end
