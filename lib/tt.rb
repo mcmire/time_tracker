@@ -1,4 +1,15 @@
-require 'tt/ruby_ext'
+# Note that this file doesn't require any of the gems tt needs.
+# Look in bin/tt or spec/spec_helper for that.
+
+require 'tt/mongo_mapper'
+require 'tt/extensions/ruby'
+require 'tt/columnator'
+
+require 'tt/cli'
+require 'tt/config'
+require 'tt/project'
+require 'tt/task'
+require 'tt/time_period'
 
 module TimeTracker
   class << self
@@ -13,9 +24,4 @@ module TimeTracker
       @config = TimeTracker::Config.find()
     end
   end
-  autoload :Cli, 'tt/cli'
-  autoload :Config, 'tt/config'
-  autoload :Project, 'tt/project'
-  autoload :Task, 'tt/task'
-  autoload :Timestamps, 'tt/timestamps'
 end

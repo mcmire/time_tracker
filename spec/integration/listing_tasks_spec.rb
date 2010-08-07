@@ -13,10 +13,13 @@ feature "Listing tasks" do
     tt 'start "yet another task"'
     tt 'list lastfew'
     output.lines.must smart_match([
-      "Last 5 tasks:",
-      "#3. yet another task [some project] <==",
-      /#1\. some task \[some project\] \(stopped at \ds\)/,
-      /#2\. another task \[another project\] \(paused at \ds\)/
+      "",
+      "Latest tasks:",
+      "",
+      "Today, 12:12am -         yet another task [#3] (in some project) <==",
+      "Today, 12:08am - 12:10am some task [#1] (in some project)",
+      "Today, 12:06am - 12:08am another task [#2] (in another project)",
+      "Today, 12:02am - 12:04am some task [#1] (in some project)"
     ])
   end
   scenario "Listing last few tasks with just 'list'" do
@@ -29,19 +32,22 @@ feature "Listing tasks" do
     tt 'start "yet another task"'
     tt 'list'
     output.lines.must smart_match([
-      "Last 5 tasks:",
-      "#3. yet another task [some project] <==",
-      /#1\. some task \[some project\] \(stopped at \ds\)/,
-      /#2\. another task \[another project\] \(paused at \ds\)/
+      "",
+      "Latest tasks:",
+      "",
+      "Today, 12:12am -         yet another task [#3] (in some project) <==",
+      "Today, 12:08am - 12:10am some task [#1] (in some project)",
+      "Today, 12:06am - 12:08am another task [#2] (in another project)",
+      "Today, 12:02am - 12:04am some task [#1] (in some project)"
     ])
   end
   scenario "Listing last few tasks with 'list lastfew' when no tasks created yet" do
     tt 'list lastfew'
-    output.must == "It doesn't look like you've started any tasks yet."
+    output.must == "It doesn't look like you've started any tasks yet.\n"
   end
   scenario "Listing last few tasks with 'list' when no tasks created yet" do
     tt 'list'
-    output.must == "It doesn't look like you've started any tasks yet."
+    output.must == "It doesn't look like you've started any tasks yet.\n"
   end
   
   scenario "Listing stopped tasks with 'list completed'" do
@@ -53,15 +59,18 @@ feature "Listing tasks" do
     tt 'start "yet another task"'
     tt 'list completed'
     output.lines.must smart_match([
+      "",
       "Completed tasks:",
-      /#2\. another task \[some project\] \(stopped at \ds\)/,
-      /#1\. some task \[some project\] \(stopped at \ds\)/
+      "",
+      "Today:",
+      "  12:06am - 12:08am another task [#2] (in some project)",
+      "  12:02am - 12:04am some task [#1] (in some project)"
     ])
   end
   #scenario "Listing stopped tasks with just 'stopped'"
   scenario "Listing stopped tasks with 'list completed' when no tasks created yet" do
     tt 'list completed'
-    output.must == "It doesn't look like you've started any tasks yet."
+    output.must == "It doesn't look like you've started any tasks yet.\n"
   end
   #scenario "Listing stopped tasks with 'stopped' when no tasks created yet"
   
@@ -80,68 +89,92 @@ feature "Listing tasks" do
     tt 'resume 1'
     tt 'list all'
     output.lines.must smart_match([
+      "",
       "All tasks:",
-      "#1. task 1 [project 1] <==",
-      /#6\. task 6 \[project 2\] \(paused at \ds\)/,
-      /#5\. task 5 \[project 2\] \(stopped at \ds\)/,
-      /#4\. task 4 \[project 2\] \(paused at \ds\)/,
-      /#2\. task 2 \[project 1\] \(paused at \ds\)/,
-      /#3\. task 3 \[project 1\] \(stopped at \ds\)/,
-      /#1\. task 1 \[project 1\] \(paused at \ds\)/
+      "",
+      "Today:",
+      "  12:02am -         task 1 [#1] (in project 1) <==",
+      "  12:20am - 12:22am task 6 [#6] (in project 2)",
+      "  12:18am - 12:20am task 4 [#4] (in project 2)",
+      "  12:16am - 12:18am task 5 [#5] (in project 2)",
+      "  12:14am - 12:16am task 4 [#4] (in project 2)",
+      "  12:10am - 12:12am task 2 [#2] (in project 1)",
+      "  12:08am - 12:10am task 1 [#1] (in project 1)",
+      "  12:06am - 12:08am task 3 [#3] (in project 1)",
+      "  12:04am - 12:06am task 2 [#2] (in project 1)",
+      "  12:02am - 12:04am task 1 [#1] (in project 1)"
     ])
   end
   #scenario "Listing all tasks with 'all'"
   scenario "Listing all tasks with 'list all' when no tasks created yet" do
     tt 'list all'
-    output.must == "It doesn't look like you've started any tasks yet."
+    output.must == "It doesn't look like you've started any tasks yet.\n"
   end
   #scenario "Listing all tasks with 'all' when no tasks created yet"
   
   scenario "Listing today's completed tasks with 'list today'" do
-    tt 'switch "project 1"'
-    Timecop.freeze Time.local(2010, 1, 1)
-    tt 'start "task 1"'
-    tt 'stop'
-    tt 'start "task 2"'
-    tt 'stop'
-    Timecop.freeze Time.local(2010, 1, 2)
-    tt 'start "task 3"'
-    tt 'start "task 4"'
-    tt 'list today'
+    with_manual_time_override do
+      tt 'switch "work project"'
+      Timecop.freeze Time.zone.local(2010, 1, 1, 0, 0, 0)
+      tt 'start "create report for accounting"'
+      Timecop.freeze Time.zone.local(2010, 1, 1, 1, 0, 0)
+      tt 'start "add notes feature in admin"'
+      Timecop.freeze Time.zone.local(2010, 1, 1, 5, 0, 0)
+      tt 'stop'
+      Timecop.freeze Time.zone.local(2010, 1, 1, 6, 0, 0)
+      tt 'switch "personal project"'
+      tt 'start "write documentation"'
+      Timecop.freeze Time.zone.local(2010, 1, 1, 7, 10, 0)
+      tt 'resume 1'
+      Timecop.freeze Time.zone.local(2010, 1, 1, 15, 0, 0)
+      tt 'stop'
+      tt 'list today'
+    end
     output.lines.must smart_match([
+      "",
       "Today's tasks:",
-      "#4. task 4 [project 1] <==",
-      /#3\. task 3 \[project 1\] \(paused at \ds\)/
+      "",
+      " 7:10am - 3:00pm create report for accounting [#1] (in work project)",
+      " 6:00am - 7:10am write documentation [#3] (in personal project)",
+      " 5:00am - 6:00am create report for accounting [#1] (in work project)",
+      " 1:00am - 5:00am add notes feature in admin [#2] (in work project)",
+      "12:00am - 1:00am create report for accounting [#1] (in work project)"
     ])
   end
   #scenario "Listing today's completed tasks with just 'today'"
   scenario "Listing today's completed tasks with 'list today' when no tasks created yet" do
     tt 'list today'
-    output.must == "It doesn't look like you've started any tasks yet."
+    output.must == "It doesn't look like you've started any tasks yet.\n"
   end
   #scenario "Listing today's completed tasks with 'completed' when no tasks created yet"
   
   scenario "Listing this week's completed tasks with 'list this week'" do
-    tt 'switch "project 1"'
-    Timecop.freeze Time.local(2010, 1, 1)
-    tt 'start "task 1"'
-    tt 'stop'
-    tt 'start "task 2"'
-    tt 'stop'
-    Timecop.freeze Time.local(2010, 1, 7)
-    tt 'start "task 3"'
-    tt 'start "task 4"'
-    tt 'list this week'
+    with_manual_time_override do
+      tt 'switch "project 1"'
+      Timecop.freeze Time.zone.local(2010, 1, 1)
+      tt 'start "task 1"'
+      tt 'stop'
+      tt 'start "task 2"'
+      tt 'stop'
+      Timecop.freeze Time.zone.local(2010, 1, 7, 0, 0, 0)
+      tt 'start "task 3"'
+      Timecop.freeze Time.zone.local(2010, 1, 7, 1, 0, 0)
+      tt 'start "task 4"'
+      tt 'list this week'
+    end
     output.lines.must smart_match([
+      "",
       "This week's tasks:",
-      "#4. task 4 [project 1] <==",
-      /#3\. task 3 \[project 1\] \(paused at \ds\)/
+      "",
+      "Today:",
+      "  12:00am - 1:00am task 3 [#3] (in project 1)",
+      "   1:00am -        task 4 [#4] (in project 1) <=="
     ])
   end
   #scenario "Listing today's completed tasks with just 'this week'"
   scenario "Listing this week's completed tasks with 'list this week' when no tasks created yet" do
     tt 'list this week'
-    output.must == "It doesn't look like you've started any tasks yet."
+    output.must == "It doesn't look like you've started any tasks yet.\n"
   end
   #scenario "Listing today's completed tasks with 'this week' when no tasks created yet"
   

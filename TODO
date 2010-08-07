@@ -1,6 +1,17 @@
-* Time periods
-* Search for pre-existing task before adding one
+* Attach a new time period to a task when stopping it
+* right now resuming after stopping is no longer allowed.
+  should it?
+  if not, maybe we don't allow that and rename stop to finish,
+  or rename start to open, stop to close, resume to reopen?
+* start 1, start 2, start 3, stop should resume 2 not 1
+* list today's task by :ended_at.asc?
+* Don't allow time periods to cross days
+* Left-align name of task in listings
+* REPL
 * Search command
+* Up-vote a task (add a mention)
+* Make an 'add' task that searches before adding a new one and suggests pre-existing tasks to up-vote instead
+* Don't auto-create a task before starting it since creating it would upload it to Pivotal
 * Integrate with Pivotal
   * Is there already a command-line version of Pivotal we can borrow code from?
-  * Don't auto-create a task before starting it since creating it would upload it to Pivotal
+  

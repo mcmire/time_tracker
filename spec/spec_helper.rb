@@ -6,13 +6,20 @@ $:.unshift(lib_dir)
 Spork.prefork do
   require 'pp'
 
-  require 'spec'
-  require 'spec/autorun'
-
-  require 'bundler'
+  begin
+    require 'bundler'
+  rescue LoadError => e
+    $stderr.puts "tt: Error loading Bundler: #{e}"
+    require 'rubygems'
+    require 'bundler'
+  end
   Bundler.setup
   Bundler.require(:default, :test)
 
+  #require 'spec'
+  require 'spec/autorun'
+
+  # Copied from Thor specs
   Kernel.module_eval do
     alias_method :must, :should
     alias_method :must_not, :should_not
@@ -34,14 +41,26 @@ Spork.prefork do
     end
   end
   
-  require 'tt'
-  require 'tt/mongo_mapper'
-end
-
-Spork.each_run do
+  #require 'mongo_mapper'
+  #require 'thor'
+  #require "parse_tree"
+  #require "parse_tree_extensions"
+  #require "ruby2ruby"
+  #require "ruby-debug"
+  
   Dir[File.dirname(__FILE__) + "/support/**/*.rb"].each {|f| require f }
   
   Spec::Runner.configuration.include(ExampleMethods)
+#end
+
+#Spork.each_run do
+  
+end
+
+Spork.each_run do
+  require 'tt'
+  
+  require 'factory_girl'
   
   Spec::Runner.configuration.before(:each) do
     TimeTracker.reload_config

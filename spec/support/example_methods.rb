@@ -14,7 +14,7 @@ Spec::Matchers.define :smart_match do |expected|
     end
   end
   failure_message_for_should do |actual|
-    "expected\n#{expected.pretty_inspect}\nto smart match\n#{actual.inspect}"
+    "expected\n#{expected.pretty_inspect}to smart match\n#{actual.pretty_inspect}"
   end
   failure_message_for_should_not do |actual|
     "expected\n#{expected.inspect}\nto not be smart matched"

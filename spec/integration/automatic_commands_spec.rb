@@ -12,7 +12,7 @@ feature "Automatic commands" do
     tt 'start "some task"'
     tt 'switch "another project"'
     output.lines.must smart_match([
-      /\(Pausing clock for "some task", at \ds\.\)/,
+      /\(Pausing clock for "some task", at \dm\.\)/,
       %{Switched to project "another project".}
     ])
   end
@@ -22,7 +22,7 @@ feature "Automatic commands" do
     tt 'start "some task"'
     tt 'start "another task"'
     output.lines.must smart_match([
-      /\(Pausing clock for "some task", at \ds\.\)/,
+      /\(Pausing clock for "some task", at \dm\.\)/,
       %{Started clock for "another task".}
     ])
   end
@@ -34,7 +34,7 @@ feature "Automatic commands" do
     tt 'start "another task"'
     tt 'stop'
     output.lines.must smart_match([
-      /Stopped clock for "another task", at \ds\./,
+      /Stopped clock for "another task", at \dm\./,
       %{(Resuming clock for "some task".)}
     ])
   end
@@ -61,7 +61,7 @@ feature "Automatic commands" do
     tt 'start "another task"'
     tt 'resume "some task"'
     output.lines.must smart_match([
-      /\(Pausing clock for "another task", at \ds\.\)/,
+      /\(Pausing clock for "another task", at \dm\.\)/,
       %{Resumed clock for "some task".}
     ])
   end
@@ -86,7 +86,7 @@ feature "Automatic commands" do
     tt 'start "another task"'
     tt 'resume 1'
     output.lines.must smart_match([
-      /\(Pausing clock for "another task", at \ds\.\)/,
+      /\(Pausing clock for "another task", at \dm\.\)/,
       %{(Switching to project "some project".)},
       %{Resumed clock for "some task".}
     ])

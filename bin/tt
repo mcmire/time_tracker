@@ -6,6 +6,17 @@
 
 $:.unshift File.dirname(__FILE__) + '/../lib'
 $USE_TEST_DB = (ENV["TEST"] == "1")
+
+begin
+  require 'bundler'
+rescue LoadError => e
+  $stderr.puts "tt: Error loading Bundler: #{e}"
+  require 'rubygems'
+  require 'bundler'
+end
+Bundler.setup
+Bundler.require(:default)
+
 require 'tt'
 
 # We set this so that thor does not include namespaces in the help/usage text

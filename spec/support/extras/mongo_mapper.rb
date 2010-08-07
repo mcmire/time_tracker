@@ -1,4 +1,4 @@
-#require 'mongo_mapper'
+require 'tt/mongo_mapper'
 
 module DatabaseCleaner
   def self.clean
@@ -9,6 +9,7 @@ module DatabaseCleaner
   end
 end
 
+Spec::Runner.configuration.ignore_backtrace_patterns %r{gems/mongo_mapper-.+?/lib/mongo_mapper}
 Spec::Runner.configuration.before(:each) do
   DatabaseCleaner.clean
 end

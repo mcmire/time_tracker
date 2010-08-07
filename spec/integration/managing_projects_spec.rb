@@ -9,10 +9,10 @@ feature "Managing projects" do
   
   scenario "Switching to a project for the first time" do
     tt 'switch "some project"'
-    output.must == %{Switched to project "some project".}
+    output.must == %{Switched to project "some project".\n}
   end
   scenario "Running 'tt switch' without giving a project name" do
     tt 'switch'
-    output.must == %{Right, but which project do you want to switch to?}
+    output.must == %{Right, but which project do you want to switch to?\n}
   end
 end

@@ -1,5 +1,3 @@
-require 'thor'
-
 module TimeTracker
   class Cli < Thor
     # Is this needed anymore?
@@ -63,7 +61,7 @@ module TimeTracker
       if curr_proj = TimeTracker::Project.find(TimeTracker.config["current_project_id"]) and
       running_task = curr_proj.tasks.running.last
         running_task.pause!
-        @stdout.puts %{(Pausing clock for "#{running_task.name}", at #{running_task.running_time}.)}
+        @stdout.puts %{(Pausing clock for "#{running_task.name}", at #{running_task.total_running_time}.)}
       end
       proj = TimeTracker::Project.first(:name => project_name) || TimeTracker::Project.create!(:name => project_name)
       TimeTracker.config.update("current_project_id", proj.id)
@@ -79,11 +77,12 @@ module TimeTracker
       die "Right, but what's the name of your task?" unless task_name
       curr_proj = TimeTracker::Project.find(TimeTracker.config["current_project_id"])
       die "Try switching to a project first." unless curr_proj
-      task = curr_proj.tasks.first(:name => task_name) || curr_proj.tasks.build(:name => task_name)
-      die "Aren't you already working on that task?" if task.running?
+      task = curr_proj.tasks.first(:name => task_name)
+      die "Aren't you already working on that task?" if task && task.running?
+      task ||= curr_proj.tasks.build(:name => task_name)
       if running_task = curr_proj.tasks.running.last
         running_task.pause!
-        @stdout.puts %{(Pausing clock for "#{running_task.name}", at #{running_task.running_time}.)}
+        @stdout.puts %{(Pausing clock for "#{running_task.name}", at #{running_task.total_running_time}.)}
       end
       task.save!
       @stdout.puts %{Started clock for "#{task.name}".}
@@ -107,7 +106,7 @@ module TimeTracker
         die "I think you've stopped that task already." if task.stopped?
       end
       task.stop!
-      @stdout.puts %{Stopped clock for "#{task.name}", at #{task.running_time}.}
+      @stdout.puts %{Stopped clock for "#{task.name}", at #{task.total_running_time}.}
       if paused_task = curr_proj.tasks.paused.last
         paused_task.resume!
         @stdout.puts %{(Resuming clock for "#{paused_task.name}".)}
@@ -120,14 +119,15 @@ module TimeTracker
       die "It doesn't look like you've started any tasks yet." unless TimeTracker::Task.exists?
       already_paused = false
       if task_name == :last
-        task = curr_proj.tasks.stopped.last
-        die "Aren't you still working on something?" unless task
+        task = curr_proj.tasks.paused.last
+        # BUG: Maybe this should only show if last task is running?
+        die "Aren't you still working on a task?" unless task
       elsif task_name =~ /^\d+$/
         if task = TimeTracker::Task.first(:number => task_name.to_i)        
           if task.project_id != curr_proj.id
             if running_task = curr_proj.tasks.running.last
               running_task.pause!
-              @stdout.puts %{(Pausing clock for "#{running_task.name}", at #{running_task.running_time}.)}
+              @stdout.puts %{(Pausing clock for "#{running_task.name}", at #{running_task.total_running_time}.)}
               already_paused = true
             end
             curr_proj = task.project
@@ -141,7 +141,7 @@ module TimeTracker
       else
         task = curr_proj.tasks.first(:name => task_name)
         unless task
-          tasks = TimeTracker::Task.stopped.where(:name => task_name, :project_id.ne => curr_proj.id)
+          tasks = TimeTracker::Task.paused.where(:name => task_name, :project_id.ne => curr_proj.id)
           if tasks.any?
             # Might be better to do this w/ native Ruby driver
             # See <http://groups.google.com/group/mongomapper/browse_thread/thread/1a5a5b548123e07e/0c65f3e770e04f29>
@@ -157,46 +157,87 @@ module TimeTracker
       end
       if running_task = curr_proj.tasks.running.last and !already_paused
         running_task.pause!
-        @stdout.puts %{(Pausing clock for "#{running_task.name}", at #{running_task.running_time}.)}
+        @stdout.puts %{(Pausing clock for "#{running_task.name}", at #{running_task.total_running_time}.)}
       end
       task.resume!
       @stdout.puts %{Resumed clock for "#{task.name}".}
     end
-    
-    desc "list {lastfew|completed|all|today|this week}", "List tasks"
+
+    LIST_SUBCOMMANDS = ["lastfew", "completed", "all", "today", "this week"]
+    desc "list {#{LIST_SUBCOMMANDS.join("|")}}", "List tasks"
     def list(*args)
       type = args.join(" ")
       type = "lastfew" if type.empty?
-      case type
-      when "lastfew"
-        tasks = TimeTracker::Task.limit(5)
-        header = "Last 5 tasks:"
-      when "completed"
-        tasks = TimeTracker::Task.stopped
-        header = "Completed tasks:"
-      when "all"
-        header = "All tasks:"
-        tasks = TimeTracker::Task
-      when "today"
-        tasks = TimeTracker::Task.updated_today
-        header = "Today's tasks:"
-      when "this week"
-        tasks = TimeTracker::Task.updated_this_week
-        header = "This week's tasks:"
-      else
-        raise_invalid_argument_error
-      end
+      
+      raise_invalid_argument_error unless LIST_SUBCOMMANDS.include?(type)
+      
       unless TimeTracker::Task.exists?
         @stdout.puts "It doesn't look like you've started any tasks yet."
         return
       end
-      tasks = tasks.sort(:updated_at.desc, :id.desc)
-      @stdout.puts(header)
-      for task in tasks
-        info = task.info
-        info += " <==" if task.running?
-        @stdout.puts(info)
+      
+      records = []
+      case type
+      when "lastfew"
+        records = TimeTracker::TimePeriod.limit(5).sort(:ended_at.desc).to_a
+        header = "Latest tasks:"
+      when "completed"
+        records = TimeTracker::TimePeriod.sort(:ended_at.desc).to_a
+        header = "Completed tasks:"
+      when "all"
+        records = TimeTracker::TimePeriod.sort(:ended_at.desc).to_a
+        header = "All tasks:"
+      when "today"
+        records = TimeTracker::TimePeriod.ended_today.sort(:ended_at.desc).to_a
+        header = "Today's tasks:"
+      when "this week"
+        records = TimeTracker::TimePeriod.ended_this_week.sort(:ended_at).to_a
+        header = "This week's tasks:"
       end
+      
+      unless type == "completed"
+        if task = TimeTracker::Task.running.last
+          records.pop if type == "lastfew" && records.size == 5
+          if type == "this week"
+            records << task
+          else
+            records.unshift(task)
+          end
+        end
+      end
+      
+      raise "Nothing to print?!" if records.empty?
+      include_date = (type == "lastfew")
+      record_infos = records.map {|record| record.info(:include_date => include_date) }
+      if include_date
+        alignments = [:right, :none, :right, :none, :right, :none, :right, :none, :none]
+      else
+        alignments = [:right, :none, :right, :none, :none]
+      end
+      lines = Columnator.columnate(record_infos, :alignments => alignments, :write_to => :array)
+      @stdout.puts
+      @stdout.puts(header)
+      @stdout.puts
+      if type == "lastfew" || type == "today"
+        for line in lines
+          @stdout.puts(line)
+        end
+      else
+        grouped_lines = ActiveSupport::OrderedHash.new
+        lines.each_with_index do |line, i| 
+          record = records[i]
+          date = (TimeTracker::Task === record ? record.created_at : record.ended_at).to_date
+          (grouped_lines[date] ||= []) << [record, line]
+        end
+        grouped_lines.each_with_index do |(date, recordlines), i|
+          @stdout.puts date.to_s(:relative_date) + ":"
+          recordlines.each do |record, line|
+            @stdout.puts("  " + line)
+          end
+          @stdout.puts unless i == grouped_lines.size-1
+        end
+      end
+      @stdout.puts
     end
     
     desc "search QUERY", "Search for a task"

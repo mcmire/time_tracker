@@ -1,9 +1,11 @@
-require 'tt/mongo_mapper'
+#require 'tt/mongo_mapper'
 
 module TimeTracker
   class Project
-    include MongoMapper::Document
-    plugin MongoMapper::Plugins::IdentityMap
+    include ::MongoMapper::Document
+    plugin ::MongoMapper::Plugins::IdentityMap
+    
+    set_collection_name "projects"
     
     key :name, String
     timestamps!

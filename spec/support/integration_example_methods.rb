@@ -45,12 +45,12 @@ module IntegrationExampleMethods
   
   # Stolen from RSpec
   def stdout
-    @stdout.strip
+    @stdout#.strip
   end
 
   # Stolen from RSpec
   def stderr
-    @stderr.strip
+    @stderr#.strip
   end
   
   def output
@@ -70,22 +70,28 @@ module IntegrationExampleMethods
   def parse_args(args)
     puts "> tt #{args}".bold.yellow if Ribeye.debug?
     args_parser_path = File.expand_path(File.dirname(__FILE__) + '/../support/args_parser.rb')
-    `ruby #{args_parser_path} #{args}`
+    # Temporarily override RUBYOPT so that ruby starts *a lot* faster!
+    `RUBYOPT="" ruby #{args_parser_path} #{args}`
     YAML.load_file File.join(working_dir, "argv.yml")
   end
   
   def capture_output
     old_stdout = $stdout
     old_stderr = $stderr
+    # Use a separate thread to keep changes to $stdout and $stderr contained
+    time_zone = Time.zone
     thr = Thread.new do
+      # Since the time zone only holds for the current thread, we have to re-set it
+      Time.zone = time_zone
       begin
         $stdout = File.open(File.join(working_dir, "stdout.txt"), "w")
         $stderr = File.open(File.join(working_dir, "stderr.txt"), "w")
         yield
       rescue SystemExit => e
-        ##STDOUT.puts "Got an exit"
+        STDOUT.puts "Got an exit" if Ribeye.debug?
+        # do nothing
       rescue => e
-        ##STDOUT.puts "Got a: #{e.class} - #{e.message}"
+        STDOUT.puts "Got a: #{e.class} - #{e.message}" if Ribeye.debug?
         # do nothing
       ensure
         # write to the files
@@ -105,37 +111,45 @@ module IntegrationExampleMethods
   end
   
   def tt(args)
-    freeze_time_and_skip_ahead do
+    time1 = Time.now_without_mock_time
+    freezing_time_and_skipping_ahead do
       args = parse_args(args)
       capture_output do
+        time3 = Time.now_without_mock_time
         TimeTracker::Cli.start(args)
+        time4 = Time.now_without_mock_time
+        diff2 = time4 - time3
+        #puts "Took: #{diff2} seconds"
       end
     end
+    time2 = Time.now_without_mock_time
+    diff1 = time2 - time1
+    #puts "Took: #{diff1} seconds"
   end
   
-  def freeze_time_and_skip_ahead
-    ##return yield unless @time_travel
+  def freezing_time_and_skipping_ahead
+    return yield if @overriding_time_travel
     # If we've already mocked Time with Timecop, or if we've changed it since
     # the last time 'tt' was called, then start with that mocked time.
     @frozen_time = Time.mock_time if Time.mock_time && Time.mock_time != @last_mock_time
-    @frozen_time ||= Time.local(2010, 1, 1, 0, 0, 0)
+    @frozen_time ||= Time.zone.local(2010, 1, 1, 0, 0, 0)
     Timecop.freeze(@frozen_time)
     ret = yield
-    # Next time 'tt' is run, pretend that 2 seconds have passed.
+    # Next time 'tt' is run, pretend that 2 minutes have passed.
     # This is so that events don't happen too quickly and ensures that if
     # updated_at for a task is set, it's never the same time as what we
     # froze Time.now at just now.
-    @frozen_time += 2
+    @frozen_time += 120
     # Store the value of Time.now as we've mocked it with Timecop so we can
     # verify whether Time.now has been re-mocked the next call to 'tt'.
     @last_mock_time = Time.mock_time
     return ret
   end
   
-  def simulating_slower_execution
-    @time_travel = true
+  def with_manual_time_override
+    @overriding_time_travel = true
     ret = yield
-    @time_travel = false
+    @overriding_time_travel = false
     return ret
   end
 end

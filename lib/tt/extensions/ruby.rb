@@ -27,13 +27,12 @@ class Time
     display
   end
   
-  def self.formatted_diff(time2, time1)
+  def self.human_time_duration(difference)
     # 0..59 = less than a minute
     # 60..3599 = more than a minute, less than an hour
     # 3600..86399 = more than an hour, less than a day
     # 86400..* = more than a day
     
-    difference = time2 - time1
     seconds    =  difference % 60
     difference = (difference - seconds) / 60
     minutes    =  difference % 60
@@ -41,6 +40,7 @@ class Time
     hours      =  difference % 24
     difference = (difference - hours)   / 24
     days       =  difference % 7
+    
     if days > 0
       if minutes > 0
         "%dd, %dh:%0dm" % [days, hours, minutes]
@@ -94,4 +94,29 @@ class String
   def lines
     split(/\n/)
   end
+end
+
+Date::DATE_FORMATS[:relative_date] = lambda do |date|
+  case date - Date.today
+    when  0 then 'Today'
+    when -1 then 'Yesterday'
+    else         date.to_s(:mdy)
+  end
+end
+Date::DATE_FORMATS[:mdy] = lambda do |date|
+  date.strftime("#{date.month}/#{date.day}/%Y")
+end
+
+Time::DATE_FORMATS[:relative_date] = lambda do |time|
+  time.to_date.to_s(:relative_date)
+end
+Time::DATE_FORMATS[:mdy] = lambda do |time|
+  time.to_date.to_s(:mdy)
+end
+Time::DATE_FORMATS[:hms] = lambda do |time|
+  hour = time.hour
+  hour -= 12 if hour > 12
+  hour = 12  if hour == 0
+  ampm = time.hour >= 12 ? 'pm' : 'am'
+  time.strftime("#{hour}:%M#{ampm}")
 end

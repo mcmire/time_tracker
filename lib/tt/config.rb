@@ -1,4 +1,4 @@
-require 'tt/mongo_mapper'
+#require 'tt/mongo_mapper'
 
 module TimeTracker
   # Since the config collection will only ever have one document in it,
@@ -6,7 +6,7 @@ module TimeTracker
   class Config
     class << self
       def collection
-        @collection ||= MongoMapper.database.collection("time_tracker.config")
+        @collection ||= ::MongoMapper.database.collection("time_tracker.config")
       end
     
       def find
