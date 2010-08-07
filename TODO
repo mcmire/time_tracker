@@ -14,4 +14,4 @@
 * Don't auto-create a task before starting it since creating it would upload it to Pivotal
 * Integrate with Pivotal
   * Is there already a command-line version of Pivotal we can borrow code from?
-  
+* Tagging
