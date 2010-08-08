@@ -2,9 +2,8 @@ require File.expand_path(File.dirname(__FILE__) + '/spec_helper')
 
 describe TimeTracker::Cli do
   before do
-    @stdout = StringIO.new
-    @stderr = StringIO.new
-    @cli = TimeTracker::Cli.build(@stdout, @stderr)
+    @stdin, @stdout, @stderr = Array.new(3) { StringIO.new }
+    @cli = TimeTracker::Cli.build(@stdin, @stdout, @stderr)
     @time = Time.zone.local(2010)
   end
   
@@ -18,7 +17,8 @@ describe TimeTracker::Cli do
   
   describe '.build' do
     it "allows stdout and stderr to be set" do
-      cli = TimeTracker::Cli.build(:stdout, :stderr)
+      cli = TimeTracker::Cli.build(:stdin, :stdout, :stderr)
+      cli.stdin.must  == :stdin
       cli.stdout.must == :stdout
       cli.stderr.must == :stderr
     end
@@ -27,24 +27,11 @@ describe TimeTracker::Cli do
   describe '.new' do
     it "initializes stdout and stderr to the default stdout and stderr" do
       cli = TimeTracker::Cli.new
+      cli.stdin.must  == $stdin
       cli.stdout.must == $stdout
       cli.stderr.must == $stderr
     end
   end
-  
-  #describe '#puts' do
-  #  it "delegates to @stdout" do
-  #    @cli.puts("blah")
-  #    @stdout.string.must == "blah\n"
-  #  end
-  #end
-  #
-  #describe '#print' do
-  #  it "delegates to @stdout" do
-  #    @cli.print("blah")
-  #    @stdout.string.must == "blah"
-  #  end
-  #end
   
   describe '#switch' do
     it "finds the given project and sets the current one to that" do

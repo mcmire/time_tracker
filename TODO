@@ -1,7 +1,5 @@
-* color
-* list today's task by ended_at asc?
-* Don't allow time periods to cross days
 * REPL
+* color
 * Search command
 * Up-vote a task (add a mention)
 * Make an 'add' task that searches before adding a new one and suggests pre-existing tasks to up-vote instead
@@ -9,3 +7,6 @@
 * Integrate with Pivotal
   * Is there already a command-line version of Pivotal we can borrow code from?
 * Tagging
+
+* list today's task by ended_at asc?
+* Don't allow time periods to cross days

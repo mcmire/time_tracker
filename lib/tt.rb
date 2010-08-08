@@ -3,6 +3,7 @@
 
 require 'tt/mongo_mapper'
 require 'tt/extensions/ruby'
+require 'tt/extensions/term_ansicolor'
 require 'tt/columnator'
 
 require 'tt/cli'

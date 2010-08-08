@@ -1,14 +1,105 @@
 module TimeTracker
   class Cli < Thor
+    class Error < StandardError; end
+    
     # Is this needed anymore?
     namespace :default
     
     class << self
-      def build(stdout, stderr)
+      attr_accessor :stdin, :stdout, :stderr
+      
+      def stdin
+        @stdin ||= $stdin
+      end
+      
+      def stdout
+        @stdout ||= $stdout
+      end
+      
+      def stderr
+        @stderr ||= $stderr
+      end
+      
+      def within_repl?
+        @within_repl
+      end
+      
+      def build(stdin, stdout, stderr)
         cli = new()
+        cli.stdin  = stdin
         cli.stdout = stdout
         cli.stderr = stderr
         cli
+      end
+      
+      def run(argv)
+        if argv.reject {|a| a =~ /^-/ }.empty?
+          start_repl
+        else
+          start(argv)
+        end
+      end
+      
+      REPL_REGEX = /(?:^|[ ])(?:"([^"]+)"|'([^']+)'|([^ ]+))/
+      
+      def start_repl
+        @within_repl = true
+        require 'readline'
+        require 'term/ansicolor'
+        stdout.puts "Welcome to TimeTracker."
+        if curr_proj = TimeTracker::Project.find(TimeTracker.config["current_project_id"])
+          stdout.puts %{You're currently in the "#{curr_proj.name}" project.}
+        end
+        stdout.puts "What would you like to do?"
+        load_history
+        stdout.sync = true
+        loop do
+          begin
+            stdout.print Color.bold + Color.yellow
+            #stdout.print "> "
+            #line = stdin.gets.chomp
+            line = Readline.readline("> ")
+            stdout.print Color.clear
+            #stdout.puts "ok"
+            end_repl if line =~ /^(exit|quit|q)$/
+            Readline::HISTORY << line
+            Readline::HISTORY.unshift if Readline::HISTORY.size > 100
+            args = line.scan(REPL_REGEX).map {|a| a.compact.first }
+            start(args)
+          rescue Interrupt => e
+            stdout.print Color.clear
+            stdout.puts 'Type "exit", "quit", or "q" to quit.'
+            #end_repl(true)
+          rescue Exception => e
+            raise(e)
+          end
+        end
+      end
+      
+      def end_repl(interrupted=false)
+        stdout.puts if interrupted
+        stdout.puts "Thanks for playing!"
+        save_history
+        exit
+      end
+      
+      def history_file
+        File.join(ENV["HOME"], ".tt_history")
+      end
+      
+      def load_history
+        #puts "Loading history..."
+        File.open(history_file, "r") do |f|
+          f.each {|line| Readline::HISTORY << line }
+        end
+      rescue Errno::ENOENT
+      end
+      
+      def save_history
+        #puts "Saving history..."
+        File.open(history_file, "w") do |f|
+          Readline::HISTORY.each {|line| f.puts(line) }
+        end
       end
       
     protected
@@ -18,29 +109,22 @@ module TimeTracker
       end
     end
     
-    attr_accessor :stdout, :stderr
+    attr_accessor :stdin, :stdout, :stderr
     
     def initialize(*args)
-      @stdout = $stdout
-      @stderr = $stderr
+      @stdin  = self.class.stdin
+      @stdout = self.class.stdout
+      @stderr = self.class.stderr
       super
     end
     
     no_tasks do
-      #def puts(*args)
-      #  @stdout.puts(*args)
-      #end
-      #
-      #def print(*args)
-      #  @stdout.print(*args)
-      #end
-      
-      def die(msg)
+      def handle_error(e)
         if $RUNNING_TESTS == :units
-          raise(msg)
+          raise(e)
         else
-          @stderr.puts msg
-          exit 1
+          stderr.puts(e.message)
+          exit 1 unless self.class.within_repl?
         end
       end
       
@@ -57,84 +141,96 @@ module TimeTracker
     
     desc "switch PROJECT", "Switches to a certain project. The project is created if it does not already exist."
     def switch(project_name=nil)
-      die "Right, but which project do you want to switch to?" unless project_name
+      raise Error, "Right, but which project do you want to switch to?" unless project_name
       if curr_proj = TimeTracker::Project.find(TimeTracker.config["current_project_id"]) and
       running_task = curr_proj.tasks.last_running
         running_task.pause!
-        @stdout.puts %{(Pausing clock for "#{running_task.name}", at #{running_task.total_running_time}.)}
+        stdout.puts %{(Pausing clock for "#{running_task.name}", at #{running_task.total_running_time}.)}
       end
       proj = TimeTracker::Project.first(:name => project_name) || TimeTracker::Project.create!(:name => project_name)
       TimeTracker.config.update("current_project_id", proj.id)
-      @stdout.puts %{Switched to project "#{proj.name}".}
+      stdout.puts %{Switched to project "#{proj.name}".}
       if paused_task = proj.tasks.last_paused
         paused_task.resume!
-        @stdout.puts %{(Resuming clock for "#{paused_task.name}".)}
+        stdout.puts %{(Resuming clock for "#{paused_task.name}".)}
       end
+    rescue Error => e
+      handle_error(e)
+    rescue Exception => e
+      raise(e)
     end
     
     desc "start TASK", "Creates a new task, and starts the clock for it."
     def start(task_name=nil)
-      die "Right, but what's the name of your task?" unless task_name
+      raise Error, "Right, but what's the name of your task?" unless task_name
       curr_proj = TimeTracker::Project.find(TimeTracker.config["current_project_id"])
-      die "Try switching to a project first." unless curr_proj
+      raise Error, "Try switching to a project first." unless curr_proj
       task = curr_proj.tasks.first(:name => task_name)
-      die "Aren't you already working on that task?" if task && task.running?
+      raise Error, "Aren't you already working on that task?" if task && task.running?
       task ||= curr_proj.tasks.build(:name => task_name)
       if running_task = curr_proj.tasks.last_running
         running_task.pause!
-        @stdout.puts %{(Pausing clock for "#{running_task.name}", at #{running_task.total_running_time}.)}
+        stdout.puts %{(Pausing clock for "#{running_task.name}", at #{running_task.total_running_time}.)}
       end
       task.save!
-      @stdout.puts %{Started clock for "#{task.name}".}
+      stdout.puts %{Started clock for "#{task.name}".}
+    rescue Error => e
+      handle_error(e)
+    rescue Exception => e
+      raise(e)
     end
     
     desc "stop [TASK]", "Stops the clock for a task, or the last task if no task given"
     def stop(task_name=:last)
       curr_proj = TimeTracker::Project.find TimeTracker.config["current_project_id"]
-      die "Try switching to a project first." unless curr_proj
-      die "It doesn't look like you've started any tasks yet." if curr_proj.tasks.empty?
+      raise Error, "Try switching to a project first." unless curr_proj
+      raise Error, "It doesn't look like you've started any tasks yet." if curr_proj.tasks.empty?
       if task_name == :last
         task = curr_proj.tasks.last_running
-        die "It doesn't look like you're working on anything at the moment." unless task
+        raise Error, "It doesn't look like you're working on anything at the moment." unless task
       elsif task_name =~ /^\d+$/
         task = curr_proj.tasks.first(:number => task_name.to_i)
-        die "I don't think that task exists." unless task
-        die "I think you've stopped that task already." if task.stopped?
+        raise Error, "I don't think that task exists." unless task
+        raise Error, "I think you've stopped that task already." if task.stopped?
       else
         task = curr_proj.tasks.first(:name => task_name)
-        die "I don't think that task exists." unless task
-        die "I think you've stopped that task already." if task.stopped?
+        raise Error, "I don't think that task exists." unless task
+        raise Error, "I think you've stopped that task already." if task.stopped?
       end
       task.stop!
-      @stdout.puts %{Stopped clock for "#{task.name}", at #{task.total_running_time}.}
+      stdout.puts %{Stopped clock for "#{task.name}", at #{task.total_running_time}.}
       if paused_task = curr_proj.tasks.last_paused
         paused_task.resume!
-        @stdout.puts %{(Resuming clock for "#{paused_task.name}".)}
+        stdout.puts %{(Resuming clock for "#{paused_task.name}".)}
       end
+    rescue Error => e
+      handle_error(e)
+    rescue Exception => e
+      raise(e)
     end
     
     desc "resume [TASK]", "Resumes the clock for a task, or the last task if no task given"
     def resume(task_name=nil)
-      die "Yes, but which task do you want to resume? (I'll accept a number or a name.)" unless task_name
+      raise Error, "Yes, but which task do you want to resume? (I'll accept a number or a name.)" unless task_name
       curr_proj = TimeTracker::Project.find TimeTracker.config["current_project_id"]
-      die "Try switching to a project first." unless curr_proj
-      die "It doesn't look like you've started any tasks yet." unless TimeTracker::Task.exists?
+      raise Error, "Try switching to a project first." unless curr_proj
+      raise Error, "It doesn't look like you've started any tasks yet." unless TimeTracker::Task.exists?
       already_paused = false
       if task_name =~ /^\d+$/
         if task = TimeTracker::Task.first(:number => task_name.to_i)        
           if task.project_id != curr_proj.id
             if running_task = curr_proj.tasks.last_running
               running_task.pause!
-              @stdout.puts %{(Pausing clock for "#{running_task.name}", at #{running_task.total_running_time}.)}
+              stdout.puts %{(Pausing clock for "#{running_task.name}", at #{running_task.total_running_time}.)}
               already_paused = true
             end
             curr_proj = task.project
             TimeTracker.config.update("current_project_id", curr_proj.id.to_s)
-            @stdout.puts %{(Switching to project "#{curr_proj.name}".)}
+            stdout.puts %{(Switching to project "#{curr_proj.name}".)}
           end
-          die "Aren't you working on that task already?" if task.running?
+          raise Error, "Aren't you working on that task already?" if task.running?
         else
-          die "I don't think that task exists."
+          raise Error, "I don't think that task exists."
         end
       else
         task = curr_proj.tasks.first(:name => task_name)
@@ -146,19 +242,23 @@ module TimeTracker
             projects = tasks.map(&:project).uniq.
                        map {|p| %{"#{p.name}"} }.
                        to_sentence(:two_words_connector => " or ", :last_word_connector => ", or ")
-            die "That task doesn't exist here. Perhaps you meant to switch to #{projects}?"
+            raise Error, "That task doesn't exist here. Perhaps you meant to switch to #{projects}?"
           else
-            die "I don't think that task exists." 
+            raise Error, "I don't think that task exists." 
           end
         end
-        die "Aren't you working on that task already?" if task.running?
+        raise Error, "Aren't you working on that task already?" if task.running?
       end
       if running_task = curr_proj.tasks.last_running and !already_paused
         running_task.pause!
-        @stdout.puts %{(Pausing clock for "#{running_task.name}", at #{running_task.total_running_time}.)}
+        stdout.puts %{(Pausing clock for "#{running_task.name}", at #{running_task.total_running_time}.)}
       end
       task.resume!
-      @stdout.puts %{Resumed clock for "#{task.name}".}
+      stdout.puts %{Resumed clock for "#{task.name}".}
+    rescue Error => e
+      handle_error(e)
+    rescue Exception => e
+      raise(e)
     end
 
     LIST_SUBCOMMANDS = ["lastfew", "completed", "all", "today", "this week"]
@@ -170,14 +270,14 @@ module TimeTracker
       raise_invalid_argument_error unless LIST_SUBCOMMANDS.include?(type)
       
       unless TimeTracker::Task.exists?
-        @stdout.puts "It doesn't look like you've started any tasks yet."
+        stdout.puts "It doesn't look like you've started any tasks yet."
         return
       end
       
       records = []
       case type
       when "lastfew"
-        records = TimeTracker::TimePeriod.limit(5).sort(:ended_at.desc).to_a
+        records = TimeTracker::TimePeriod.sort(:ended_at.desc).limit(5).to_a
         header = "Latest tasks:"
       when "completed"
         records = TimeTracker::TimePeriod.sort(:ended_at.desc).to_a
@@ -213,12 +313,12 @@ module TimeTracker
         alignments = [:right, :none, :right, :none, :left, :none, :none]
       end
       lines = Columnator.columnate(record_infos, :alignments => alignments, :write_to => :array)
-      @stdout.puts
-      @stdout.puts(header)
-      @stdout.puts
+      stdout.puts
+      stdout.puts(header)
+      stdout.puts
       if type == "lastfew" || type == "today"
         for line in lines
-          @stdout.puts(line)
+          stdout.puts(line)
         end
       else
         grouped_lines = ActiveSupport::OrderedHash.new
@@ -228,14 +328,18 @@ module TimeTracker
           (grouped_lines[date] ||= []) << [record, line]
         end
         grouped_lines.each_with_index do |(date, recordlines), i|
-          @stdout.puts date.to_s(:relative_date) + ":"
+          stdout.puts date.to_s(:relative_date) + ":"
           recordlines.each do |record, line|
-            @stdout.puts("  " + line)
+            stdout.puts("  " + line)
           end
-          @stdout.puts unless i == grouped_lines.size-1
+          stdout.puts unless i == grouped_lines.size-1
         end
       end
-      @stdout.puts
+      stdout.puts
+    rescue Error => e
+      handle_error(e)
+    rescue Exception => e
+      raise(e)
     end
     
     desc "search QUERY", "Search for a task"
@@ -247,8 +351,9 @@ module TimeTracker
     def clear
       TimeTracker::Project.delete_all
       TimeTracker::Task.delete_all
+      TimeTracker::TimePeriod.delete_all
       TimeTracker::Config.collection.drop
-      @stdout.puts "Everything cleared."
+      stdout.puts "Everything cleared."
     end
   end
 end
