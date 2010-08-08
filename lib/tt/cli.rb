@@ -27,13 +27,13 @@ module TimeTracker
     end
     
     no_tasks do
-      def puts(*args)
-        @stdout.puts(*args)
-      end
-    
-      def print(*args)
-        @stdout.print(*args)
-      end
+      #def puts(*args)
+      #  @stdout.puts(*args)
+      #end
+      #
+      #def print(*args)
+      #  @stdout.print(*args)
+      #end
       
       def die(msg)
         if $RUNNING_TESTS == :units
@@ -208,9 +208,9 @@ module TimeTracker
       include_date = (type == "lastfew")
       record_infos = records.map {|record| record.info(:include_date => include_date) }
       if include_date
-        alignments = [:right, :none, :right, :none, :right, :none, :right, :none, :none]
+        alignments = [:right, :none, :right, :none, :right, :none, :right, :none, :left, :none, :none]
       else
-        alignments = [:right, :none, :right, :none, :none]
+        alignments = [:right, :none, :right, :none, :left, :none, :none]
       end
       lines = Columnator.columnate(record_infos, :alignments => alignments, :write_to => :array)
       @stdout.puts

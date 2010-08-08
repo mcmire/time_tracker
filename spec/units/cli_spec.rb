@@ -32,19 +32,19 @@ describe TimeTracker::Cli do
     end
   end
   
-  describe '#puts' do
-    it "delegates to @stdout" do
-      @cli.puts("blah")
-      @stdout.string.must == "blah\n"
-    end
-  end
-  
-  describe '#print' do
-    it "delegates to @stdout" do
-      @cli.print("blah")
-      @stdout.string.must == "blah"
-    end
-  end
+  #describe '#puts' do
+  #  it "delegates to @stdout" do
+  #    @cli.puts("blah")
+  #    @stdout.string.must == "blah\n"
+  #  end
+  #end
+  #
+  #describe '#print' do
+  #  it "delegates to @stdout" do
+  #    @cli.print("blah")
+  #    @stdout.string.must == "blah"
+  #  end
+  #end
   
   describe '#switch' do
     it "finds the given project and sets the current one to that" do

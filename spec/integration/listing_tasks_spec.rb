@@ -17,9 +17,9 @@ feature "Listing tasks" do
       "Latest tasks:",
       "",
       "Today, 12:12am -         yet another task [#3] (in some project) <==",
-      "Today, 12:08am - 12:10am some task [#1] (in some project)",
-      "Today, 12:06am - 12:08am another task [#2] (in another project)",
-      "Today, 12:02am - 12:04am some task [#1] (in some project)"
+      "Today, 12:08am - 12:10am some task        [#1] (in some project)",
+      "Today, 12:06am - 12:08am another task     [#2] (in another project)",
+      "Today, 12:02am - 12:04am some task        [#1] (in some project)"
     ])
   end
   scenario "Listing last few tasks with just 'list'" do
@@ -36,9 +36,9 @@ feature "Listing tasks" do
       "Latest tasks:",
       "",
       "Today, 12:12am -         yet another task [#3] (in some project) <==",
-      "Today, 12:08am - 12:10am some task [#1] (in some project)",
-      "Today, 12:06am - 12:08am another task [#2] (in another project)",
-      "Today, 12:02am - 12:04am some task [#1] (in some project)"
+      "Today, 12:08am - 12:10am some task        [#1] (in some project)",
+      "Today, 12:06am - 12:08am another task     [#2] (in another project)",
+      "Today, 12:02am - 12:04am some task        [#1] (in some project)"
     ])
   end
   scenario "Listing last few tasks with 'list lastfew' when no tasks created yet" do
@@ -64,7 +64,7 @@ feature "Listing tasks" do
       "",
       "Today:",
       "  12:06am - 12:08am another task [#2] (in some project)",
-      "  12:02am - 12:04am some task [#1] (in some project)"
+      "  12:02am - 12:04am some task    [#1] (in some project)"
     ])
   end
   #scenario "Listing stopped tasks with just 'stopped'"
@@ -135,9 +135,9 @@ feature "Listing tasks" do
       "Today's tasks:",
       "",
       " 7:10am - 3:00pm create report for accounting [#1] (in work project)",
-      " 6:00am - 7:10am write documentation [#3] (in personal project)",
+      " 6:00am - 7:10am write documentation          [#3] (in personal project)",
       " 5:00am - 6:00am create report for accounting [#1] (in work project)",
-      " 1:00am - 5:00am add notes feature in admin [#2] (in work project)",
+      " 1:00am - 5:00am add notes feature in admin   [#2] (in work project)",
       "12:00am - 1:00am create report for accounting [#1] (in work project)"
     ])
   end

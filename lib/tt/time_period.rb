@@ -42,7 +42,9 @@ module TimeTracker
       end
       info << ended_at.to_s(:hms)
       info << " "
-      info << "#{task.name} [##{task.number}] (in #{task.project.name})"
+      info << task.name
+      info << " "
+      info << "[##{task.number}] (in #{task.project.name})"
       info
     end
     

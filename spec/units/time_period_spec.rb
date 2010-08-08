@@ -96,7 +96,8 @@ describe TimeTracker::TimePeriod do
           :started_at => Time.zone.local(2010, 1, 1, 0, 0),
           :ended_at => Time.zone.local(2010, 1, 1, 1, 0)
         )
-        time_period.info(:include_date => true).must == ['1/1/2010', ', ', '12:00am', ' - ', '', '', '1:00am', ' ', 'some task [#1] (in some project)']
+        time_period.info(:include_date => true).must ==
+          ['1/1/2010', ', ', '12:00am', ' - ', '', '', '1:00am', ' ', 'some task', ' ', '[#1] (in some project)']
       end
       it "includes the day for ended_at if it's not the same as started_at" do
         time_period = TimeTracker::TimePeriod.new(
@@ -104,7 +105,8 @@ describe TimeTracker::TimePeriod do
           :started_at => Time.zone.local(2010, 1, 1, 0, 0),
           :ended_at => Time.zone.local(2010, 1, 2, 1, 0)
         )
-        time_period.info(:include_date => true).must == ['1/1/2010', ', ', '12:00am', ' - ', '1/2/2010', ', ', '1:00am', ' ', 'some task [#1] (in some project)']
+        time_period.info(:include_date => true).must ==
+          ['1/1/2010', ', ', '12:00am', ' - ', '1/2/2010', ', ', '1:00am', ' ', 'some task', ' ', '[#1] (in some project)']
       end
     end
     context "if :include_date not specified" do
@@ -114,7 +116,8 @@ describe TimeTracker::TimePeriod do
           :started_at => Time.zone.local(2010, 1, 1, 0, 0),
           :ended_at => Time.zone.local(2010, 1, 1, 1, 0)
         )
-        time_period.info.must == ['12:00am', ' - ', '1:00am', ' ', 'some task [#1] (in some project)']
+        time_period.info.must == 
+          ['12:00am', ' - ', '1:00am', ' ', 'some task', ' ', '[#1] (in some project)']
       end
       it "still includes the day for ended_at if it's not the same as started_at" do
         time_period = TimeTracker::TimePeriod.new(
@@ -122,7 +125,8 @@ describe TimeTracker::TimePeriod do
           :started_at => Time.zone.local(2010, 1, 1, 0, 0),
           :ended_at => Time.zone.local(2010, 1, 2, 1, 0)
         )
-        time_period.info.must == ['1/1/2010', ', ', '12:00am', ' - ', '1/2/2010', ', ', '1:00am', ' ', 'some task [#1] (in some project)']
+        time_period.info.must ==
+          ['1/1/2010', ', ', '12:00am', ' - ', '1/2/2010', ', ', '1:00am', ' ', 'some task', ' ', '[#1] (in some project)']
       end
     end
     # the time stuff is tested in ruby_spec.rb

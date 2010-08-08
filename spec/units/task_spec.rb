@@ -247,7 +247,7 @@ describe TimeTracker::Task do
         :name => "some task",
         :last_started_at => Time.zone.local(2010, 1, 1, 0, 0)
       )
-      task.info.must == ['12:00am', ' - ', '', ' ', 'some task [#1] (in some project) <==']
+      task.info.must == ['12:00am', ' - ', '', ' ', 'some task', ' ', '[#1] (in some project) <==']
     end
     it "includes the date part, if date was specified" do
       project = TimeTracker::Project.new(:name => "some project")
@@ -258,7 +258,7 @@ describe TimeTracker::Task do
         :last_started_at => Time.zone.local(2010, 1, 1, 0, 0)
       )
       task.info(:include_date => true).must ==
-        ['1/1/2010', ', ', '12:00am', ' - ', '', '', '', ' ', 'some task [#1] (in some project) <==']
+        ['1/1/2010', ', ', '12:00am', ' - ', '', '', '', ' ', 'some task', ' ', '[#1] (in some project) <==']
     end
     # the time stuff is tested in ruby_spec.rb
   end

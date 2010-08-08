@@ -1,4 +1,3 @@
-* Left-align number and name of task in listings
 * color
 * list today's task by ended_at asc?
 * Don't allow time periods to cross days
