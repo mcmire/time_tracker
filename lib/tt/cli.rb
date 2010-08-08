@@ -102,10 +102,18 @@ module TimeTracker
         end
       end
       
-    protected
-      # Override Thor's handle_argument_error method to give a nicer message
+      # Override Thor's handle_argument_error method to customize the message
       def handle_argument_error(task, error)
         raise Thor::InvocationError, "Oops! That isn't the right way to call #{task.name.inspect}. Try this instead: #{self.banner(task)}."
+      end
+      
+      # Override Thor's handle_no_task_error method to customize the message
+      def handle_no_task_error(task)
+        stderr.puts "Oops! #{task.inspect} isn't a valid command. Try one of these instead:"
+        # don't feel like hacking thor to get the instance, so let's cheat
+        shell = Thor::Base.shell.new
+        help(shell)
+        exit 1
       end
     end
     
