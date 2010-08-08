@@ -20,10 +20,11 @@ feature "Listing tasks" do
       "",
       "Latest tasks:",
       "",
-      "Today, 12:12am -         yet another task [#3] (in some project) <==",
-      "Today, 12:08am - 12:10am some task        [#1] (in some project)",
-      "Today, 12:06am - 12:08am another task     [#2] (in another project)",
-      "Today, 12:02am - 12:04am some task        [#1] (in some project)"
+      "Today, 12:12am -         [#3]    some project / yet another task <==",
+      "Today, 12:08am - 12:10am [#1]    some project / some task",
+      "Today, 12:06am - 12:08am [#2] another project / another task",
+      "Today, 12:02am - 12:04am [#1]    some project / some task",
+      ""
     ])
   end
   scenario "Listing last few tasks with just 'list'" do
@@ -39,10 +40,11 @@ feature "Listing tasks" do
       "",
       "Latest tasks:",
       "",
-      "Today, 12:12am -         yet another task [#3] (in some project) <==",
-      "Today, 12:08am - 12:10am some task        [#1] (in some project)",
-      "Today, 12:06am - 12:08am another task     [#2] (in another project)",
-      "Today, 12:02am - 12:04am some task        [#1] (in some project)"
+      "Today, 12:12am -         [#3]    some project / yet another task <==",
+      "Today, 12:08am - 12:10am [#1]    some project / some task",
+      "Today, 12:06am - 12:08am [#2] another project / another task",
+      "Today, 12:02am - 12:04am [#1]    some project / some task",
+      ""
     ])
   end
   scenario "Listing last few tasks with 'list lastfew' when no tasks created yet" do
@@ -67,8 +69,9 @@ feature "Listing tasks" do
       "Completed tasks:",
       "",
       "Today:",
-      "  12:06am - 12:08am another task [#2] (in some project)",
-      "  12:02am - 12:04am some task    [#1] (in some project)"
+      "  12:06am - 12:08am [#2] some project / another task",
+      "  12:02am - 12:04am [#1] some project / some task",
+      ""
     ])
   end
   #scenario "Listing stopped tasks with just 'stopped'"
@@ -97,16 +100,17 @@ feature "Listing tasks" do
       "All tasks:",
       "",
       "Today:",
-      "  12:22am -         task 1 [#1] (in project 1) <==",
-      "  12:20am - 12:22am task 6 [#6] (in project 2)",
-      "  12:18am - 12:20am task 4 [#4] (in project 2)",
-      "  12:16am - 12:18am task 5 [#5] (in project 2)",
-      "  12:14am - 12:16am task 4 [#4] (in project 2)",
-      "  12:10am - 12:12am task 1 [#1] (in project 1)",
-      "  12:08am - 12:10am task 2 [#2] (in project 1)",
-      "  12:06am - 12:08am task 3 [#3] (in project 1)",
-      "  12:04am - 12:06am task 2 [#2] (in project 1)",
-      "  12:02am - 12:04am task 1 [#1] (in project 1)"
+      "  12:22am -         [#1] project 1 / task 1 <==",
+      "  12:20am - 12:22am [#6] project 2 / task 6",
+      "  12:18am - 12:20am [#4] project 2 / task 4",
+      "  12:16am - 12:18am [#5] project 2 / task 5",
+      "  12:14am - 12:16am [#4] project 2 / task 4",
+      "  12:10am - 12:12am [#1] project 1 / task 1",
+      "  12:08am - 12:10am [#2] project 1 / task 2",
+      "  12:06am - 12:08am [#3] project 1 / task 3",
+      "  12:04am - 12:06am [#2] project 1 / task 2",
+      "  12:02am - 12:04am [#1] project 1 / task 1",
+      ""
     ])
   end
   #scenario "Listing all tasks with 'all'"
@@ -138,11 +142,12 @@ feature "Listing tasks" do
       "",
       "Today's tasks:",
       "",
-      " 7:10am - 3:00pm create report for accounting [#1] (in work project)",
-      " 6:00am - 7:10am write documentation          [#3] (in personal project)",
-      " 5:00am - 6:00am create report for accounting [#1] (in work project)",
-      " 1:00am - 5:00am add notes feature in admin   [#2] (in work project)",
-      "12:00am - 1:00am create report for accounting [#1] (in work project)"
+      " 7:10am - 3:00pm [#1]     work project / create report for accounting",
+      " 6:00am - 7:10am [#3] personal project / write documentation",
+      " 5:00am - 6:00am [#1]     work project / create report for accounting",
+      " 1:00am - 5:00am [#2]     work project / add notes feature in admin",
+      "12:00am - 1:00am [#1]     work project / create report for accounting",
+      ""
     ])
   end
   #scenario "Listing today's completed tasks with just 'today'"
@@ -171,8 +176,9 @@ feature "Listing tasks" do
       "This week's tasks:",
       "",
       "Today:",
-      "  12:00am - 1:00am task 3 [#3] (in project 1)",
-      "   1:00am -        task 4 [#4] (in project 1) <=="
+      "  12:00am - 1:00am [#3] project 1 / task 3",
+      "   1:00am -        [#4] project 1 / task 4 <==",
+      ""
     ])
   end
   #scenario "Listing today's completed tasks with just 'this week'"

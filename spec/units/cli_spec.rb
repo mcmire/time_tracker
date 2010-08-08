@@ -492,7 +492,7 @@ describe TimeTracker::Cli do
           :started_at => Time.zone.local(2010, 1, 1, 1, 0),
           :ended_at   => Time.zone.local(2010, 1, 1, 2, 30)
         )
-        project2 = Factory(:project, :name => "project 2")
+        project2 = Factory(:project, :name => "project 2222")
         task3 = Factory(:task, 
           :number => "3", 
           :project => project2, 
@@ -527,24 +527,24 @@ describe TimeTracker::Cli do
           :ended_at   => Time.zone.local(2010, 1, 1, 12, 30)
         )
         task6 = Factory(:task,
-          :number => "6",
+          :number => "61",
           :project => project2, 
           :name => "task 6",
           :created_at => Time.zone.local(2010, 1, 1, 12, 30),
           :state => "running"
         )
         @cli.list(*@args)
-        stdout.must == <<-EOT
-
-Latest tasks:
-
-Today, 12:30pm -         task 6 [#6] (in project 2) <==
-Today,  5:20am - 12:30pm task 5 [#5] (in project 2)
-Today,  4:30am -  5:20am task 4 [#4] (in project 2)
-Today,  2:30am -  4:30am task 3 [#3] (in project 2)
-Today,  1:00am -  2:30am task 2 [#2] (in project 1)
-
-        EOT
+        stdout.lines.must smart_match([
+          "",
+          "Latest tasks:",
+          "",
+          "Today, 12:30pm -         [#61] project 2222 / task 6 <==",
+          "Today,  5:20am - 12:30pm [ #5] project 2222 / task 5",
+          "Today,  4:30am -  5:20am [ #4] project 2222 / task 4",
+          "Today,  2:30am -  4:30am [ #3] project 2222 / task 3",
+          "Today,  1:00am -  2:30am [ #2]    project 1 / task 2",
+          ""
+        ])
       end
       it "prints a list of the last 5 time periods if no task is running" do
         Timecop.freeze(2010, 1, 1)
@@ -571,7 +571,7 @@ Today,  1:00am -  2:30am task 2 [#2] (in project 1)
           :started_at => Time.zone.local(2010, 1, 1, 1, 0),
           :ended_at   => Time.zone.local(2010, 1, 1, 2, 30)
         )
-        project2 = Factory(:project, :name => "project 2")
+        project2 = Factory(:project, :name => "project 2222")
         task3 = Factory(:task, 
           :number => "3", 
           :project => project2, 
@@ -595,7 +595,7 @@ Today,  1:00am -  2:30am task 2 [#2] (in project 1)
           :ended_at   => Time.zone.local(2010, 1, 1, 5, 20)
         )
         task5 = Factory(:task,
-          :number => "5",
+          :number => "51",
           :project => project2, 
           :name => "task 5", 
           :state => "paused"
@@ -611,17 +611,17 @@ Today,  1:00am -  2:30am task 2 [#2] (in project 1)
           :ended_at   => Time.zone.local(2010, 1, 1, 14, 00)
         )
         @cli.list(*@args)
-        stdout.must == <<-EOT
-
-Latest tasks:
-
-Today, 12:30pm -  2:00pm task 2 [#2] (in project 1)
-Today,  5:20am - 12:30pm task 5 [#5] (in project 2)
-Today,  4:30am -  5:20am task 4 [#4] (in project 2)
-Today,  2:30am -  4:30am task 3 [#3] (in project 2)
-Today,  1:00am -  2:30am task 2 [#2] (in project 1)
-
-        EOT
+        stdout.lines.must smart_match([
+          "",
+          "Latest tasks:",
+          "",
+          "Today, 12:30pm -  2:00pm [ #2]    project 1 / task 2",
+          "Today,  5:20am - 12:30pm [#51] project 2222 / task 5",
+          "Today,  4:30am -  5:20am [ #4] project 2222 / task 4",
+          "Today,  2:30am -  4:30am [ #3] project 2222 / task 3",
+          "Today,  1:00am -  2:30am [ #2]    project 1 / task 2",
+          ""
+        ])
       end
       it "prints the date correctly if some of the tasks occurred before today" do
         Timecop.freeze(2010, 1, 13)
@@ -638,7 +638,7 @@ Today,  1:00am -  2:30am task 2 [#2] (in project 1)
           :ended_at   => Time.zone.local(2010, 1, 1, 1, 0)
         )
         task2 = Factory(:task,
-          :number => "2",
+          :number => "21",
           :project => project1, 
           :name => "task 2", 
           :state => "stopped"
@@ -654,15 +654,15 @@ Today,  1:00am -  2:30am task 2 [#2] (in project 1)
           :ended_at   => Time.zone.local(2010, 1, 13, 19, 20)
         )
         @cli.list(*@args)
-        stdout.must == <<-EOT
-
-Latest tasks:
-
-    Today,  2:10pm -  7:20pm task 1 [#1] (in project 1)
-1/10/2010, 11:00am - 12:30pm task 2 [#2] (in project 1)
- 1/1/2010, 12:00am -  1:00am task 1 [#1] (in project 1)
-
-EOT
+        stdout.lines.must smart_match([
+          "",
+          "Latest tasks:",
+          "",
+          "    Today,  2:10pm -  7:20pm [ #1] project 1 / task 1",
+          "1/10/2010, 11:00am - 12:30pm [#21] project 1 / task 2",
+          " 1/1/2010, 12:00am -  1:00am [ #1] project 1 / task 1",
+          ""
+        ])
       end
       it "prints a notice message if no tasks are in the database" do
         @cli.list(*@args)
@@ -707,7 +707,7 @@ EOT
           :started_at => Time.zone.local(2010, 1, 1, 1, 0),
           :ended_at   => Time.zone.local(2010, 1, 1, 2, 30)
         )
-        project2 = Factory(:project, :name => "project 2")
+        project2 = Factory(:project, :name => "project 2222")
         task3 = Factory(:task, 
           :number => "3", 
           :project => project2, 
@@ -736,7 +736,7 @@ EOT
           :ended_at   => Time.zone.local(2010, 1, 2, 5, 20)
         )
         task5 = Factory(:task,
-          :number => "5",
+          :number => "51",
           :project => project2, 
           :name => "task 5", 
           :state => "paused"
@@ -752,29 +752,24 @@ EOT
           :ended_at   => Time.zone.local(2010, 1, 3, 14, 00)
         )
         @cli.list("completed")
-        expected = <<-EOT
-
-Completed tasks:
-
-Today:
-  12:30pm -  2:00pm task 2 [#2] (in project 1)
-
-Yesterday:
-   5:20am - 12:30pm task 5 [#5] (in project 2)
-  12:00am -  5:20am task 4 [#4] (in project 2)
-
-1/1/2010:
-   4:30am - 11:59pm task 4 [#4] (in project 2)
-   2:30am -  4:30am task 3 [#3] (in project 2)
-   1:00am -  2:30am task 2 [#2] (in project 1)
-  12:00am -  1:00am task 1 [#1] (in project 1)
-
-        EOT
-        #puts "Expected:"
-        #puts expected
-        #puts "Actual:"
-        #puts stdout
-        stdout.must == expected
+        stdout.lines.must smart_match([
+          "",
+          "Completed tasks:",
+          "",
+          "Today:",
+          "  12:30pm -  2:00pm [ #2]    project 1 / task 2",
+          "",
+          "Yesterday:",
+          "   5:20am - 12:30pm [#51] project 2222 / task 5",
+          "  12:00am -  5:20am [ #4] project 2222 / task 4",
+          "",
+          "1/1/2010:",
+          "   4:30am - 11:59pm [ #4] project 2222 / task 4",
+          "   2:30am -  4:30am [ #3] project 2222 / task 3",
+          "   1:00am -  2:30am [ #2]    project 1 / task 2",
+          "  12:00am -  1:00am [ #1]    project 1 / task 1",
+          ""
+        ])
       end
       it "prints a notice message if no tasks are in the database" do
         @cli.list("completed")
@@ -807,7 +802,7 @@ Yesterday:
           :started_at => Time.zone.local(2010, 1, 1, 1, 0),
           :ended_at   => Time.zone.local(2010, 1, 1, 2, 30)
         )
-        project2 = Factory(:project, :name => "project 2")
+        project2 = Factory(:project, :name => "project 2222")
         task3 = Factory(:task, 
           :number => "3", 
           :project => project2, 
@@ -852,33 +847,32 @@ Yesterday:
           :ended_at   => Time.zone.local(2010, 1, 3, 14, 00)
         )
         task6 = Factory(:task,
-          :number => "6",
+          :number => "61",
           :project => project2, 
           :name => "task 6",
           :created_at => Time.zone.local(2010, 1, 3, 14, 00),
           :state => "running"
         )
         @cli.list("all")
-        expected = <<-EOT
-
-All tasks:
-
-Today:
-   2:00pm -         task 6 [#6] (in project 2) <==
-  12:30pm -  2:00pm task 2 [#2] (in project 1)
-
-Yesterday:
-   5:20am - 12:30pm task 5 [#5] (in project 2)
-  12:00am -  5:20am task 4 [#4] (in project 2)
-
-1/1/2010:
-   4:30am - 11:59pm task 4 [#4] (in project 2)
-   2:30am -  4:30am task 3 [#3] (in project 2)
-   1:00am -  2:30am task 2 [#2] (in project 1)
-  12:00am -  1:00am task 1 [#1] (in project 1)
-
-        EOT
-        stdout.must == expected
+        stdout.lines.must smart_match([
+          "",
+          "All tasks:",
+          "",
+          "Today:",
+          "   2:00pm -         [#61] project 2222 / task 6 <==",
+          "  12:30pm -  2:00pm [ #2]    project 1 / task 2",
+          "",
+          "Yesterday:",
+          "   5:20am - 12:30pm [ #5] project 2222 / task 5",
+          "  12:00am -  5:20am [ #4] project 2222 / task 4",
+          "",
+          "1/1/2010:",
+          "   4:30am - 11:59pm [ #4] project 2222 / task 4",
+          "   2:30am -  4:30am [ #3] project 2222 / task 3",
+          "   1:00am -  2:30am [ #2]    project 1 / task 2",
+          "  12:00am -  1:00am [ #1]    project 1 / task 1",
+          ""
+        ])
       end
       it "prints a notice message if no tasks are in the database" do
         @cli.list("all")
@@ -908,14 +902,14 @@ Yesterday:
           :state => "running"
         )
         @cli.list("today")
-        stdout.must == <<-EOT
-
-Today's tasks:
-
- 2:00pm -        task 2 [#2] (in project 1) <==
-12:30pm - 2:00pm task 1 [#1] (in project 1)
-
-        EOT
+        stdout.lines.must smart_match([
+          "",
+          "Today's tasks:",
+          "",
+          " 2:00pm -        [#2] project 1 / task 2 <==",
+          "12:30pm - 2:00pm [#1] project 1 / task 1",
+          ""
+        ])
       end
       it "prints a notice message if no tasks are in the database" do
         @cli.list("today")
@@ -948,7 +942,7 @@ Today's tasks:
           :started_at => Time.zone.local(2010, 7, 31, 1, 0),
           :ended_at   => Time.zone.local(2010, 7, 31, 2, 30)
         )
-        project2 = Factory(:project, :name => "project 2")
+        project2 = Factory(:project, :name => "project 2222")
         task3 = Factory(:task, 
           :number => "3", 
           :project => project2, 
@@ -993,42 +987,36 @@ Today's tasks:
           :ended_at   => Time.zone.local(2010, 8, 5, 14, 00)
         )
         task6 = Factory(:task,
-          :number => 6,
+          :number => 61,
           :project => project1,
           :name => "task 6",
           :state => "running",
           :created_at => Time.zone.local(2010, 8, 6, 5, 23)
         )
         @cli.list("this week")
-        expected = <<-EOT
-
-This week's tasks:
-
-8/1/2010:
-   2:30am -  4:30am task 3 [#3] (in project 2)
-
-8/2/2010:
-   4:30am - 11:59pm task 4 [#4] (in project 2)
-
-8/3/2010:
-  12:00am -  5:20am task 4 [#4] (in project 2)
-
-8/4/2010:
-   5:20am - 12:30pm task 5 [#5] (in project 2)
-
-8/5/2010:
-  12:30pm -  2:00pm task 2 [#2] (in project 1)
-
-Yesterday:
-   5:23am -         task 6 [#6] (in project 1) <==
-
-        EOT
-        #puts "-----"
-        #puts stdout
-        #puts "-----"
-        #puts expected
-        #puts "-----"
-        stdout.must == expected
+        stdout.lines.must smart_match([
+          "",
+          "This week's tasks:",
+          "",
+          "8/1/2010:",
+          "   2:30am -  4:30am [ #3] project 2222 / task 3",
+          "",
+          "8/2/2010:",
+          "   4:30am - 11:59pm [ #4] project 2222 / task 4",
+          "",
+          "8/3/2010:",
+          "  12:00am -  5:20am [ #4] project 2222 / task 4",
+          "",
+          "8/4/2010:",
+          "   5:20am - 12:30pm [ #5] project 2222 / task 5",
+          "",
+          "8/5/2010:",
+          "  12:30pm -  2:00pm [ #2]    project 1 / task 2",
+          "",
+          "Yesterday:",
+          "   5:23am -         [#61]    project 1 / task 6 <==",
+          ""
+        ])
       end
       it "prints a notice message if no tasks are in the database" do
         @cli.list("this week")

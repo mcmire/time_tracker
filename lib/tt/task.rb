@@ -71,9 +71,11 @@ module TimeTracker
       end
       info << ""
       info << " "
-      info << name
+      info << '[' << "##{number}" << ']'
       info << " "
-      info << "[##{number}] (in #{project.name}) <=="
+      info << project.name
+      info << " / "
+      info << "#{name} <=="
       info
     end
     

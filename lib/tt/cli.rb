@@ -318,9 +318,9 @@ module TimeTracker
       include_date = (type == "lastfew")
       record_infos = records.map {|record| record.info(:include_date => include_date) }
       if include_date
-        alignments = [:right, :none, :right, :none, :right, :none, :right, :none, :left, :none, :none]
+        alignments = [:right, :none, :right, :none, :right, :none, :right, :none, :none, :right, :none, :none, :right, :none, :none]
       else
-        alignments = [:right, :none, :right, :none, :left, :none, :none]
+        alignments = [:right, :none, :right, :none, :none, :right, :none, :none, :right, :none, :none]
       end
       lines = Columnator.columnate(record_infos, :alignments => alignments, :write_to => :array)
       stdout.puts
@@ -345,7 +345,7 @@ module TimeTracker
           stdout.puts unless i == grouped_lines.size-1
         end
       end
-      stdout.puts
+      stdout.print "\n"
     rescue Error => e
       handle_error(e)
     rescue Exception => e

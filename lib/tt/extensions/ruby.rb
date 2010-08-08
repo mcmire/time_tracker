@@ -92,7 +92,7 @@ end
 
 class String
   def lines
-    split(/\n/)
+    split(/(\n)/).reject {|x| x == "\n" }
   end
 end
 

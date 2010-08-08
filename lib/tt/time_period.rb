@@ -31,20 +31,20 @@ module TimeTracker
     def info(options={})
       info = []
       if options[:include_date] || started_at.to_date != ended_at.to_date
-        info << started_at.to_s(:relative_date) << ", "
+        info << started_at.to_s(:relative_date) << ', '
       end
       info << started_at.to_s(:hms)
-      info << " - "
+      info << ' - '
       if started_at.to_date != ended_at.to_date
-        info << ended_at.to_s(:relative_date) << ", " 
+        info << ended_at.to_s(:relative_date) << ', '
       elsif options[:include_date]
         info << "" << ""
       end
       info << ended_at.to_s(:hms)
       info << " "
-      info << task.name
+      info << '[' << "##{task.number}" << ']'
       info << " "
-      info << "[##{task.number}] (in #{task.project.name})"
+      info << task.project.name << ' / ' << task.name
       info
     end
     
