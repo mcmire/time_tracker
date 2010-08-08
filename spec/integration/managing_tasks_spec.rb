@@ -8,19 +8,19 @@ feature "Managing tasks" do
     and so that I can be more efficient at my job.
   EOT
   
-  scenario "Starting a task" do
-    tt 'switch "some project"'
-    tt 'start "some task"'
-    output.must == %{Started clock for "some task".\n}
+  scenario "Starting a task without specifying a name" do
+    tt 'start'
+    output.must == %{Right, but what's the name of your task?\n}
   end
   scenario "Starting a task without switching to a project first" do
     tt 'start "some task"'
     output.must == %{Try switching to a project first.\n}
   end
-  scenario "Running 'tt start' without specifying a name" do
-    tt 'start'
-    output.must == %{Right, but what's the name of your task?\n}
-  end
+  scenario "Starting a task" do
+    tt 'switch "some project"'
+    tt 'start "some task"'
+    output.must == %{Started clock for "some task".\n}
+  end  
   scenario "Starting the same task after it's been started" do
     tt 'switch "some project"'
     tt 'start "some task"'
@@ -107,30 +107,13 @@ feature "Managing tasks" do
     output.must == %{I think you've stopped that task already.\n}
   end
   
-  #scenario "Resuming the last paused task" do
-  #  tt 'switch "some project"'
-  #  tt 'start "some task"'
-  #  tt 'pause'
-  #  tt 'resume'
-  #  output.must == %{Resumed clock for "some task".\n}
-  #end
-  #scenario "Resuming the last paused task when all tasks are running" do
-  #  tt 'switch "some project"'
-  #  tt 'start "some task"'
-  #  tt 'resume'
-  #  output.must == %{Aren't you still working on a task?\n}
-  #end
-  #scenario "Resuming the last paused task when no tasks exist" do
-  #  tt 'switch "some project"'
-  #  tt 'resume'
-  #  output.must == %{It doesn't look like you've started any tasks yet.\n}
-  #end
-  
   scenario "Resuming a task without specifying a name" do
-    tt 'switch "some project"'
-    tt 'start "some task"'
     tt 'resume'
     output.must == "Yes, but which task do you want to resume? (I'll accept a number or a name.)\n"
+  end
+  scenario "Resuming a task without switching to a project first" do
+    tt 'resume "some task"'
+    output.must == "Try switching to a project first.\n"
   end
   
   scenario "Resuming a paused task by name" do
@@ -164,7 +147,7 @@ feature "Managing tasks" do
     tt 'switch "some project"'
     tt 'start "some task"'
     tt 'resume "some task"'
-    output.must == %{Yes, you're still working on that task.\n}
+    output.must == %{Aren't you working on that task already?\n}
   end
   
   scenario "Resuming a paused task by number" do
@@ -183,27 +166,8 @@ feature "Managing tasks" do
     tt 'switch "some project"'
     tt 'start "some task"'
     tt 'resume 1'
-    output.must == %{Yes, you're still working on that task.\n}
+    output.must == %{Aren't you working on that task already?\n}
   end
-  
-  #scenario "Resuming the last stopped task" do
-  #  tt 'switch "some project"'
-  #  tt 'start "some task"'
-  #  tt 'stop'
-  #  tt 'resume'
-  #  output.must =~ %r{Resumed clock for "some task".}
-  #end
-  #scenario "Resuming the last stopped task when all tasks are running" do
-  #  tt 'switch "some project"'
-  #  tt 'start "some task"'
-  #  tt 'resume'
-  #  output.must == %{Aren't you still working on a task?\n}
-  #end
-  #scenario "Resuming the last stopped task when no tasks exist" do
-  #  tt 'switch "some project"'
-  #  tt 'resume'
-  #  output.must == %{It doesn't look like you've started any tasks yet.\n}
-  #end
   
   scenario "Resuming a stopped task by name" do
     tt 'switch "some project"'
@@ -239,7 +203,7 @@ feature "Managing tasks" do
     tt 'switch "some project"'
     tt 'start "some task"'
     tt 'resume "some task"'
-    output.must == %{Yes, you're still working on that task.\n}
+    output.must == %{Aren't you working on that task already?\n}
   end
   
   scenario "Resuming a stopped task by number" do
@@ -258,7 +222,7 @@ feature "Managing tasks" do
     tt 'switch "some project"'
     tt 'start "some task"'
     tt 'resume 1'
-    output.must == %{Yes, you're still working on that task.\n}
+    output.must == %{Aren't you working on that task already?\n}
   end
   
   scenario "Resuming a task by number that doesn't exist" do

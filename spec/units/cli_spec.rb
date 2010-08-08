@@ -338,7 +338,7 @@ describe TimeTracker::Cli do
         project = Factory(:project, :name => "some project")
         TimeTracker.config.update("current_project_id", project.id.to_s)
         task1 = Factory(:task, :project => project, :name => "some task", :state => "running")
-        expect { @cli.resume("some task") }.to raise_error("Yes, you're still working on that task.")
+        expect { @cli.resume("some task") }.to raise_error("Aren't you working on that task already?")
       end
       it "auto-pauses any task that's already running before resuming the given paused task" do
         project = Factory(:project, :name => "some project")
@@ -401,7 +401,7 @@ describe TimeTracker::Cli do
         project = Factory(:project, :name => "some project")
         TimeTracker.config.update("current_project_id", project.id.to_s)
         task1 = Factory(:task, :project => project, :name => "some task", :number => "1")
-        expect { @cli.resume("1") }.to raise_error("Yes, you're still working on that task.")
+        expect { @cli.resume("1") }.to raise_error("Aren't you working on that task already?")
       end
       it "auto-switches to another project if given paused task is present there" do
         project1 = Factory(:project, :name => "some project")

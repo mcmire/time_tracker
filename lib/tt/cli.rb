@@ -117,6 +117,7 @@ module TimeTracker
     def resume(task_name=nil)
       die "Yes, but which task do you want to resume? (I'll accept a number or a name.)" unless task_name
       curr_proj = TimeTracker::Project.find TimeTracker.config["current_project_id"]
+      die "Try switching to a project first." unless curr_proj
       die "It doesn't look like you've started any tasks yet." unless TimeTracker::Task.exists?
       already_paused = false
       if task_name =~ /^\d+$/
@@ -131,7 +132,7 @@ module TimeTracker
             TimeTracker.config.update("current_project_id", curr_proj.id.to_s)
             @stdout.puts %{(Switching to project "#{curr_proj.name}".)}
           end
-          die "Yes, you're still working on that task." if task.running?
+          die "Aren't you working on that task already?" if task.running?
         else
           die "I don't think that task exists."
         end
@@ -150,7 +151,7 @@ module TimeTracker
             die "I don't think that task exists." 
           end
         end
-        die "Yes, you're still working on that task." if task.running?
+        die "Aren't you working on that task already?" if task.running?
       end
       if running_task = curr_proj.tasks.last_running and !already_paused
         running_task.pause!
