@@ -91,7 +91,7 @@ module IntegrationExampleMethods
         STDOUT.puts "Got an exit" if Ribeye.debug?
         # do nothing
       rescue => e
-        STDOUT.puts "Got a: #{e.class} - #{e.message}" if Ribeye.debug?
+        STDOUT.puts "Got a: #{e.class} - #{e.message}\n#{e.backtrace.join("\n")}" if Ribeye.debug?
         # do nothing
       ensure
         # write to the files

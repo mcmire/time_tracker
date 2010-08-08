@@ -262,4 +262,31 @@ describe TimeTracker::Task do
     end
     # the time stuff is tested in ruby_spec.rb
   end
+  
+  describe '#info_for_search' do
+    it "returns an array containing the task number, project name, and last started date" do
+      project = TimeTracker::Project.new(:name => "some project")
+      task = TimeTracker::Task.new(
+        :project => project,
+        :number => "1",
+        :name => "some task",
+        :last_started_at => Time.zone.local(2010, 1, 1),
+        :state => "stopped"
+      )
+      task.info_for_search.must ==
+        [ "[", "#1", "]", " ", "some project", " / ", "some task", " ", "(last active: ", "1/1/2010)" ]
+    end
+    it "adds an asterisk after the task name if it's running" do
+      project = TimeTracker::Project.new(:name => "some project")
+      task = TimeTracker::Task.new(
+        :project => project,
+        :number => "1",
+        :name => "some task",
+        :last_started_at => Time.zone.local(2010, 1, 1),
+        :state => "running"
+      )
+      task.info_for_search.must ==
+        [ "[", "#1", "]", " ", "some project", " / ", "some task (*)", " ", "(last active: ", "1/1/2010)" ]
+    end
+  end
 end

@@ -8,7 +8,11 @@
 Spec::Matchers.define :smart_match do |expected|
   match do |actual|
     if actual.respond_to?(:zip)
-      actual.zip(expected).all? {|a,e| Proc === e ? e.call(a) : e === a }
+      if actual.size >= expected.size
+        actual.zip(expected).all? {|a,e| Proc === e ? e.call(a) : e === a }
+      else
+        expected.zip(actual).all? {|e,a| Proc === e ? e.call(a) : e === a }
+      end
     else
       actual === expected
     end

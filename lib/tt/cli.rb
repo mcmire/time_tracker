@@ -9,15 +9,15 @@ module TimeTracker
       attr_accessor :stdin, :stdout, :stderr
       
       def stdin
-        @stdin ||= $stdin
+        $stdin
       end
       
       def stdout
-        @stdout ||= $stdout
+        $stdout
       end
       
       def stderr
-        @stderr ||= $stderr
+        $stderr
       end
       
       def within_repl?
@@ -112,9 +112,11 @@ module TimeTracker
     attr_accessor :stdin, :stdout, :stderr
     
     def initialize(*args)
-      @stdin  = self.class.stdin
-      @stdout = self.class.stdout
-      @stderr = self.class.stderr
+      # These are just the default values for normal use;
+      # if you want to override these, use .build
+      @stdin  = $stdin
+      @stdout = $stdout
+      @stderr = $stderr
       super
     end
     
@@ -342,9 +344,23 @@ module TimeTracker
       raise(e)
     end
     
-    desc "search QUERY", "Search for a task"
-    def search(query=nil)
-      
+    desc "search QUERY...", "Search for a task by name"
+    def search(*args)
+      raise Error, "Okay, but what do you want to search for?" if args.empty?
+      re = Regexp.new(args.map {|a| Regexp.escape(a) }.join("|"))
+      tasks = TimeTracker::Task.where(:name => re).sort(:last_started_at.desc).to_a
+      #pp :tasks => tasks
+      stdout.puts "Search results:"
+      rows = tasks.map {|task| task.info_for_search }
+      alignments = [:none, :right, :none, :none, :left, :none, :left, :none, :none, :right]
+      lines = Columnator.columnate(rows, :alignments => alignments, :write_to => :array)
+      for line in lines
+        stdout.puts(line)
+      end
+    rescue Error => e
+      handle_error(e)
+    rescue Exception => e
+      raise(e)
     end
     
     desc "clear", "Clears everything"

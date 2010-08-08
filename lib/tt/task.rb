@@ -77,6 +77,19 @@ module TimeTracker
       info
     end
     
+    def info_for_search
+      [
+        "[", "##{number}", "]",
+        " ",
+        "#{project.name}",
+        " / ",
+        "#{name}#{' (*)' if running?}",
+        " ",
+        "(last active: ",
+        "#{last_started_at.to_s(:mdy)})"
+      ]
+    end
+    
   private
     def set_number
       last = self.class.sort(:number.desc).first

@@ -1,7 +1,11 @@
 require File.expand_path(File.dirname(__FILE__) + '/spec_helper')
 
 feature "Listing tasks" do
-  # TODO: Change all commands to list time periods instead of tasks
+  story <<-EOT
+    As a programmer,
+    I want to be able to pull back and get a list of the tasks in various ways
+    in order to see how I'm spending my time
+  EOT
   
   scenario "Listing last few tasks with 'list lastfew'" do
     tt 'switch "some project"'

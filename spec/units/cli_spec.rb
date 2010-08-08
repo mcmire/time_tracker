@@ -1042,4 +1042,81 @@ Yesterday:
     end
   end
   
+  describe '#search' do
+    it "bails if no query given" do
+      expect { @cli.search }.to raise_error("Okay, but what do you want to search for?")
+    end
+    it "compares the given query to the name of each task (not time period) in the system, and returns matching results" do
+      project1 = Factory(:project, :name => "project 1")
+      project2 = Factory(:project, :name => "project 2222")
+      task1 = Factory(:task,
+        :number => "1",
+        :project => project1,
+        :name => "foo bar baz",
+        :last_started_at => Time.zone.local(2010, 1, 1, 5, 23),
+        :state => "stopped"
+      )
+      Factory(:time_period, :task => task1)
+      task2 = Factory(:task,
+        :number => "21",
+        :project => project2, 
+        :name => "foosball table",
+        :last_started_at => Time.zone.local(2010, 1, 21, 10, 24),
+        :state => "running"
+      )
+      Factory(:time_period, :task => task2)
+      Factory(:time_period, :task => task2)
+      task3 = Factory(:task, 
+        :number => "3", 
+        :project => project1, 
+        :name => "nancy pelosi",
+        :last_started_at => Time.zone.local(2010, 1, 2, 11, 22),
+        :state => "running"
+      )
+      Factory(:time_period, :task => task3)
+      @cli.search("foo")
+      stdout.lines.must smart_match([
+        "Search results:",
+        '[#21] project 2222 / foosball table (*) (last active: 1/21/2010)',
+        '[ #1] project 1    / foo bar baz        (last active:  1/1/2010)'
+      ])
+    end
+    it "makes an OR query from multiple words" do
+      project1 = Factory(:project, :name => "project 1")
+      project2 = Factory(:project, :name => "project 2222")
+      task1 = Factory(:task,
+        :number => "1",
+        :project => project1,
+        :name => "foo bar baz",
+        :last_started_at => Time.zone.local(2010, 1, 1, 5, 23),
+        :state => "stopped"
+      )
+      Factory(:time_period, :task => task1)
+      task2 = Factory(:task,
+        :number => "21",
+        :project => project2, 
+        :name => "foosball table",
+        :last_started_at => Time.zone.local(2010, 1, 21, 10, 24),
+        :state => "stopped"
+      )
+      Factory(:time_period, :task => task2)
+      Factory(:time_period, :task => task2)
+      task3 = Factory(:task, 
+        :number => "3", 
+        :project => project1, 
+        :name => "nancy pelosi",
+        :last_started_at => Time.zone.local(2010, 1, 2, 11, 22),
+        :state => "running"
+      )
+      Factory(:time_period, :task => task3)
+      @cli.search("foo", "pelosi")
+      stdout.lines.must smart_match([
+        "Search results:",
+        '[#21] project 2222 / foosball table   (last active: 1/21/2010)',
+        '[ #3] project 1    / nancy pelosi (*) (last active:  1/2/2010)',
+        '[ #1] project 1    / foo bar baz      (last active:  1/1/2010)'
+      ])
+    end
+  end
+  
 end
