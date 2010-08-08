@@ -1,5 +1,17 @@
 module TimeTracker
   class Task
+    module TaskExtensions
+      # Put this in state machine?
+      [:running, :stopped, :paused].each do |state|
+        class_eval <<-EOT, __FILE__, __LINE__
+          def last_#{state}
+            last(:state => "#{state}", :order => :updated_at)
+          end
+        EOT
+      end
+    end
+    extend TaskExtensions
+    
     include ::MongoMapper::Document
     plugin ::MongoMapper::Plugins::IdentityMap
     plugin TimeTracker::Extensions::MongoMapper::StateMachine
@@ -41,10 +53,6 @@ module TimeTracker
           task.last_started_at = Time.now
         end
       end
-    end
-    
-    def self.last
-      sort(:created_at.desc).first
     end
     
     def total_running_time

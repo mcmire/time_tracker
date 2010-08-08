@@ -1,6 +1,6 @@
-* rename stop to finish, or, rename start to open, stop to close, resume to reopen?
-* start 1, start 2, start 3, stop should resume 2 not 1
-* list today's task by :ended_at.asc?
+* resume should die if no project set
+* when listing currently running task, base date off stopped at of last period, or created_at
+* list today's task by ended_at asc?
 * Don't allow time periods to cross days
 * Left-align name of task in listings
 * REPL

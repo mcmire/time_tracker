@@ -28,14 +28,15 @@ feature "Automatic commands" do
   end
   
   # No tests for stop 1 or stop "another task" here -- they're unit tests though
-  scenario "Starting a task, starting another task, then returning to the first task" do
+  scenario "Starting 3 tasks in a row and returning to the last task" do
     tt 'switch "some project"'
     tt 'start "some task"'
     tt 'start "another task"'
+    tt 'start "yet another task"'
     tt 'stop'
     output.lines.must smart_match([
-      /Stopped clock for "another task", at \dm\./,
-      %{(Resuming clock for "some task".)}
+      /Stopped clock for "yet another task", at \dm\./,
+      %{(Resuming clock for "another task".)}
     ])
   end
   

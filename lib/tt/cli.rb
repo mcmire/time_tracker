@@ -59,14 +59,14 @@ module TimeTracker
     def switch(project_name=nil)
       die "Right, but which project do you want to switch to?" unless project_name
       if curr_proj = TimeTracker::Project.find(TimeTracker.config["current_project_id"]) and
-      running_task = curr_proj.tasks.running.last
+      running_task = curr_proj.tasks.last_running
         running_task.pause!
         @stdout.puts %{(Pausing clock for "#{running_task.name}", at #{running_task.total_running_time}.)}
       end
       proj = TimeTracker::Project.first(:name => project_name) || TimeTracker::Project.create!(:name => project_name)
       TimeTracker.config.update("current_project_id", proj.id)
       @stdout.puts %{Switched to project "#{proj.name}".}
-      if paused_task = proj.tasks.paused.last
+      if paused_task = proj.tasks.last_paused
         paused_task.resume!
         @stdout.puts %{(Resuming clock for "#{paused_task.name}".)}
       end
@@ -80,7 +80,7 @@ module TimeTracker
       task = curr_proj.tasks.first(:name => task_name)
       die "Aren't you already working on that task?" if task && task.running?
       task ||= curr_proj.tasks.build(:name => task_name)
-      if running_task = curr_proj.tasks.running.last
+      if running_task = curr_proj.tasks.last_running
         running_task.pause!
         @stdout.puts %{(Pausing clock for "#{running_task.name}", at #{running_task.total_running_time}.)}
       end
@@ -94,7 +94,7 @@ module TimeTracker
       die "Try switching to a project first." unless curr_proj
       die "It doesn't look like you've started any tasks yet." if curr_proj.tasks.empty?
       if task_name == :last
-        task = curr_proj.tasks.running.last
+        task = curr_proj.tasks.last_running
         die "It doesn't look like you're working on anything at the moment." unless task
       elsif task_name =~ /^\d+$/
         task = curr_proj.tasks.first(:number => task_name.to_i)
@@ -107,7 +107,7 @@ module TimeTracker
       end
       task.stop!
       @stdout.puts %{Stopped clock for "#{task.name}", at #{task.total_running_time}.}
-      if paused_task = curr_proj.tasks.paused.last
+      if paused_task = curr_proj.tasks.last_paused
         paused_task.resume!
         @stdout.puts %{(Resuming clock for "#{paused_task.name}".)}
       end
@@ -119,15 +119,10 @@ module TimeTracker
       curr_proj = TimeTracker::Project.find TimeTracker.config["current_project_id"]
       die "It doesn't look like you've started any tasks yet." unless TimeTracker::Task.exists?
       already_paused = false
-      #if task_name == :last
-      #  task = curr_proj.tasks.not_running.last
-      #  # BUG: Maybe this should only show if last task is running?
-      #  die "Aren't you still working on a task?" unless task
-      #els
       if task_name =~ /^\d+$/
         if task = TimeTracker::Task.first(:number => task_name.to_i)        
           if task.project_id != curr_proj.id
-            if running_task = curr_proj.tasks.running.last
+            if running_task = curr_proj.tasks.last_running
               running_task.pause!
               @stdout.puts %{(Pausing clock for "#{running_task.name}", at #{running_task.total_running_time}.)}
               already_paused = true
@@ -157,7 +152,7 @@ module TimeTracker
         end
         die "Yes, you're still working on that task." if task.running?
       end
-      if running_task = curr_proj.tasks.running.last and !already_paused
+      if running_task = curr_proj.tasks.last_running and !already_paused
         running_task.pause!
         @stdout.puts %{(Pausing clock for "#{running_task.name}", at #{running_task.total_running_time}.)}
       end
@@ -198,7 +193,7 @@ module TimeTracker
       end
       
       unless type == "completed"
-        if task = TimeTracker::Task.running.last
+        if task = TimeTracker::Task.last_running
           records.pop if type == "lastfew" && records.size == 5
           if type == "this week"
             records << task

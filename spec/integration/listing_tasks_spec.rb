@@ -80,7 +80,7 @@ feature "Listing tasks" do
     tt 'start "task 2"'
     tt 'start "task 3"'
     tt 'stop'
-    tt 'resume 2'
+    tt 'resume 1'
     tt 'switch "project 2"'
     tt 'start "task 4"'
     tt 'start "task 5"'
@@ -93,13 +93,13 @@ feature "Listing tasks" do
       "All tasks:",
       "",
       "Today:",
-      "  12:02am -         task 1 [#1] (in project 1) <==",
+      "  12:22am -         task 1 [#1] (in project 1) <==",
       "  12:20am - 12:22am task 6 [#6] (in project 2)",
       "  12:18am - 12:20am task 4 [#4] (in project 2)",
       "  12:16am - 12:18am task 5 [#5] (in project 2)",
       "  12:14am - 12:16am task 4 [#4] (in project 2)",
-      "  12:10am - 12:12am task 2 [#2] (in project 1)",
-      "  12:08am - 12:10am task 1 [#1] (in project 1)",
+      "  12:10am - 12:12am task 1 [#2] (in project 1)",
+      "  12:08am - 12:10am task 2 [#1] (in project 1)",
       "  12:06am - 12:08am task 3 [#3] (in project 1)",
       "  12:04am - 12:06am task 2 [#2] (in project 1)",
       "  12:02am - 12:04am task 1 [#1] (in project 1)"

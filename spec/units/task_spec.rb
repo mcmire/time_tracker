@@ -52,14 +52,36 @@ describe TimeTracker::Task do
     #end
   end
   
-  describe '.last' do
+  describe '.last_running' do
     it "returns the last created task regardless of id" do
       project = Factory(:project)
-      task1 = Factory(:task, :project => project, :created_at => Time.local(2010, 1, 1))
-      task2 = Factory(:task, :project => project, :created_at => Time.local(2010, 1, 4))
-      task3 = Factory(:task, :project => project, :created_at => Time.local(2010, 1, 3))
-      task4 = Factory(:task, :project => project, :created_at => Time.local(2010, 1, 2))
-      TimeTracker::Task.last.must == task2
+      task1 = Factory(:task, :project => project, :updated_at => Time.local(2010, 1, 1), :state => "running")
+      task2 = Factory(:task, :project => project, :updated_at => Time.local(2010, 1, 4), :state => "running")
+      task3 = Factory(:task, :project => project, :updated_at => Time.local(2010, 1, 3), :state => "running")
+      task4 = Factory(:task, :project => project, :updated_at => Time.local(2010, 1, 2), :state => "running")
+      TimeTracker::Task.last_running.must == task2
+    end
+  end
+  
+  describe '.last_stopped' do
+    it "returns the last created task regardless of id" do
+      project = Factory(:project)
+      task1 = Factory(:task, :project => project, :updated_at => Time.local(2010, 1, 1), :state => "stopped")
+      task2 = Factory(:task, :project => project, :updated_at => Time.local(2010, 1, 4), :state => "stopped")
+      task3 = Factory(:task, :project => project, :updated_at => Time.local(2010, 1, 3), :state => "stopped")
+      task4 = Factory(:task, :project => project, :updated_at => Time.local(2010, 1, 2), :state => "stopped")
+      TimeTracker::Task.last_stopped.must == task2
+    end
+  end
+  
+  describe '.last_paused' do
+    it "returns the last created task regardless of id" do
+      project = Factory(:project)
+      task1 = Factory(:task, :project => project, :updated_at => Time.local(2010, 1, 1), :state => "paused")
+      task2 = Factory(:task, :project => project, :updated_at => Time.local(2010, 1, 4), :state => "paused")
+      task3 = Factory(:task, :project => project, :updated_at => Time.local(2010, 1, 3), :state => "paused")
+      task4 = Factory(:task, :project => project, :updated_at => Time.local(2010, 1, 2), :state => "paused")
+      TimeTracker::Task.last_paused.must == task2
     end
   end
   
