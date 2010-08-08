@@ -74,6 +74,21 @@ describe TimeTracker::Task do
     end
   end
   
+  describe '.not_running' do
+    it "includes tasks which are paused" do
+      paused_task = Factory(:task, :state => "paused")
+      TimeTracker::Task.not_running.to_a.must include(paused_task)
+    end
+    it "includes tasks which are stopped" do
+      stopped_task = Factory(:task, :state => "stopped")
+      TimeTracker::Task.not_running.to_a.must include(stopped_task)
+    end
+    it "excludes tasks which are running" do
+      running_task = Factory(:task, :state => "running")
+      TimeTracker::Task.not_running.to_a.must_not include(running_task)
+    end
+  end
+  
   describe '.stopped' do
     it "includes tasks which are stopped" do
       stopped_task = Factory(:task, :state => "stopped")
@@ -95,56 +110,7 @@ describe TimeTracker::Task do
       TimeTracker::Task.paused.to_a.must_not include(stopped_task)
     end
   end
-  
-  #describe '.all_time_periods_ended_today' do
-  #  before do
-  #    today = Date.today
-  #    @start_of_today = Time.local(today.year, today.month, today.day, 0, 0, 0)
-  #    @end_of_today   = Time.local(today.year, today.month, today.day, 23, 59, 59)
-  #  end
-  #  it "includes periods ended today" do
-  #    task = Factory(:task)
-  #    start_of_today_period = Factory(:time_period, :ended_at => @start_of_today)
-  #    end_of_today_period = Factory(:time_period, :ended_at => @end_of_today)
-  #    task.time_periods << start_of_today_period
-  #    task.time_periods << end_of_today_period
-  #    task.save!
-  #    TimeTracker::Task.all_time_periods_ended_today.must include(start_of_today_period)
-  #    TimeTracker::Task.all_time_periods_ended_today.must include(end_of_today_period)
-  #  end
-  #  it "excludes tasks updated in the past" do
-  #    yesterday_task = Factory(:time_period, :ended_at => @start_of_today-1)
-  #    TimeTracker::Task.all_time_periods_ended_today.must_not include(yesterday_task)
-  #  end
-  #  it "sorts periods by ended_at" do
-  #    task = Factory(:task)
-  #    period1 = Factory(:time_period, :ended_at => Time.zone.local(2010, 1, 1, 2, 0, 0))
-  #    period2 = Factory(:time_period, :ended_at => Time.zone.local(2010, 1, 1, 13, 30, 0))
-  #    period3 = Factory(:time_period, :ended_at => Time.zone.local(2010, 1, 1, 0, 2, 0))
-  #    TimeTracker::Task.all_time_periods_ended_today.must == [period3, period1, period2]
-  #  end
-  #end
-  
-  #describe '.updated_this_week' do
-  #  before do
-  #    today = Date.today
-  #    sunday = today - today.wday
-  #    saturday = sunday + 6
-  #    @start_of_this_week = Time.zone.local(sunday.year, sunday.month, sunday.day, 0, 0, 0)
-  #    @end_of_this_week   = Time.zone.local(saturday.year, saturday.month, saturday.day, 23, 59, 59)
-  #  end
-  #  it "includes tasks updated this week" do
-  #    start_of_today_task = Factory(:task, :updated_at => @start_of_this_week)
-  #    end_of_today_task = Factory(:task, :updated_at => @end_of_this_week)
-  #    TimeTracker::Task.updated_this_week.to_a.must include(start_of_today_task)
-  #    TimeTracker::Task.updated_this_week.to_a.must include(end_of_today_task)
-  #  end
-  #  it "excludes tasks updated in the past" do
-  #    yesterday_task = Factory(:task, :updated_at => @start_of_this_week-1)
-  #    TimeTracker::Task.updated_this_week.to_a.must_not include(yesterday_task)
-  #  end
-  #end
-  
+    
   describe '#running?' do
     it "returns true if state is set to 'running'" do
       @task.state = "running"
@@ -251,22 +217,6 @@ describe TimeTracker::Task do
   end
   
   describe '#info' do
-    #it "right-aligns the date and time to the given width" do
-    #  project = Factory.build(:project, :name => "some project")
-    #  task = Factory.build(:task,
-    #    :number => 1,
-    #    :name => "some task"
-    #  )
-    #  time = Object.new
-    #  
-    #  stub(time).to_s(:simpler_date) { "x" * 4 }
-    #  stub(task).created_at { time }
-    #  task.info(:right_align => 20).must == "                xxxx -                      some task [#1] (in some project)"
-    #  
-    #  stub(time).to_s(:simpler_date) { "x" * 11 }
-    #  stub(task).created_at { time }
-    #  task.info(:right_align => 13).must == "  xxxxxxxxxxx -               some task [#1] (in some project)"
-    #end
     it "returns an array of strings" do
       project = TimeTracker::Project.new(:name => "some project")
       task = TimeTracker::Task.new(

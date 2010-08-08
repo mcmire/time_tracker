@@ -277,41 +277,68 @@ describe TimeTracker::Cli do
   end
   
   describe '#resume' do
-    # XXX: Should we really allow this?
-    context "with no argument" do
-      it "bails if no tasks exist in this project" do
-        project = Factory(:project, :name => "some project")
-        TimeTracker.config.update("current_project_id", project.id.to_s)
-        expect { @cli.resume }.to raise_error("It doesn't look like you've started any tasks yet.")
-      end
-      it "bails if all tasks in this project are running" do
-        project = Factory(:project, :name => "some project")
-        TimeTracker.config.update("current_project_id", project.id.to_s)
-        task = Factory(:task, :project => project, :name => "some task")
-        expect { @cli.resume }.to raise_error("Aren't you still working on a task?")
-      end
-      it "resumes the last paused task in the current project" do
-        project = Factory(:project, :name => "some project")
-        TimeTracker.config.update("current_project_id", project.id.to_s)
-        task = Factory(:task, :project => project, :name => "some task", :state => "paused")
-        @cli.resume
-        task.reload
-        task.must be_running
-        stdout.must == %{Resumed clock for "some task".\n}
-      end
-      it "auto-pauses any task that's already running before resuming the last paused task" do
-        project = Factory(:project, :name => "some project")
-        TimeTracker.config.update("current_project_id", project.id.to_s)
-        task1 = Factory(:task, :project => project, :name => "some task", :state => "paused")
-        task2 = Factory(:task, :project => project, :name => "another task", :created_at => Time.local(2010, 1, 1, 0, 0, 0))
-        stopped_at = Time.local(2010, 1, 1, 3, 29, 0)
-        Timecop.freeze(stopped_at) do
-          @cli.resume
-        end
-        task2.reload
-        task2.must be_paused
-        stdout.must == %{(Pausing clock for "another task", at 3h:29m.)\nResumed clock for "some task".\n}
-      end
+    #context "with no argument" do
+    #  it "bails if no tasks exist in this project" do
+    #    project = Factory(:project, :name => "some project")
+    #    TimeTracker.config.update("current_project_id", project.id.to_s)
+    #    expect { @cli.resume }.to raise_error("It doesn't look like you've started any tasks yet.")
+    #  end
+    #  it "bails if all tasks in this project are running" do
+    #    project = Factory(:project, :name => "some project")
+    #    TimeTracker.config.update("current_project_id", project.id.to_s)
+    #    task = Factory(:task, :project => project, :name => "some task")
+    #    expect { @cli.resume }.to raise_error("Aren't you still working on a task?")
+    #  end
+    #  it "resumes the last paused task in the current project" do
+    #    project = Factory(:project, :name => "some project")
+    #    TimeTracker.config.update("current_project_id", project.id.to_s)
+    #    task = Factory(:task, :project => project, :name => "some task", :state => "paused")
+    #    @cli.resume
+    #    task.reload
+    #    task.must be_running
+    #    stdout.must == %{Resumed clock for "some task".\n}
+    #  end
+    #  it "resumes the last stopped task in the current project" do
+    #    project = Factory(:project, :name => "some project")
+    #    TimeTracker.config.update("current_project_id", project.id.to_s)
+    #    task = Factory(:task, :project => project, :name => "some task", :state => "stopped")
+    #    @cli.resume
+    #    task.reload
+    #    task.must be_running
+    #    stdout.must == %{Resumed clock for "some task".\n}
+    #  end
+    #  it "auto-pauses any task that's already running before resuming the last paused task" do
+    #    project = Factory(:project, :name => "some project")
+    #    TimeTracker.config.update("current_project_id", project.id.to_s)
+    #    task1 = Factory(:task, :project => project, :name => "some task", :state => "paused")
+    #    task2 = Factory(:task, :project => project, :name => "another task", :created_at => Time.local(2010, 1, 1, 0, 0, 0))
+    #    stopped_at = Time.local(2010, 1, 1, 3, 29, 0)
+    #    Timecop.freeze(stopped_at) do
+    #      @cli.resume
+    #    end
+    #    task2.reload
+    #    task2.must be_paused
+    #    stdout.must == %{(Pausing clock for "another task", at 3h:29m.)\nResumed clock for "some task".\n}
+    #  end
+    #  it "auto-pauses any task that's already running before resuming the last stopped task" do
+    #    project = Factory(:project, :name => "some project")
+    #    TimeTracker.config.update("current_project_id", project.id.to_s)
+    #    task1 = Factory(:task, :project => project, :name => "some task", :state => "stopped")
+    #    task2 = Factory(:task, :project => project, :name => "another task", :created_at => Time.local(2010, 1, 1, 0, 0, 0))
+    #    stopped_at = Time.local(2010, 1, 1, 3, 29, 0)
+    #    Timecop.freeze(stopped_at) do
+    #      @cli.resume
+    #    end
+    #    task2.reload
+    #    task2.must be_paused
+    #    stdout.must == %{(Pausing clock for "another task", at 3h:29m.)\nResumed clock for "some task".\n}
+    #  end
+    #end
+    it "bails if no name given" do
+      project = Factory(:project, :name => "some project")
+      TimeTracker.config.update("current_project_id", project.id.to_s)
+      task1 = Factory(:task, :project => project, :name => "some task", :state => "paused")
+      expect { @cli.resume }.to raise_error("Yes, but which task do you want to resume? (I'll accept a number or a name.)")
     end
     context "given a string" do
       it "bails if no tasks exist at all" do
@@ -319,10 +346,19 @@ describe TimeTracker::Cli do
         TimeTracker.config.update("current_project_id", project.id.to_s)
         expect { @cli.resume("some task") }.to raise_error("It doesn't look like you've started any tasks yet.")
       end
-      it "resumes the given task" do
+      it "resumes the given paused task" do
         project = Factory(:project, :name => "some project")
         TimeTracker.config.update("current_project_id", project.id.to_s)
         task1 = Factory(:task, :project => project, :name => "some task", :state => "paused")
+        @cli.resume("some task")
+        task1.reload
+        task1.must be_running
+        stdout.must == %{Resumed clock for "some task".\n}
+      end
+      it "resumes the given stopped task" do
+        project = Factory(:project, :name => "some project")
+        TimeTracker.config.update("current_project_id", project.id.to_s)
+        task1 = Factory(:task, :project => project, :name => "some task", :state => "stopped")
         @cli.resume("some task")
         task1.reload
         task1.must be_running
@@ -334,7 +370,7 @@ describe TimeTracker::Cli do
         Factory(:task, :project => project, :name => "some task")
         expect { @cli.resume("another task") }.to raise_error("I don't think that task exists.")
       end
-      it "bails if a task can be found by that name but it's in other projects" do
+      it "bails if a paused task can be found by that name but it's in other projects" do
         project1 = Factory(:project, :name => "some project")
         Factory(:task, :project => project1, :name => "some task", :state => "paused")
         project2 = Factory(:project, :name => "another project")
@@ -343,16 +379,38 @@ describe TimeTracker::Cli do
         TimeTracker.config.update("current_project_id", project3.id.to_s)
         expect { @cli.resume("some task") }.to raise_error(%{That task doesn't exist here. Perhaps you meant to switch to "some project" or "another project"?})
       end
-      it "bails if the given task is already running" do
+      it "bails if a stopped task can be found by that name but it's in other projects" do
+        project1 = Factory(:project, :name => "some project")
+        Factory(:task, :project => project1, :name => "some task", :state => "stopped")
+        project2 = Factory(:project, :name => "another project")
+        Factory(:task, :project => project2, :name => "some task", :state => "stopped")
+        project3 = Factory(:project, :name => "a different project")
+        TimeTracker.config.update("current_project_id", project3.id.to_s)
+        expect { @cli.resume("some task") }.to raise_error(%{That task doesn't exist here. Perhaps you meant to switch to "some project" or "another project"?})
+      end
+      it "bails if the given task can be found, but it's already running" do
         project = Factory(:project, :name => "some project")
         TimeTracker.config.update("current_project_id", project.id.to_s)
-        task1 = Factory(:task, :project => project, :name => "some task")
+        task1 = Factory(:task, :project => project, :name => "some task", :state => "running")
         expect { @cli.resume("some task") }.to raise_error("Yes, you're still working on that task.")
       end
-      it "auto-pauses any task that's already running before resuming the given task" do
+      it "auto-pauses any task that's already running before resuming the given paused task" do
         project = Factory(:project, :name => "some project")
         TimeTracker.config.update("current_project_id", project.id.to_s)
         task1 = Factory(:task, :project => project, :name => "some task", :state => "paused")
+        task2 = Factory(:task, :project => project, :name => "another task", :created_at => Time.local(2010, 1, 1, 0, 0, 0))
+        paused_at = Time.local(2010, 1, 1, 3, 29, 0)
+        Timecop.freeze(paused_at) do
+          @cli.resume("some task")
+        end
+        task2.reload
+        task2.must be_paused
+        stdout.must == %{(Pausing clock for "another task", at 3h:29m.)\nResumed clock for "some task".\n}
+      end
+      it "auto-pauses any task that's already running before resuming the given stopped task" do
+        project = Factory(:project, :name => "some project")
+        TimeTracker.config.update("current_project_id", project.id.to_s)
+        task1 = Factory(:task, :project => project, :name => "some task", :state => "stopped")
         task2 = Factory(:task, :project => project, :name => "another task", :created_at => Time.local(2010, 1, 1, 0, 0, 0))
         paused_at = Time.local(2010, 1, 1, 3, 29, 0)
         Timecop.freeze(paused_at) do
@@ -369,10 +427,19 @@ describe TimeTracker::Cli do
         TimeTracker.config.update("current_project_id", project.id.to_s)
         expect { @cli.resume("1") }.to raise_error("It doesn't look like you've started any tasks yet.")
       end
-      it "resumes the given task" do
+      it "resumes the given paused task" do
         project = Factory(:project, :name => "some project")
         TimeTracker.config.update("current_project_id", project.id.to_s)
         task1 = Factory(:task, :project => project, :name => "some task", :number => "1", :state => "paused")
+        @cli.resume("1")
+        task1.reload
+        task1.must be_running
+        stdout.must == %{Resumed clock for "some task".\n}
+      end
+      it "resumes the given stopped task" do
+        project = Factory(:project, :name => "some project")
+        TimeTracker.config.update("current_project_id", project.id.to_s)
+        task1 = Factory(:task, :project => project, :name => "some task", :number => "1", :state => "stopped")
         @cli.resume("1")
         task1.reload
         task1.must be_running
@@ -384,13 +451,13 @@ describe TimeTracker::Cli do
         Factory(:task, :project => project, :name => "some task")
         expect { @cli.resume("2") }.to raise_error("I don't think that task exists.")
       end
-      it "bails if the given task is already running" do
+      it "bails if the given task can be found, but it's already running" do
         project = Factory(:project, :name => "some project")
         TimeTracker.config.update("current_project_id", project.id.to_s)
         task1 = Factory(:task, :project => project, :name => "some task", :number => "1")
         expect { @cli.resume("1") }.to raise_error("Yes, you're still working on that task.")
       end
-      it "auto-switches to another project if given task is present there" do
+      it "auto-switches to another project if given paused task is present there" do
         project1 = Factory(:project, :name => "some project")
         task = Factory(:task, :project => project1, :name => "some task", :number => "1", :state => "paused")
         project2 = Factory(:project, :name => "another project")
@@ -399,7 +466,16 @@ describe TimeTracker::Cli do
         TimeTracker.config["current_project_id"].must == project1.id.to_s
         stdout.must == %{(Switching to project "some project".)\nResumed clock for "some task".\n}
       end
-      it "auto-pauses any task that's already running before auto-switching to another project" do
+      it "auto-switches to another project if given stopped task is present there" do
+        project1 = Factory(:project, :name => "some project")
+        task = Factory(:task, :project => project1, :name => "some task", :number => "1", :state => "stopped")
+        project2 = Factory(:project, :name => "another project")
+        TimeTracker.config.update("current_project_id", project2.id.to_s)
+        @cli.resume("1")
+        TimeTracker.config["current_project_id"].must == project1.id.to_s
+        stdout.must == %{(Switching to project "some project".)\nResumed clock for "some task".\n}
+      end
+      it "auto-pauses any task that's already running before auto-switching to another project where paused task is present" do
         project1 = Factory(:project, :name => "some project")
         task1 = Factory(:task, :project => project1, :name => "some task", :number => "1", :state => "paused")
         project2 = Factory(:project, :name => "another project")
@@ -413,10 +489,37 @@ describe TimeTracker::Cli do
         task2.must be_paused
         stdout.must == %{(Pausing clock for "another task", at 3h:29m.)\n(Switching to project "some project".)\nResumed clock for "some task".\n}
       end
-      it "auto-pauses any task that's already running before resuming the given task" do
+      it "auto-pauses any task that's already running before auto-switching to another project where stopped task is present" do
+        project1 = Factory(:project, :name => "some project")
+        task1 = Factory(:task, :project => project1, :name => "some task", :number => "1", :state => "stopped")
+        project2 = Factory(:project, :name => "another project")
+        task2 = Factory(:task, :project => project2, :name => "another task", :created_at => Time.local(2010, 1, 1, 0, 0, 0))
+        TimeTracker.config.update("current_project_id", project2.id.to_s)
+        stopped_at = Time.local(2010, 1, 1, 3, 29, 0)
+        Timecop.freeze(stopped_at) do
+          @cli.resume("1")
+        end
+        task2.reload
+        task2.must be_paused
+        stdout.must == %{(Pausing clock for "another task", at 3h:29m.)\n(Switching to project "some project".)\nResumed clock for "some task".\n}
+      end
+      it "auto-pauses any task that's already running before resuming the given paused task" do
         project = Factory(:project, :name => "some project")
         TimeTracker.config.update("current_project_id", project.id.to_s)
         task1 = Factory(:task, :project => project, :name => "some task", :number => "1", :state => "paused")
+        task2 = Factory(:task, :project => project, :name => "another task", :number => "2", :created_at => Time.local(2010, 1, 1, 0, 0, 0))
+        stopped_at = Time.local(2010, 1, 1, 3, 29, 0)
+        Timecop.freeze(stopped_at) do
+          @cli.resume("1")
+        end
+        task2.reload
+        task2.must be_paused
+        stdout.must == %{(Pausing clock for "another task", at 3h:29m.)\nResumed clock for "some task".\n}
+      end
+      it "auto-pauses any task that's already running before resuming the given stopped task" do
+        project = Factory(:project, :name => "some project")
+        TimeTracker.config.update("current_project_id", project.id.to_s)
+        task1 = Factory(:task, :project => project, :name => "some task", :number => "1", :state => "stopped")
         task2 = Factory(:task, :project => project, :name => "another task", :number => "2", :created_at => Time.local(2010, 1, 1, 0, 0, 0))
         stopped_at = Time.local(2010, 1, 1, 3, 29, 0)
         Timecop.freeze(stopped_at) do

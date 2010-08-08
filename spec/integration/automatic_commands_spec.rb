@@ -53,8 +53,18 @@ feature "Automatic commands" do
     ])
   end
   
-  # No tests for resume() or resume(1) here -- they're unit tests though
-  scenario "Resuming one task when another is already running" do
+  scenario "Resuming a paused task when another is already running" do
+    tt 'switch "some project"'
+    tt 'start "some task"'
+    tt 'start "another task"'
+    tt 'resume "some task"'
+    output.lines.must smart_match([
+      /\(Pausing clock for "another task", at \dm\.\)/,
+      %{Resumed clock for "some task".}
+    ])
+  end
+  
+  scenario "Resuming a stopped task when another is already running" do
     tt 'switch "some project"'
     tt 'start "some task"'
     tt 'stop'
@@ -66,7 +76,18 @@ feature "Automatic commands" do
     ])
   end
   
-  scenario "Resuming a task in another project by number without switching to that project first" do
+  scenario "Resuming a paused task in another project by number without switching to that project first" do
+    tt 'switch "some project"'
+    tt 'start "some task"'
+    tt 'switch "another project"'
+    tt 'resume 1'
+    output.lines.must smart_match([
+      %{(Switching to project "some project".)},
+      %{Resumed clock for "some task".}
+    ])
+  end
+  
+  scenario "Resuming a stopped task in another project by number without switching to that project first" do
     tt 'switch "some project"'
     tt 'start "some task"'
     tt 'stop'
@@ -78,7 +99,20 @@ feature "Automatic commands" do
     ])
   end
   
-  scenario "Resuming a task in another project when one in this project is already running" do
+  scenario "Resuming a paused task in another project by number when one in this project is already running" do
+    tt 'switch "some project"'
+    tt 'start "some task"'
+    tt 'switch "another project"'
+    tt 'start "another task"'
+    tt 'resume 1'
+    output.lines.must smart_match([
+      /\(Pausing clock for "another task", at \dm\.\)/,
+      %{(Switching to project "some project".)},
+      %{Resumed clock for "some task".}
+    ])
+  end
+  
+  scenario "Resuming a stopped task in another project by number when one in this project is already running" do
     tt 'switch "some project"'
     tt 'start "some task"'
     tt 'stop'

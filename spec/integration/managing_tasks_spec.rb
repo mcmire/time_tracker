@@ -107,48 +107,124 @@ feature "Managing tasks" do
     output.must == %{I think you've stopped that task already.\n}
   end
   
-  scenario "Resuming the last paused task"
-  scenario "Resuming a paused task by name"
-  scenario "Resuming a paused task by number"
+  #scenario "Resuming the last paused task" do
+  #  tt 'switch "some project"'
+  #  tt 'start "some task"'
+  #  tt 'pause'
+  #  tt 'resume'
+  #  output.must == %{Resumed clock for "some task".\n}
+  #end
+  #scenario "Resuming the last paused task when all tasks are running" do
+  #  tt 'switch "some project"'
+  #  tt 'start "some task"'
+  #  tt 'resume'
+  #  output.must == %{Aren't you still working on a task?\n}
+  #end
+  #scenario "Resuming the last paused task when no tasks exist" do
+  #  tt 'switch "some project"'
+  #  tt 'resume'
+  #  output.must == %{It doesn't look like you've started any tasks yet.\n}
+  #end
   
-  scenario "Resuming the last stopped task" do
-    tt 'switch "some project"'
-    tt 'start "some task"'
-    tt 'stop'
-    tt 'resume'
-    output.must == %{Resumed clock for "some task".\n}
-  end
-  scenario "Resuming the last stopped task when all tasks are running" do
+  scenario "Resuming a task without specifying a name" do
     tt 'switch "some project"'
     tt 'start "some task"'
     tt 'resume'
-    output.must == %{Aren't you still working on a task?\n}
+    output.must == "Yes, but which task do you want to resume? (I'll accept a number or a name.)\n"
   end
-  scenario "Resuming the last stopped task when no tasks exist" do
+  
+  scenario "Resuming a paused task by name" do
     tt 'switch "some project"'
-    tt 'resume'
+    tt 'start "some task"'
+    tt 'start "another task"'
+    tt 'resume "some task"'
+    output.must =~ %r{Resumed clock for "some task"\.}
+  end
+  scenario "Resuming a paused task by name when no tasks exist at all" do
+    tt 'switch "some project"'
+    tt 'resume "some task"'
     output.must == %{It doesn't look like you've started any tasks yet.\n}
   end
-  scenario "Resuming a task by name" do
+  scenario "Resuming a paused task by name that doesn't exist" do
+    tt 'switch "some project"'
+    tt 'start "some task"'
+    tt 'resume "yet another task"'
+    output.must == %{I don't think that task exists.\n}
+  end
+  scenario "Resuming a paused task by name that may exist in other projects but not here" do
+    tt 'switch "some project"'
+    tt 'start "some task"'
+    tt 'switch "another project"'
+    tt 'start "some task"'
+    tt 'switch "a different project"'
+    tt 'resume "some task"'
+    output.must == %{That task doesn't exist here. Perhaps you meant to switch to "some project" or "another project"?\n}
+  end
+  scenario "Resuming a running task by name" do
+    tt 'switch "some project"'
+    tt 'start "some task"'
+    tt 'resume "some task"'
+    output.must == %{Yes, you're still working on that task.\n}
+  end
+  
+  scenario "Resuming a paused task by number" do
+    tt 'switch "some project"'
+    tt 'start "some task"'
+    tt 'start "another task"'
+    tt 'resume 1'
+    output.must =~ %r{Resumed clock for "some task".}
+  end
+  scenario "Resuming a paused task by number when no tasks exist" do
+    tt 'switch "some project"'
+    tt 'resume 1'
+    output.must == %{It doesn't look like you've started any tasks yet.\n}
+  end
+  scenario "Resuming a running task by number" do
+    tt 'switch "some project"'
+    tt 'start "some task"'
+    tt 'resume 1'
+    output.must == %{Yes, you're still working on that task.\n}
+  end
+  
+  #scenario "Resuming the last stopped task" do
+  #  tt 'switch "some project"'
+  #  tt 'start "some task"'
+  #  tt 'stop'
+  #  tt 'resume'
+  #  output.must =~ %r{Resumed clock for "some task".}
+  #end
+  #scenario "Resuming the last stopped task when all tasks are running" do
+  #  tt 'switch "some project"'
+  #  tt 'start "some task"'
+  #  tt 'resume'
+  #  output.must == %{Aren't you still working on a task?\n}
+  #end
+  #scenario "Resuming the last stopped task when no tasks exist" do
+  #  tt 'switch "some project"'
+  #  tt 'resume'
+  #  output.must == %{It doesn't look like you've started any tasks yet.\n}
+  #end
+  
+  scenario "Resuming a stopped task by name" do
     tt 'switch "some project"'
     tt 'start "some task"'
     tt 'stop'
     tt 'resume "some task"'
     output.must == %{Resumed clock for "some task".\n}
   end
-  scenario "Resuming a task by name when no tasks exist at all" do
+  scenario "Resuming a stopped task by name when no tasks exist at all" do
     tt 'switch "some project"'
     tt 'resume "some task"'
     output.must == %{It doesn't look like you've started any tasks yet.\n}
   end
-  scenario "Resuming a task by name that doesn't exist" do
+  scenario "Resuming a stopped task by name that doesn't exist" do
     tt 'switch "some project"'
     tt 'start "some task"'
     tt 'stop'
     tt 'resume "another task"'
     output.must == %{I don't think that task exists.\n}
   end
-  scenario "Resuming a task by name that may exist in other projects but not here" do
+  scenario "Resuming a stopped task by name that may exist in other projects but not here" do
     tt 'switch "some project"'
     tt 'start "some task"'
     tt 'stop'
@@ -159,35 +235,37 @@ feature "Managing tasks" do
     tt 'resume "some task"'
     output.must == %{That task doesn't exist here. Perhaps you meant to switch to "some project" or "another project"?\n}
   end
-  scenario "Resuming a task by name that I haven't stopped" do
+  scenario "Resuming a running task by name" do
     tt 'switch "some project"'
     tt 'start "some task"'
     tt 'resume "some task"'
     output.must == %{Yes, you're still working on that task.\n}
   end
-  scenario "Resuming a task by number" do
+  
+  scenario "Resuming a stopped task by number" do
     tt 'switch "some project"'
     tt 'start "some task"'
     tt 'stop'
     tt 'resume 1'
     output.must == %{Resumed clock for "some task".\n}
   end
-  scenario "Resuming a task by number when no tasks exist" do
+  scenario "Resuming a stopped task by number when no tasks exist" do
     tt 'switch "some project"'
     tt 'resume 1'
     output.must == %{It doesn't look like you've started any tasks yet.\n}
   end
+  scenario "Resuming a running task by number" do
+    tt 'switch "some project"'
+    tt 'start "some task"'
+    tt 'resume 1'
+    output.must == %{Yes, you're still working on that task.\n}
+  end
+  
   scenario "Resuming a task by number that doesn't exist" do
     tt 'switch "some project"'
     tt 'start "some task"'
     tt 'stop'
     tt 'resume 2'
     output.must == %{I don't think that task exists.\n}
-  end
-  scenario "Resuming a task by number that's still running" do
-    tt 'switch "some project"'
-    tt 'start "some task"'
-    tt 'resume 1'
-    output.must == %{Yes, you're still working on that task.\n}
   end
 end

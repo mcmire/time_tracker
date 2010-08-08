@@ -40,6 +40,6 @@ What that demo doesn't show is the ability to tag tasks, which is always very he
 
 But one of the ways it will differ from other time-tracking tools is the ability to "up-vote" a task. So if Joe from accounting asked you about creating that report today but this is the 5th time he's done this, you can record this information. This will help you to prioritize tasks.
 
-Since I don't like forcing people to abandon the tools they're already using, I am considering adding integration points with other tools, such as Pivotal Tracker, Freckle, or even git (using a hook or something).
+Since I don't like forcing people to abandon the tools they're already using, one of the things I'm planning to add is integration with other tools, such as Pivotal Tracker, Freckle, or even git (using a hook or something).
 
 I'm also considering a web frontend, although that may come further down the line.

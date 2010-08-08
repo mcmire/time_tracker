@@ -44,7 +44,7 @@ module TimeTracker
             @options = options
             if options[:initial]
               define_state_query_method(options[:initial])
-              define_state_scope_method(options[:initial])
+              define_state_scope_methods(options[:initial])
             end
             @events = {}
             @transition_info = nil
@@ -56,7 +56,7 @@ module TimeTracker
             @events[event.state] = event
             define_state_mutator_method(event.name, event.state)
             define_state_query_method(event.state)
-            define_state_scope_method(event.state)
+            define_state_scope_methods(event.state)
           end
           
           def start_transition!(model, current_state, next_state)
@@ -100,9 +100,10 @@ module TimeTracker
             EOT
           end
           
-          def define_state_scope_method(state)
+          def define_state_scope_methods(state)
             model_class.class_eval do
               scope(state, where(:state => state))
+              scope(:"not_#{state}", where(:state.ne => state))
             end
           end
         end

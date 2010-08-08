@@ -114,15 +114,17 @@ module TimeTracker
     end
     
     desc "resume [TASK]", "Resumes the clock for a task, or the last task if no task given"
-    def resume(task_name=:last)
+    def resume(task_name=nil)
+      die "Yes, but which task do you want to resume? (I'll accept a number or a name.)" unless task_name
       curr_proj = TimeTracker::Project.find TimeTracker.config["current_project_id"]
       die "It doesn't look like you've started any tasks yet." unless TimeTracker::Task.exists?
       already_paused = false
-      if task_name == :last
-        task = curr_proj.tasks.paused.last
-        # BUG: Maybe this should only show if last task is running?
-        die "Aren't you still working on a task?" unless task
-      elsif task_name =~ /^\d+$/
+      #if task_name == :last
+      #  task = curr_proj.tasks.not_running.last
+      #  # BUG: Maybe this should only show if last task is running?
+      #  die "Aren't you still working on a task?" unless task
+      #els
+      if task_name =~ /^\d+$/
         if task = TimeTracker::Task.first(:number => task_name.to_i)        
           if task.project_id != curr_proj.id
             if running_task = curr_proj.tasks.running.last
@@ -141,7 +143,7 @@ module TimeTracker
       else
         task = curr_proj.tasks.first(:name => task_name)
         unless task
-          tasks = TimeTracker::Task.paused.where(:name => task_name, :project_id.ne => curr_proj.id)
+          tasks = TimeTracker::Task.not_running.where(:name => task_name, :project_id.ne => curr_proj.id)
           if tasks.any?
             # Might be better to do this w/ native Ruby driver
             # See <http://groups.google.com/group/mongomapper/browse_thread/thread/1a5a5b548123e07e/0c65f3e770e04f29>
