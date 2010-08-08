@@ -1,8 +1,7 @@
-* resume should die if no project set
-* when listing currently running task, base date off stopped at of last period, or created_at
+* Left-align number and name of task in listings
+* color
 * list today's task by ended_at asc?
 * Don't allow time periods to cross days
-* Left-align name of task in listings
 * REPL
 * Search command
 * Up-vote a task (add a mention)

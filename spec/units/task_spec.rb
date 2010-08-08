@@ -239,25 +239,26 @@ describe TimeTracker::Task do
   end
   
   describe '#info' do
-    it "returns an array of strings" do
+    it "returns an array containing the time the task was last started, and its name, number, and project name" do
       project = TimeTracker::Project.new(:name => "some project")
       task = TimeTracker::Task.new(
         :project => project,
         :number => "1",
         :name => "some task",
-        :created_at => Time.zone.local(2010, 1, 1, 0, 0)
+        :last_started_at => Time.zone.local(2010, 1, 1, 0, 0)
       )
       task.info.must == ['12:00am', ' - ', '', ' ', 'some task [#1] (in some project) <==']
     end
-    it "includes the date only if specified" do
+    it "includes the date part, if date was specified" do
       project = TimeTracker::Project.new(:name => "some project")
       task = TimeTracker::Task.new(
         :project => project,
         :number => "1",
         :name => "some task",
-        :created_at => Time.zone.local(2010, 1, 1, 0, 0)
+        :last_started_at => Time.zone.local(2010, 1, 1, 0, 0)
       )
-      task.info(:include_date => true).must == ['1/1/2010', ', ', '12:00am', ' - ', '', '', '', ' ', 'some task [#1] (in some project) <==']
+      task.info(:include_date => true).must ==
+        ['1/1/2010', ', ', '12:00am', ' - ', '', '', '', ' ', 'some task [#1] (in some project) <==']
     end
     # the time stuff is tested in ruby_spec.rb
   end

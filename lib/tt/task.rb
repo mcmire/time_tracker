@@ -62,9 +62,9 @@ module TimeTracker
     def info(options={})
       info = []
       if options[:include_date]
-        info << created_at.to_s(:relative_date) << ", "
+        info << last_started_at.to_s(:relative_date) << ", "
       end
-      info << created_at.to_s(:hms)
+      info << last_started_at.to_s(:hms)
       info << " - "
       if options[:include_date]
         info << "" << ""
