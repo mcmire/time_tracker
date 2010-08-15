@@ -8,42 +8,54 @@ feature "Listing tasks" do
   EOT
   
   scenario "Listing last few tasks with 'list lastfew'" do
-    tt 'switch "some project"'
-    tt 'start "some task"'
-    tt 'switch "another project"'
-    tt 'start "another task"'
-    tt 'resume 1'
-    tt 'stop'
-    tt 'start "yet another task"'
-    tt 'list lastfew'
+    with_manual_time_override do
+      Timecop.freeze Time.zone.local(2010, 1, 1, 0, 0)
+      tt 'switch "some project"'
+      tt 'start "some task"'
+      Timecop.freeze Time.zone.local(2010, 1, 2, 5, 5)
+      tt 'switch "another project"'
+      tt 'start "another task"'
+      Timecop.freeze Time.zone.local(2010, 1, 3, 10, 10)
+      tt 'resume 1'
+      Timecop.freeze Time.zone.local(2010, 1, 3, 15, 15)
+      tt 'stop'
+      tt 'start "yet another task"'
+      tt 'list lastfew'
+    end
     output.lines.must smart_match([
       "",
       "Latest tasks:",
       "",
-      "Today, 12:12am -         [#3]    some project / yet another task <==",
-      "Today, 12:08am - 12:10am [#1]    some project / some task",
-      "Today, 12:06am - 12:08am [#2] another project / another task",
-      "Today, 12:02am - 12:04am [#1]    some project / some task",
+      "    Today,  3:15pm -                    [#3] some project / yet another task (*)",
+      "    Today, 10:10am -     Today,  3:15pm [#1] some project / some task",
+      "Yesterday,  5:05am -     Today, 10:10am [#2] another project / another task",
+      " 1/1/2010, 12:00am - Yesterday,  5:05am [#1] some project / some task",
       ""
     ])
   end
   scenario "Listing last few tasks with just 'list'" do
-    tt 'switch "some project"'
-    tt 'start "some task"'
-    tt 'switch "another project"'
-    tt 'start "another task"'
-    tt 'resume 1'
-    tt 'stop'
-    tt 'start "yet another task"'
-    tt 'list'
+    with_manual_time_override do
+      Timecop.freeze Time.zone.local(2010, 1, 1, 0, 0)
+      tt 'switch "some project"'
+      tt 'start "some task"'
+      Timecop.freeze Time.zone.local(2010, 1, 2, 5, 5)
+      tt 'switch "another project"'
+      tt 'start "another task"'
+      Timecop.freeze Time.zone.local(2010, 1, 3, 10, 10)
+      tt 'resume 1'
+      Timecop.freeze Time.zone.local(2010, 1, 3, 15, 15)
+      tt 'stop'
+      tt 'start "yet another task"'
+      tt 'list'
+    end
     output.lines.must smart_match([
       "",
       "Latest tasks:",
       "",
-      "Today, 12:12am -         [#3]    some project / yet another task <==",
-      "Today, 12:08am - 12:10am [#1]    some project / some task",
-      "Today, 12:06am - 12:08am [#2] another project / another task",
-      "Today, 12:02am - 12:04am [#1]    some project / some task",
+      "    Today,  3:15pm -                    [#3] some project / yet another task (*)",
+      "    Today, 10:10am -     Today,  3:15pm [#1] some project / some task",
+      "Yesterday,  5:05am -     Today, 10:10am [#2] another project / another task",
+      " 1/1/2010, 12:00am - Yesterday,  5:05am [#1] some project / some task",
       ""
     ])
   end
@@ -57,20 +69,33 @@ feature "Listing tasks" do
   end
   
   scenario "Listing stopped tasks with 'list completed'" do
-    tt 'switch "some project"'
-    tt 'start "some task"'
-    tt 'stop'
-    tt 'start "another task"'
-    tt 'stop'
-    tt 'start "yet another task"'
-    tt 'list completed'
+    with_manual_time_override do
+      Timecop.freeze Time.zone.local(2010, 1, 1, 0, 0)
+      tt 'switch "some project"'
+      tt 'start "some task"'
+      Timecop.freeze Time.zone.local(2010, 1, 2, 5, 5)
+      tt 'stop'
+      tt 'switch "another project"'
+      tt 'start "another task"'
+      Timecop.freeze Time.zone.local(2010, 1, 3, 10, 10)
+      tt 'stop'
+      Timecop.freeze Time.zone.local(2010, 1, 3, 15, 15)
+      tt 'start "yet another task"'
+      tt 'list completed'
+    end
     output.lines.must smart_match([
       "",
       "Completed tasks:",
       "",
       "Today:",
-      "  12:06am - 12:08am [#2] some project / another task",
-      "  12:02am - 12:04am [#1] some project / some task",
+      "  (12:00am) -  10:10am  [#2] another project / another task",
+      "",
+      "Yesterday:",
+      "    5:05am  - (11:59pm) [#2] another project / another task",
+      "  (12:00am) -   5:05am  [#1] some project / some task",
+      "",
+      "1/1/2010:",
+      "   12:00am  - (11:59pm) [#1] some project / some task",
       ""
     ])
   end
@@ -82,34 +107,50 @@ feature "Listing tasks" do
   #scenario "Listing stopped tasks with 'stopped' when no tasks created yet"
   
   scenario "Listing all tasks with 'list all'" do
-    tt 'switch "project 1"'
-    tt 'start "task 1"'
-    tt 'start "task 2"'
-    tt 'start "task 3"'
-    tt 'stop'
-    tt 'resume 1'
-    tt 'switch "project 2"'
-    tt 'start "task 4"'
-    tt 'start "task 5"'
-    tt 'stop'
-    tt 'start "task 6"'
-    tt 'resume 1'
-    tt 'list all'
+    with_manual_time_override do
+      Timecop.freeze Time.zone.local(2010, 1, 1, 0, 0)
+      tt 'switch "some project"'
+      tt 'start "some task"'
+      Timecop.freeze Time.zone.local(2010, 1, 2, 5, 5)
+      tt 'switch "another project"'
+      tt 'start "another task"'
+      Timecop.freeze Time.zone.local(2010, 1, 3, 10, 10)
+      tt 'resume 1'
+      Timecop.freeze Time.zone.local(2010, 1, 3, 15, 15)
+      tt 'stop'
+      tt 'start "yet another task"'
+      Timecop.freeze Time.zone.local(2010, 1, 4, 20, 20)
+      tt 'start "even yet another task"'
+      Timecop.freeze Time.zone.local(2010, 1, 5, 1, 1)
+      tt 'switch "another project"'
+      Timecop.freeze Time.zone.local(2010, 1, 5, 6, 6)
+      tt 'start "still yet another task"'
+      tt 'list all'
+    end
     output.lines.must smart_match([
       "",
       "All tasks:",
       "",
       "Today:",
-      "  12:22am -         [#1] project 1 / task 1 <==",
-      "  12:20am - 12:22am [#6] project 2 / task 6",
-      "  12:18am - 12:20am [#4] project 2 / task 4",
-      "  12:16am - 12:18am [#5] project 2 / task 5",
-      "  12:14am - 12:16am [#4] project 2 / task 4",
-      "  12:10am - 12:12am [#1] project 1 / task 1",
-      "  12:08am - 12:10am [#2] project 1 / task 2",
-      "  12:06am - 12:08am [#3] project 1 / task 3",
-      "  12:04am - 12:06am [#2] project 1 / task 2",
-      "  12:02am - 12:04am [#1] project 1 / task 1",
+      "    6:06am  -           [#5] another project / still yet another task (*)",
+      "    1:01am  -   6:06am  [#2] another project / another task",
+      "  (12:00am) -   1:01am  [#4] some project / even yet another task",
+      "",
+      "Yesterday:",
+      "    8:20pm  - (11:59pm) [#4] some project / even yet another task",
+      "  (12:00am) -   8:20pm  [#3] some project / yet another task",
+      "",
+      "1/3/2010:",
+      "    3:15pm  - (11:59pm) [#3] some project / yet another task",
+      "   10:10am  -   3:15pm  [#1] some project / some task",
+      "  (12:00am) -  10:10am  [#2] another project / another task",
+      "",
+      "1/2/2010:",
+      "    5:05am  - (11:59pm) [#2] another project / another task",
+      "  (12:00am) -   5:05am  [#1] some project / some task",
+      "",
+      "1/1/2010:",
+      "   12:00am  - (11:59pm) [#1] some project / some task",
       ""
     ])
   end
@@ -122,19 +163,19 @@ feature "Listing tasks" do
   
   scenario "Listing today's completed tasks with 'list today'" do
     with_manual_time_override do
-      tt 'switch "work project"'
-      Timecop.freeze Time.zone.local(2010, 1, 1, 0, 0, 0)
-      tt 'start "create report for accounting"'
-      Timecop.freeze Time.zone.local(2010, 1, 1, 1, 0, 0)
-      tt 'start "add notes feature in admin"'
-      Timecop.freeze Time.zone.local(2010, 1, 1, 5, 0, 0)
+      tt 'switch "some project"'
+      Timecop.freeze Time.zone.local(2010, 1, 1, 0, 0)
+      tt 'start "some task"'
+      Timecop.freeze Time.zone.local(2010, 1, 1, 5, 5)
+      tt 'start "another task"'
+      Timecop.freeze Time.zone.local(2010, 1, 2, 3, 3)
       tt 'stop'
-      Timecop.freeze Time.zone.local(2010, 1, 1, 6, 0, 0)
-      tt 'switch "personal project"'
-      tt 'start "write documentation"'
-      Timecop.freeze Time.zone.local(2010, 1, 1, 7, 10, 0)
+      Timecop.freeze Time.zone.local(2010, 1, 2, 8, 8)
+      tt 'switch "another project"'
+      tt 'start "yet another task"'
+      Timecop.freeze Time.zone.local(2010, 1, 2, 13, 13)
       tt 'resume 1'
-      Timecop.freeze Time.zone.local(2010, 1, 1, 15, 0, 0)
+      Timecop.freeze Time.zone.local(2010, 1, 2, 18, 18)
       tt 'stop'
       tt 'list today'
     end
@@ -142,11 +183,10 @@ feature "Listing tasks" do
       "",
       "Today's tasks:",
       "",
-      " 7:10am - 3:00pm [#1]     work project / create report for accounting",
-      " 6:00am - 7:10am [#3] personal project / write documentation",
-      " 5:00am - 6:00am [#1]     work project / create report for accounting",
-      " 1:00am - 5:00am [#2]     work project / add notes feature in admin",
-      "12:00am - 1:00am [#1]     work project / create report for accounting",
+      "  1:13pm  - 6:18pm [#1] some project / some task",
+      "  8:08am  - 1:13pm [#3] another project / yet another task",
+      "  3:03am  - 8:08am [#1] some project / some task",
+      "(12:00am) - 3:03am [#2] some project / another task",
       ""
     ])
   end
@@ -159,25 +199,41 @@ feature "Listing tasks" do
   
   scenario "Listing this week's completed tasks with 'list this week'" do
     with_manual_time_override do
-      tt 'switch "project 1"'
-      Timecop.freeze Time.zone.local(2010, 1, 1)
-      tt 'start "task 1"'
+      tt 'switch "some project"'
+      Timecop.freeze Time.zone.local(2010, 8, 1, 0, 0)
+      tt 'start "some task"'
+      Timecop.freeze Time.zone.local(2010, 8, 2, 5, 5)
       tt 'stop'
-      tt 'start "task 2"'
+      tt 'start "another task"'
+      Timecop.freeze Time.zone.local(2010, 8, 3, 15, 15)
       tt 'stop'
-      Timecop.freeze Time.zone.local(2010, 1, 7, 0, 0, 0)
-      tt 'start "task 3"'
-      Timecop.freeze Time.zone.local(2010, 1, 7, 1, 0, 0)
-      tt 'start "task 4"'
+      tt 'switch "another project"'
+      tt 'start "yet another task"'
+      Timecop.freeze Time.zone.local(2010, 8, 5, 3, 3)
+      tt 'start "even yet another task"'
       tt 'list this week'
     end
     output.lines.must smart_match([
       "",
       "This week's tasks:",
       "",
+      "8/1/2010:",
+      "   12:00am  - (11:59pm) [#1] some project / some task",
+      "",
+      "8/2/2010:",
+      "  (12:00am) -   5:05am  [#1] some project / some task",
+      "    5:05am  - (11:59pm) [#2] some project / another task",
+      "",
+      "8/3/2010:",
+      "  (12:00am) -   3:15pm  [#2] some project / another task",
+      "    3:15pm  - (11:59pm) [#3] another project / yet another task",
+      "",
+      "Yesterday:",
+      "  (12:00am) - (11:59pm) [#3] another project / yet another task",
+      "",
       "Today:",
-      "  12:00am - 1:00am [#3] project 1 / task 3",
-      "   1:00am -        [#4] project 1 / task 4 <==",
+      "  (12:00am) -   3:03am  [#3] another project / yet another task",
+      "    3:03am  -           [#4] another project / even yet another task (*)",
       ""
     ])
   end

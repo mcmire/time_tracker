@@ -315,34 +315,75 @@ module TimeTracker
       end
       
       raise "Nothing to print?!" if records.empty?
-      include_date = (type == "lastfew")
-      record_infos = records.map {|record| record.info(:include_date => include_date) }
-      if include_date
-        alignments = [:right, :none, :right, :none, :right, :none, :right, :none, :none, :right, :none, :none, :right, :none, :none]
+      
+      group_by_date = (type != "lastfew" && type != "today")
+      include_day = (
+        type == "lastfew" &&
+        #!group_by_date &&
+        records.grep(TimeTracker::TimePeriod).any? {|record| record.started_at.to_date != record.ended_at.to_date }
+      )
+      reverse = (type != "this week")
+      if include_day
+        alignments = [:right, :none, :right, :none, :right, :none, :right, :none, :none, :right, :none, :none, :none]
       else
-        alignments = [:right, :none, :right, :none, :none, :right, :none, :none, :right, :none, :none]
+        alignments = [:left, :right, :left, :none, :left, :right, :left, :none, :none, :right, :none, :none, :none]
       end
-      lines = Columnator.columnate(record_infos, :alignments => alignments, :write_to => :array)
+      info_arrays = records.map do |record|
+        record.info(
+          :include_day => include_day,
+          :reverse => reverse,
+          :where_date => (lambda {|date| date == Date.today } if type == "today")
+        )
+      end
+      #pp :alignments => alignments,
+      #   :info_arrays => info_arrays,
+      #   :group_by_date => group_by_date,
+      #   :include_day => include_day
+      columnator = Columnator.new(info_arrays, :alignments => alignments)
+      unless include_day
+        columnator.each_row = lambda do |data, block|
+          data.each do |pairs|
+            pairs.each do |pair|
+              block.call(pair[1])
+            end
+          end
+        end
+        columnator.generate_out = lambda do |data, block|
+          data.map do |pairs|
+            pairs.map do |pair|
+              [pair[0], block.call(pair[1])]
+            end
+          end
+        end
+      end
+      columnated_rows = columnator.columnate
+      #pp :columnated_rows => columnated_rows
+      
       stdout.puts
       stdout.puts(header)
       stdout.puts
-      if type == "lastfew" || type == "today"
-        for line in lines
+      
+      if group_by_date
+        grouped_lines = columnated_rows.inject(ActiveSupport::OrderedHash.new) do |hash, pairs|
+          for pair in pairs
+            (hash[pair[0]] ||= []) << pair[1]
+          end
+          hash
+        end
+        grouped_lines.each_with_index do |(date, lines), i|
+          stdout.puts date.to_s(:relative_date) + ":"
+          lines.each {|line| stdout.puts("  " + line) }
+          stdout.puts unless i == grouped_lines.size-1
+        end
+      elsif include_day
+        columnated_rows.each do |line|
           stdout.puts(line)
         end
       else
-        grouped_lines = ActiveSupport::OrderedHash.new
-        lines.each_with_index do |line, i| 
-          record = records[i]
-          date = (TimeTracker::Task === record ? record.created_at : record.ended_at).to_date
-          (grouped_lines[date] ||= []) << [record, line]
-        end
-        grouped_lines.each_with_index do |(date, recordlines), i|
-          stdout.puts date.to_s(:relative_date) + ":"
-          recordlines.each do |record, line|
-            stdout.puts("  " + line)
+        columnated_rows.each do |pairs|
+          pairs.each do |pair|
+            stdout.puts(pair[1])
           end
-          stdout.puts unless i == grouped_lines.size-1
         end
       end
       stdout.print "\n"

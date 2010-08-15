@@ -41,92 +41,100 @@ describe TimeTracker::TimePeriod do
   end
   
   describe '#info' do
-    #it "returns the correct string, right-aligning started_at to the specified width" do
-    #  project = Factory.build(:project, :name => "some project")
-    #  task = Factory.build(:task, :number => "1", :name => "some task")
-    #  time_period = Factory.build(:time_period,
-    #    :task => task,
-    #    :ended_at => Time.zone.local(2010, 12, 12, 12, 12)
-    #  )
-    #  time1 = Object.new
-    #  time2 = Object.new
-    #  
-    #  stub(time1).to_s(:simpler_date) { "x" * 4 }
-    #  stub(time_period).started_at { time1 }
-    #  stub(time2).to_s(:simpler_date) { "x" * 20 }
-    #  stub(time_period).ended_at { time2 }
-    #  time_period.info(:right_align => 20).must == "                xxxx - xxxxxxxxxxxxxxxxxxxx some task [#1] (in some project)"
-    #  
-    #  stub(time1).to_s(:simpler_date) { "x" * 11 }
-    #  stub(time_period).started_at { time1 }
-    #  stub(time2).to_s(:simpler_date) { "x" * 13 }
-    #  stub(time_period).ended_at { time2 }
-    #  time_period.info(:right_align => 13).must == "  xxxxxxxxxxx - xxxxxxxxxxxxx some task [#1] (in some project)"
-    #end
-    #it "returns the correct string, right-aligning ended_at to a width of 20" do
-    #  project = Factory.build(:project, :name => "some project")
-    #  task = Factory.build(:task, :number => "1", :name => "some task")
-    #  time_period = Factory.build(:time_period,
-    #    :task => task,
-    #    :started_at => Time.zone.local(2010, 12, 12, 12, 12)
-    #  )
-    #  time1 = Object.new
-    #  time2 = Object.new
-    #  
-    #  stub(time2).to_s(:simpler_date) { "x" * 20 }
-    #  stub(time_period).started_at { time2 }
-    #  stub(time1).to_s(:simpler_date) { "x" * 4 }
-    #  stub(time_period).ended_at { time1 }
-    #  time_period.info(:right_align => 20).must == "xxxxxxxxxxxxxxxxxxxx -                 xxxx some task [#1] (in some project)"
-    #  
-    #  stub(time2).to_s(:simpler_date) { "x" * 13 }
-    #  stub(time_period).started_at { time2 }
-    #  stub(time1).to_s(:simpler_date) { "x" * 11 }
-    #  stub(time_period).ended_at { time1 }
-    #  time_period.info(:right_align => 13).must == "xxxxxxxxxxxxx -   xxxxxxxxxxx some task [#1] (in some project)"
-    #end
     before do
       @project = TimeTracker::Project.new(:name => "some project")
       @task = TimeTracker::Task.new(:project => @project, :number => "1", :name => "some task")
     end
-    context "if :include_date specified" do
-      it "excludes the date for ended_at if it's the same as started_at" do
+    context "if :include_day not given" do
+      it "excludes the day portion" do
         time_period = TimeTracker::TimePeriod.new(
           :task => @task,
-          :started_at => Time.zone.local(2010, 1, 1, 0, 0),
-          :ended_at => Time.zone.local(2010, 1, 1, 1, 0)
+          :started_at => Time.zone.local(2010, 1, 1, 3, 33),
+          :ended_at => Time.zone.local(2010, 1, 1, 11, 11)
         )
-        time_period.info(:include_date => true).must ==
-          ['1/1/2010', ', ', '12:00am', ' - ', '', '', '1:00am', ' ', '[', '#1', ']', " ", 'some project', ' / ', 'some task']
+        time_period.info.must == [
+          [
+            Date.new(2010, 1, 1),
+            ['', '3:33am', '', ' - ', '', '11:11am', '', ' ', '[', '#1', ']', ' ', 'some project / some task']
+          ]
+        ]
       end
-      it "includes the day for ended_at if it's not the same as started_at" do
+      it "creates fake time periods if starts_at is not the same day as ends_at" do
         time_period = TimeTracker::TimePeriod.new(
           :task => @task,
-          :started_at => Time.zone.local(2010, 1, 1, 0, 0),
-          :ended_at => Time.zone.local(2010, 1, 2, 1, 0)
+          :started_at => Time.zone.local(2010, 1, 1, 3, 33),
+          :ended_at => Time.zone.local(2010, 1, 3, 11, 11)
         )
-        time_period.info(:include_date => true).must ==
-          ['1/1/2010', ', ', '12:00am', ' - ', '1/2/2010', ', ', '1:00am', ' ', '[', '#1', ']', " ", 'some project', ' / ', 'some task']
+        time_period.info.must == [
+          [
+            Date.new(2010, 1, 1),
+            ['', '3:33am', '', ' - ', '(', '11:59pm', ')', ' ', '[', '#1', ']', ' ', 'some project / some task']
+          ],
+          [
+            Date.new(2010, 1, 2),
+            ['(', '12:00am', ')', ' - ', '(', '11:59pm', ')', ' ', '[', '#1', ']', ' ', 'some project / some task']
+          ],
+          [
+            Date.new(2010, 1, 3),
+            ['(', '12:00am', ')', ' - ', '', '11:11am', '', ' ', '[', '#1', ']', ' ', 'some project / some task']
+          ]
+        ]
+      end
+      it "returns the arrays in reverse order if :reverse given" do
+        time_period = TimeTracker::TimePeriod.new(
+          :task => @task,
+          :started_at => Time.zone.local(2010, 1, 1, 3, 33),
+          :ended_at => Time.zone.local(2010, 1, 3, 11, 11)
+        )
+        time_period.info(:reverse => true).must == [
+          [
+            Date.new(2010, 1, 3),
+            ['(', '12:00am', ')', ' - ', '', '11:11am', '', ' ', '[', '#1', ']', ' ', 'some project / some task']
+          ],
+          [
+            Date.new(2010, 1, 2),
+            ['(', '12:00am', ')', ' - ', '(', '11:59pm', ')', ' ', '[', '#1', ']', ' ', 'some project / some task']
+          ],
+          [
+            Date.new(2010, 1, 1),
+            ['', '3:33am', '', ' - ', '(', '11:59pm', ')', ' ', '[', '#1', ']', ' ', 'some project / some task']
+          ]
+        ]
+      end
+      it "removes fake time periods that don't satisfy the :where_date option" do
+        time_period = TimeTracker::TimePeriod.new(
+          :task => @task,
+          :started_at => Time.zone.local(2010, 1, 1, 3, 33),
+          :ended_at => Time.zone.local(2010, 1, 3, 11, 11)
+        )
+        time_period.info(
+          :where_date => lambda {|date| date == Date.new(2010, 1, 1) }
+        ).must == [
+          [
+            Date.new(2010, 1, 1),
+            ['', '3:33am', '', ' - ', '(', '11:59pm', ')', ' ', '[', '#1', ']', ' ', 'some project / some task']
+          ]
+        ]
       end
     end
-    context "if :include_date not specified" do
-      it "excludes the day for started_at and ended_at if they're both on the same day" do
+    context "if :include_day given" do
+      it "includes the day part" do
         time_period = TimeTracker::TimePeriod.new(
           :task => @task,
-          :started_at => Time.zone.local(2010, 1, 1, 0, 0),
-          :ended_at => Time.zone.local(2010, 1, 1, 1, 0)
+          :started_at => Time.zone.local(2010, 1, 1, 3, 33),
+          :ended_at => Time.zone.local(2010, 1, 3, 11, 11)
         )
-        time_period.info.must ==
-          ['12:00am', ' - ', '1:00am', ' ', '[', '#1', ']', " ", 'some project', ' / ', 'some task']
+        time_period.info(:include_day => true).must ==
+          ['1/1/2010', ', ', '3:33am', ' - ', '1/3/2010', ', ', '11:11am', ' ', '[', '#1', ']', " ", 'some project / some task']
       end
-      it "still includes the day for ended_at if it's not the same as started_at" do
+      it "includes the day part even if days are the same" do
         time_period = TimeTracker::TimePeriod.new(
           :task => @task,
-          :started_at => Time.zone.local(2010, 1, 1, 0, 0),
-          :ended_at => Time.zone.local(2010, 1, 2, 1, 0)
+          :started_at => Time.zone.local(2010, 1, 1, 3, 33),
+          :ended_at => Time.zone.local(2010, 1, 1, 11, 11)
         )
-        time_period.info.must ==
-          ['1/1/2010', ', ', '12:00am', ' - ', '1/2/2010', ', ', '1:00am', ' ', '[', '#1', ']', " ", 'some project', ' / ', 'some task']
+        time_period.info(:include_day => true).must ==
+          ['1/1/2010', ', ', '3:33am', ' - ', '1/1/2010', ', ', '11:11am', ' ', '[', '#1', ']', " ", 'some project / some task']
       end
     end
     # the time stuff is tested in ruby_spec.rb

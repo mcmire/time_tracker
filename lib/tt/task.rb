@@ -61,22 +61,35 @@ module TimeTracker
     
     def info(options={})
       info = []
-      if options[:include_date]
+      if options[:include_day]
         info << last_started_at.to_s(:relative_date) << ", "
+      else
+        info << ""
       end
       info << last_started_at.to_s(:hms)
+      unless options[:include_day]
+        info << ""
+      end
       info << " - "
-      if options[:include_date]
-        info << "" << ""
+      if options[:include_day]
+        info << "" << "  "
+      else
+        info << ""
       end
       info << ""
+      unless options[:include_day]
+        info << ""
+      end
       info << " "
       info << '[' << "##{number}" << ']'
       info << " "
-      info << project.name
-      info << " / "
-      info << "#{name} <=="
-      info
+      info << [project.name, "#{name} (*)"].join(" / ")
+      
+      if options[:include_day]
+        info
+      else
+        [[last_started_at.to_date, info]]
+      end
     end
     
     def info_for_search

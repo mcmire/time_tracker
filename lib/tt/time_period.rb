@@ -1,3 +1,5 @@
+require 'enumerator'
+
 module TimeTracker
   class TimePeriod
     include ::MongoMapper::Document
@@ -29,23 +31,76 @@ module TimeTracker
     #end
     
     def info(options={})
-      info = []
-      if options[:include_date] || started_at.to_date != ended_at.to_date
-        info << started_at.to_s(:relative_date) << ', '
+      lines = []
+      if started_at.to_date == ended_at.to_date || options[:include_day]
+        line = generate_info_line(started_at, ended_at, options)
+        if options[:include_day]
+          return line
+        else
+          lines << [ended_at.to_date, line]
+        end
+      else
+        # Fill in the times in between started_at and ended_at
+        # For instance, if we have something like 1/1/2010 3:33am - 1/3/2010 11:11am
+        # that time period will be divided into the following:
+        # * 1/1/2010  3:33am - 1/1/2010 11:59pm
+        # * 1/2/2010 12:00am - 1/2/2010 11:59pm
+        # * 1/3/2010 12:00am - 1/3/2010 11:11am
+        times = []
+        times << started_at
+        time = (started_at.to_date + 1).to_time
+        while time < ended_at
+          times << time-1
+          times << time
+          time = (time.to_date + 1).to_time
+        end
+        times << ended_at
+        times = times.select {|time| options[:where_date].call(time.to_date) } if options[:where_date]
+        times_in_groups = times.enum_slice(2).to_a
+        times_in_groups = times_in_groups.reverse if options[:reverse]
+        times_in_groups.each_with_index do |(time1, time2), i|
+          parenthesize = case i
+            when 0
+              options[:reverse] ? :first : :second
+            when times_in_groups.size-1
+              options[:reverse] ? :second : :first
+            else
+              :both
+          end
+          line = generate_info_line(time1, time2, options.merge(:parenthesize => parenthesize))
+          lines << [time2.to_date, line]
+        end
       end
-      info << started_at.to_s(:hms)
-      info << ' - '
-      if started_at.to_date != ended_at.to_date
-        info << ended_at.to_s(:relative_date) << ', '
-      elsif options[:include_date]
-        info << "" << ""
+      lines
+    end
+    def generate_info_line(time1, time2, options)
+      line = []
+      pfirst = (options[:parenthesize] == :first || options[:parenthesize] == :both)
+      psecond = (options[:parenthesize] == :second || options[:parenthesize] == :both)
+      if options[:include_day]
+        line << time1.to_s(:relative_date) << ', '
+      else
+        line << (pfirst ? '(' : '')
       end
-      info << ended_at.to_s(:hms)
-      info << " "
-      info << '[' << "##{task.number}" << ']'
-      info << " "
-      info << task.project.name << ' / ' << task.name
-      info
+      line << time1.to_s(:hms)
+      if !options[:include_day]
+        line << (pfirst ? ')' : '')
+      end
+      line << ' - '
+      if options[:include_day]
+        line << time2.to_s(:relative_date) << ', '
+      else
+        line << (psecond ? '(' : '')
+      end
+      line << time2.to_s(:hms)
+      if !options[:include_day]
+        line << (psecond ? ')' : '')
+      end
+      line << " "
+      line << '[' << "##{task.number}" << ']'
+      line << " "
+      line << [task.project.name, task.name].join(' / ')
+      line
     end
     
     def duration

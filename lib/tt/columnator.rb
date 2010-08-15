@@ -1,22 +1,7 @@
-# Quick little library to produce an ASCII table from an array of arrays.
-# Here's a runthrough:
 #
-#   columnator = Columnator.new
-#   columnator.headers = ["This", "And", "That"]
-#   columnator << ["some", "like", "it"]
-#   columnator << ["hot", "and", "some"]
-#   columnator << ["like", "it", "colllllllld"]
-#   puts columnator.columnate
-#
-# That will output:
-#
-#   | This | And  | That        |
-#   |------|------|-------------|
-#   | some | like | it          |
-#   | hot  | and  | some        |
-#   | like | it   | colllllllld |
-#
-# Lookatthat, the columns are all the same width! Isn't that neat?!?
+# This is a little library to generate an ASCII table from an array of arrays.
+# It's especially useful if you need to left-align or right-align
+# certain columns in that table.
 #
 class Columnator
   ALIGNMENT_METHODS = {
@@ -28,75 +13,60 @@ class Columnator
     new(*args).columnate
   end
   
-  attr_accessor :rows, :headers, :alignments, :out
+  attr_accessor :table, :alignments, :each_row, :generate_out, :out
   
-  def initialize(rows_or_options=[], options={})
-    if Hash === rows_or_options
-      @options = rows_or_options
+  def initialize(table_or_options=[], options={})
+    if Hash === table_or_options
+      @options = table_or_options
     else
-      @rows = rows_or_options
+      @table = table_or_options
       @options = options
     end
     @alignments = @options.delete(:alignments) || []
-    @headers = @options.delete(:headers)
-    @out = @options.delete(:write_to) == :array ? [] : ""
+    @out = []
+    @each_row = lambda {|data, block| data.each(&block) }
+    @generate_out = lambda {|data, block| data.map(&block) }
   end
   
   def <<(row)
-    @rows << row
+    @table << row
   end
   
   def columnate
+    calculate_size!
+    initialize_column_widths!
     # find max length of each column
-    for row in table
-      find_max_length!(row)
-    end
+    @each_row.call(@table, lambda {|row| find_max_length!(row) })
     # now generate the ASCII table
-    if @headers
-      format_column!(@headers)
-      if @options[:header_divider]
-        divider = column_widths.map {|w| @options[:header_divider] * w }
-        format_column!(divider)
-      end
-    end
-    for row in @rows
-      format_column!(row)
-    end
+    @out = @generate_out.call(@table, lambda {|row| format_column(row) })
     @out
   end
   
 private
-  def column_widths
-    @column_widths ||= ([0] * size)
+  def calculate_size!
+    @each_row.call(@table, lambda {|row|
+      @size = row.size
+      next
+    })
   end
   
-  def table
-    @table ||= (@headers ? ([@headers] + @rows) : @rows)
+  def initialize_column_widths!
+    @column_widths = [0] * @size
   end
-  
-  def size
-    table[0].size
-  end
-  
+
   def find_max_length!(row)
     row.each_with_index do |col, i|
       len = col.to_s.length
-      column_widths[i] = len if len > column_widths[i]
+      @column_widths[i] = len if len > @column_widths[i]
     end
   end
   
-  def format_column!(row)
+  def format_column(row)
     row2 = []
     row.each_with_index do |col, i|
       alignment = ALIGNMENT_METHODS[@alignments[i] || :left]
-      row2 << (alignment ? col.to_s.send(alignment, column_widths[i], " ") : col.to_s)
+      row2 << (alignment ? col.to_s.send(alignment, @column_widths[i], " ") : col.to_s)
     end
-    div = @options[:column_divider]
-    line = ""
-    line += div + " " if div
-    line += row2.join(div ? (" " + div + " ") : "")
-    line += " " + div if div
-    line += "\n"
-    @out << line
+    row2.join("") + "\n"
   end
 end

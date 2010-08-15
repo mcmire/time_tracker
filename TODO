@@ -1,5 +1,6 @@
-* Review alignments of columns
-* Allow time periods to cross days again, maybe
+* Adjust list command so we handle time periods that cross days again
+* Make integration tests and cli_spec tests the same for the list command
+
 * Up-vote a task (add a mention)
 * Make an 'add' task that searches before adding a new one and suggests pre-existing tasks to up-vote instead
 * Don't auto-create a task before starting it since creating it would upload it to Pivotal

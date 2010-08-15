@@ -468,199 +468,106 @@ describe TimeTracker::Cli do
   describe '#list' do
     context "lastfew subcommand", :shared => true do
       it "prints a list of the last 4 time periods plus the currently running task, ordered by last active" do
-        Timecop.freeze(2010, 1, 1)
-        project1 = Factory(:project, :name => "project 1")
+        Timecop.freeze Time.zone.local(2010, 1, 3)
+        project1 = Factory(:project, :name => "some project")
+        project2 = Factory(:project, :name => "another project")
         task1 = Factory(:task,
           :number => "1",
           :project => project1,
-          :name => "task 1",
-          :state => "paused"
+          :name => "some task",
+          :state => "stopped"
         )
         period1 = Factory(:time_period,
           :task => task1,
           :started_at => Time.zone.local(2010, 1, 1, 0, 0),
-          :ended_at   => Time.zone.local(2010, 1, 1, 1, 0)
+          :ended_at   => Time.zone.local(2010, 1, 2, 5, 5)
+        )
+        period3 = Factory(:time_period,
+          :task => task1,
+          :started_at => Time.zone.local(2010, 1, 3, 10, 10),
+          :ended_at   => Time.zone.local(2010, 1, 3, 15, 15)
         )
         task2 = Factory(:task,
           :number => "2",
-          :project => project1, 
-          :name => "task 2", 
+          :project => project2, 
+          :name => "another task", 
           :state => "stopped"
         )
         period2 = Factory(:time_period,
           :task => task2,
-          :started_at => Time.zone.local(2010, 1, 1, 1, 0),
-          :ended_at   => Time.zone.local(2010, 1, 1, 2, 30)
+          :started_at => Time.zone.local(2010, 1, 2, 5, 5),
+          :ended_at   => Time.zone.local(2010, 1, 3, 10, 10)
         )
-        project2 = Factory(:project, :name => "project 2222")
         task3 = Factory(:task, 
           :number => "3", 
-          :project => project2, 
-          :name => "task 3", 
-          :state => "paused"
-        )
-        period3 = Factory(:time_period,
-          :task => task3,
-          :started_at => Time.zone.local(2010, 1, 1, 2, 30),
-          :ended_at   => Time.zone.local(2010, 1, 1, 4, 30)
-        )
-        task4 = Factory(:task,
-          :number => "4",
-          :project => project2,
-          :name => "task 4",
-          :state => "stopped"
-        )
-        period4 = Factory(:time_period,
-          :task => task4,
-          :started_at => Time.zone.local(2010, 1, 1, 4, 30),
-          :ended_at   => Time.zone.local(2010, 1, 1, 5, 20)
-        )
-        task5 = Factory(:task,
-          :number => "5",
-          :project => project2, 
-          :name => "task 5", 
-          :state => "paused"
-        )
-        period5 = Factory(:time_period,
-          :task => task5,
-          :started_at => Time.zone.local(2010, 1, 1, 5, 20),
-          :ended_at   => Time.zone.local(2010, 1, 1, 12, 30)
-        )
-        task6 = Factory(:task,
-          :number => "61",
-          :project => project2, 
-          :name => "task 6",
-          :created_at => Time.zone.local(2010, 1, 1, 12, 30),
-          :state => "running"
+          :project => project1, 
+          :name => "yet another task", 
+          :state => "running",
+          :last_started_at => Time.zone.local(2010, 1, 3, 15, 15)
         )
         @cli.list(*@args)
         stdout.lines.must smart_match([
           "",
           "Latest tasks:",
           "",
-          "Today, 12:30pm -         [#61] project 2222 / task 6 <==",
-          "Today,  5:20am - 12:30pm [ #5] project 2222 / task 5",
-          "Today,  4:30am -  5:20am [ #4] project 2222 / task 4",
-          "Today,  2:30am -  4:30am [ #3] project 2222 / task 3",
-          "Today,  1:00am -  2:30am [ #2]    project 1 / task 2",
+          "    Today,  3:15pm -                    [#3] some project / yet another task (*)",
+          "    Today, 10:10am -     Today,  3:15pm [#1] some project / some task",
+          "Yesterday,  5:05am -     Today, 10:10am [#2] another project / another task",
+          " 1/1/2010, 12:00am - Yesterday,  5:05am [#1] some project / some task",
           ""
         ])
       end
       it "prints a list of the last 5 time periods if no task is running" do
-        Timecop.freeze(2010, 1, 1)
-        project1 = Factory(:project, :name => "project 1")
+        Timecop.freeze Time.zone.local(2010, 1, 3)
+        project1 = Factory(:project, :name => "some project")
+        project2 = Factory(:project, :name => "another project")
         task1 = Factory(:task,
           :number => "1",
           :project => project1,
-          :name => "task 1",
-          :state => "paused"
+          :name => "some task",
+          :state => "stopped"
         )
         period1 = Factory(:time_period,
           :task => task1,
           :started_at => Time.zone.local(2010, 1, 1, 0, 0),
-          :ended_at   => Time.zone.local(2010, 1, 1, 1, 0)
+          :ended_at   => Time.zone.local(2010, 1, 2, 5, 5)
+        )
+        period3 = Factory(:time_period,
+          :task => task1,
+          :started_at => Time.zone.local(2010, 1, 3, 10, 10),
+          :ended_at   => Time.zone.local(2010, 1, 3, 15, 15)
         )
         task2 = Factory(:task,
           :number => "2",
-          :project => project1, 
-          :name => "task 2", 
+          :project => project2, 
+          :name => "another task", 
           :state => "stopped"
         )
         period2 = Factory(:time_period,
           :task => task2,
-          :started_at => Time.zone.local(2010, 1, 1, 1, 0),
-          :ended_at   => Time.zone.local(2010, 1, 1, 2, 30)
+          :started_at => Time.zone.local(2010, 1, 2, 5, 5),
+          :ended_at   => Time.zone.local(2010, 1, 3, 10, 10)
         )
-        project2 = Factory(:project, :name => "project 2222")
         task3 = Factory(:task, 
           :number => "3", 
-          :project => project2, 
-          :name => "task 3", 
+          :project => project1, 
+          :name => "yet another task", 
           :state => "paused"
         )
         period3 = Factory(:time_period,
           :task => task3,
-          :started_at => Time.zone.local(2010, 1, 1, 2, 30),
-          :ended_at   => Time.zone.local(2010, 1, 1, 4, 30)
-        )
-        task4 = Factory(:task,
-          :number => "4",
-          :project => project2,
-          :name => "task 4",
-          :state => "stopped"
-        )
-        period4 = Factory(:time_period,
-          :task => task4,
-          :started_at => Time.zone.local(2010, 1, 1, 4, 30),
-          :ended_at   => Time.zone.local(2010, 1, 1, 5, 20)
-        )
-        task5 = Factory(:task,
-          :number => "51",
-          :project => project2, 
-          :name => "task 5", 
-          :state => "paused"
-        )
-        period5 = Factory(:time_period,
-          :task => task5,
-          :started_at => Time.zone.local(2010, 1, 1, 5, 20),
-          :ended_at   => Time.zone.local(2010, 1, 1, 12, 30)
-        )
-        period6 = Factory(:time_period,
-          :task => task2,
-          :started_at => Time.zone.local(2010, 1, 1, 12, 30),
-          :ended_at   => Time.zone.local(2010, 1, 1, 14, 00)
+          :started_at => Time.zone.local(2010, 1, 3, 15, 15),
+          :ended_at   => Time.zone.local(2010, 1, 3, 20, 20)
         )
         @cli.list(*@args)
         stdout.lines.must smart_match([
           "",
           "Latest tasks:",
           "",
-          "Today, 12:30pm -  2:00pm [ #2]    project 1 / task 2",
-          "Today,  5:20am - 12:30pm [#51] project 2222 / task 5",
-          "Today,  4:30am -  5:20am [ #4] project 2222 / task 4",
-          "Today,  2:30am -  4:30am [ #3] project 2222 / task 3",
-          "Today,  1:00am -  2:30am [ #2]    project 1 / task 2",
-          ""
-        ])
-      end
-      it "prints the date correctly if some of the tasks occurred before today" do
-        Timecop.freeze(2010, 1, 13)
-        project1 = Factory(:project, :name => "project 1")
-        task1 = Factory(:task,
-          :number => "1",
-          :project => project1,
-          :name => "task 1",
-          :state => "paused"
-        )
-        period1 = Factory(:time_period,
-          :task => task1,
-          :started_at => Time.zone.local(2010, 1, 1, 0, 0),
-          :ended_at   => Time.zone.local(2010, 1, 1, 1, 0)
-        )
-        task2 = Factory(:task,
-          :number => "21",
-          :project => project1, 
-          :name => "task 2", 
-          :state => "stopped"
-        )
-        period2 = Factory(:time_period,
-          :task => task2,
-          :started_at => Time.zone.local(2010, 1, 10, 11, 0),
-          :ended_at   => Time.zone.local(2010, 1, 10, 12, 30)
-        )
-        period3 = Factory(:time_period,
-          :task => task1,
-          :started_at => Time.zone.local(2010, 1, 13, 14, 10),
-          :ended_at   => Time.zone.local(2010, 1, 13, 19, 20)
-        )
-        @cli.list(*@args)
-        stdout.lines.must smart_match([
-          "",
-          "Latest tasks:",
-          "",
-          "    Today,  2:10pm -  7:20pm [ #1] project 1 / task 1",
-          "1/10/2010, 11:00am - 12:30pm [#21] project 1 / task 2",
-          " 1/1/2010, 12:00am -  1:00am [ #1] project 1 / task 1",
+          "    Today,  3:15pm -     Today,  8:20pm [#3] some project / yet another task",
+          "    Today, 10:10am -     Today,  3:15pm [#1] some project / some task",
+          "Yesterday,  5:05am -     Today, 10:10am [#2] another project / another task",
+          " 1/1/2010, 12:00am - Yesterday,  5:05am [#1] some project / some task",
           ""
         ])
       end
@@ -683,73 +590,36 @@ describe TimeTracker::Cli do
     end
     context "completed" do
       it "prints a list of all ended time periods, grouped by day, ordered by ended time" do
-        Timecop.freeze(2010, 1, 3)
-        project1 = Factory(:project, :name => "project 1")
+        Timecop.freeze Time.zone.local(2010, 1, 3)
+        project1 = Factory(:project, :name => "some project")
+        project2 = Factory(:project, :name => "another project")
         task1 = Factory(:task,
           :number => "1",
           :project => project1,
-          :name => "task 1",
+          :name => "some task",
           :state => "paused"
         )
         period1 = Factory(:time_period,
           :task => task1,
           :started_at => Time.zone.local(2010, 1, 1, 0, 0),
-          :ended_at   => Time.zone.local(2010, 1, 1, 1, 0)
+          :ended_at   => Time.zone.local(2010, 1, 2, 5, 5)
         )
         task2 = Factory(:task,
           :number => "2",
-          :project => project1, 
-          :name => "task 2", 
+          :project => project2, 
+          :name => "another task", 
           :state => "stopped"
         )
         period2 = Factory(:time_period,
           :task => task2,
-          :started_at => Time.zone.local(2010, 1, 1, 1, 0),
-          :ended_at   => Time.zone.local(2010, 1, 1, 2, 30)
+          :started_at => Time.zone.local(2010, 1, 2, 5, 5),
+          :ended_at   => Time.zone.local(2010, 1, 3, 10, 10)
         )
-        project2 = Factory(:project, :name => "project 2222")
         task3 = Factory(:task, 
           :number => "3", 
           :project => project2, 
-          :name => "task 3", 
-          :state => "paused"
-        )
-        period3 = Factory(:time_period,
-          :task => task3,
-          :started_at => Time.zone.local(2010, 1, 1, 2, 30),
-          :ended_at   => Time.zone.local(2010, 1, 1, 4, 30)
-        )
-        task4 = Factory(:task,
-          :number => "4",
-          :project => project2,
-          :name => "task 4",
-          :state => "stopped"
-        )
-        period4 = Factory(:time_period,
-          :task => task4,
-          :started_at => Time.zone.local(2010, 1, 1, 4, 30),
-          :ended_at   => Time.zone.local(2010, 1, 1, 23, 59)
-        )
-        period5 = Factory(:time_period,
-          :task => task4,
-          :started_at => Time.zone.local(2010, 1, 2, 0, 0),
-          :ended_at   => Time.zone.local(2010, 1, 2, 5, 20)
-        )
-        task5 = Factory(:task,
-          :number => "51",
-          :project => project2, 
-          :name => "task 5", 
-          :state => "paused"
-        )
-        period6 = Factory(:time_period,
-          :task => task5,
-          :started_at => Time.zone.local(2010, 1, 2, 5, 20),
-          :ended_at   => Time.zone.local(2010, 1, 2, 12, 30)
-        )
-        period7 = Factory(:time_period,
-          :task => task2,
-          :started_at => Time.zone.local(2010, 1, 3, 12, 30),
-          :ended_at   => Time.zone.local(2010, 1, 3, 14, 00)
+          :name => "yet another task", 
+          :state => "running"
         )
         @cli.list("completed")
         stdout.lines.must smart_match([
@@ -757,17 +627,14 @@ describe TimeTracker::Cli do
           "Completed tasks:",
           "",
           "Today:",
-          "  12:30pm -  2:00pm [ #2]    project 1 / task 2",
+          "  (12:00am) -  10:10am  [#2] another project / another task",
           "",
           "Yesterday:",
-          "   5:20am - 12:30pm [#51] project 2222 / task 5",
-          "  12:00am -  5:20am [ #4] project 2222 / task 4",
+          "    5:05am  - (11:59pm) [#2] another project / another task",
+          "  (12:00am) -   5:05am  [#1] some project / some task",
           "",
           "1/1/2010:",
-          "   4:30am - 11:59pm [ #4] project 2222 / task 4",
-          "   2:30am -  4:30am [ #3] project 2222 / task 3",
-          "   1:00am -  2:30am [ #2]    project 1 / task 2",
-          "  12:00am -  1:00am [ #1]    project 1 / task 1",
+          "   12:00am  - (11:59pm) [#1] some project / some task",
           ""
         ])
       end
@@ -778,80 +645,69 @@ describe TimeTracker::Cli do
     end
     context "all" do
       it "prints a list of all tasks, ordered by last updated time" do
-        Timecop.freeze(2010, 1, 3)
-        project1 = Factory(:project, :name => "project 1")
+        Timecop.freeze(2010, 1, 5)
+        project1 = Factory(:project, :name => "some project")
+        project2 = Factory(:project, :name => "another project")
         task1 = Factory(:task,
           :number => "1",
           :project => project1,
-          :name => "task 1",
+          :name => "some task",
           :state => "paused"
         )
         period1 = Factory(:time_period,
           :task => task1,
           :started_at => Time.zone.local(2010, 1, 1, 0, 0),
-          :ended_at   => Time.zone.local(2010, 1, 1, 1, 0)
+          :ended_at   => Time.zone.local(2010, 1, 2, 5, 5)
+        )
+        period2 = Factory(:time_period,
+          :task => task1,
+          :started_at => Time.zone.local(2010, 1, 3, 10, 10),
+          :ended_at   => Time.zone.local(2010, 1, 3, 15, 15)
         )
         task2 = Factory(:task,
           :number => "2",
-          :project => project1, 
-          :name => "task 2", 
+          :project => project2, 
+          :name => "another task", 
           :state => "stopped"
         )
-        period2 = Factory(:time_period,
+        period3 = Factory(:time_period,
           :task => task2,
-          :started_at => Time.zone.local(2010, 1, 1, 1, 0),
-          :ended_at   => Time.zone.local(2010, 1, 1, 2, 30)
+          :started_at => Time.zone.local(2010, 1, 2, 5, 5),
+          :ended_at   => Time.zone.local(2010, 1, 3, 10, 10)
         )
-        project2 = Factory(:project, :name => "project 2222")
+        period4 = Factory(:time_period,
+          :task => task2,
+          :started_at => Time.zone.local(2010, 1, 5, 1, 1),
+          :ended_at   => Time.zone.local(2010, 1, 5, 6, 6)
+        )
         task3 = Factory(:task, 
           :number => "3", 
-          :project => project2, 
-          :name => "task 3", 
+          :project => project1, 
+          :name => "yet another task",
           :state => "paused"
         )
-        period3 = Factory(:time_period,
+        period5 = Factory(:time_period,
           :task => task3,
-          :started_at => Time.zone.local(2010, 1, 1, 2, 30),
-          :ended_at   => Time.zone.local(2010, 1, 1, 4, 30)
+          :started_at => Time.zone.local(2010, 1, 3, 15, 15),
+          :ended_at   => Time.zone.local(2010, 1, 4, 20, 20)
         )
         task4 = Factory(:task,
           :number => "4",
-          :project => project2,
-          :name => "task 4",
+          :project => project1,
+          :name => "even yet another task",
           :state => "stopped"
         )
-        period4 = Factory(:time_period,
+        period6 = Factory(:time_period,
           :task => task4,
-          :started_at => Time.zone.local(2010, 1, 1, 4, 30),
-          :ended_at   => Time.zone.local(2010, 1, 1, 23, 59)
-        )
-        period5 = Factory(:time_period,
-          :task => task4,
-          :started_at => Time.zone.local(2010, 1, 2, 0, 0),
-          :ended_at   => Time.zone.local(2010, 1, 2, 5, 20)
+          :started_at => Time.zone.local(2010, 1, 4, 20, 20),
+          :ended_at   => Time.zone.local(2010, 1, 5, 1, 1)
         )
         task5 = Factory(:task,
           :number => "5",
           :project => project2, 
-          :name => "task 5", 
-          :state => "paused"
-        )
-        period6 = Factory(:time_period,
-          :task => task5,
-          :started_at => Time.zone.local(2010, 1, 2, 5, 20),
-          :ended_at   => Time.zone.local(2010, 1, 2, 12, 30)
-        )
-        period7 = Factory(:time_period,
-          :task => task2,
-          :started_at => Time.zone.local(2010, 1, 3, 12, 30),
-          :ended_at   => Time.zone.local(2010, 1, 3, 14, 00)
-        )
-        task6 = Factory(:task,
-          :number => "61",
-          :project => project2, 
-          :name => "task 6",
-          :created_at => Time.zone.local(2010, 1, 3, 14, 00),
-          :state => "running"
+          :name => "still yet another task", 
+          :state => "running",
+          :last_started_at => Time.zone.local(2010, 1, 5, 6, 6)
         )
         @cli.list("all")
         stdout.lines.must smart_match([
@@ -859,18 +715,25 @@ describe TimeTracker::Cli do
           "All tasks:",
           "",
           "Today:",
-          "   2:00pm -         [#61] project 2222 / task 6 <==",
-          "  12:30pm -  2:00pm [ #2]    project 1 / task 2",
+          "    6:06am  -           [#5] another project / still yet another task (*)",
+          "    1:01am  -   6:06am  [#2] another project / another task",
+          "  (12:00am) -   1:01am  [#4] some project / even yet another task",
           "",
           "Yesterday:",
-          "   5:20am - 12:30pm [ #5] project 2222 / task 5",
-          "  12:00am -  5:20am [ #4] project 2222 / task 4",
+          "    8:20pm  - (11:59pm) [#4] some project / even yet another task",
+          "  (12:00am) -   8:20pm  [#3] some project / yet another task",
+          "",
+          "1/3/2010:",
+          "    3:15pm  - (11:59pm) [#3] some project / yet another task",
+          "   10:10am  -   3:15pm  [#1] some project / some task",
+          "  (12:00am) -  10:10am  [#2] another project / another task",
+          "",
+          "1/2/2010:",
+          "    5:05am  - (11:59pm) [#2] another project / another task",
+          "  (12:00am) -   5:05am  [#1] some project / some task",
           "",
           "1/1/2010:",
-          "   4:30am - 11:59pm [ #4] project 2222 / task 4",
-          "   2:30am -  4:30am [ #3] project 2222 / task 3",
-          "   1:00am -  2:30am [ #2]    project 1 / task 2",
-          "  12:00am -  1:00am [ #1]    project 1 / task 1",
+          "   12:00am  - (11:59pm) [#1] some project / some task",
           ""
         ])
       end
@@ -881,33 +744,61 @@ describe TimeTracker::Cli do
     end
     context "today" do
       it "prints a list of time periods that ended today, ordered by ended_at" do
-        Timecop.freeze(2010, 1, 1)
-        project1 = Factory(:project, :name => "project 1")
+        Timecop.freeze Time.zone.local(2010, 1, 2)
+        project1 = Factory(:project, :name => "some project")
+        project2 = Factory(:project, :name => "another project")
         task1 = Factory(:task,
           :number => "1",
           :project => project1, 
-          :name => "task 1", 
-          :state => "paused"
+          :name => "some task",
+          :state => "stopped"
         )
         period1 = Factory(:time_period,
           :task => task1,
-          :started_at => Time.zone.local(2010, 1, 1, 12, 30),
-          :ended_at   => Time.zone.local(2010, 1, 1, 14, 00)
+          :started_at => Time.zone.local(2010, 1, 1, 0, 0),
+          :ended_at   => Time.zone.local(2010, 1, 1, 5, 5)
         )
-        task3 = Factory(:task,
+        period2 = Factory(:time_period,
+          :task => task1,
+          :started_at => Time.zone.local(2010, 1, 2, 3, 3),
+          :ended_at   => Time.zone.local(2010, 1, 2, 8, 8)
+        )
+        period3 = Factory(:time_period,
+          :task => task1,
+          :started_at => Time.zone.local(2010, 1, 2, 13, 13),
+          :ended_at   => Time.zone.local(2010, 1, 2, 18, 18)
+        )
+        task2 = Factory(:task,
           :number => "2",
-          :project => project1, 
-          :name => "task 2",
-          :created_at => Time.zone.local(2010, 1, 1, 14, 00),
-          :state => "running"
+          :project => project1,
+          :name => "another task",
+          :state => "paused"
+        )
+        period4 = Factory(:time_period,
+          :task => task2,
+          :started_at => Time.zone.local(2010, 1, 1, 5, 5),
+          :ended_at   => Time.zone.local(2010, 1, 2, 3, 3)
+        )
+        task2 = Factory(:task,
+          :number => "3",
+          :project => project2, 
+          :name => "yet another task",
+          :state => "stopped"
+        )
+        period5 = Factory(:time_period,
+          :task => task2,
+          :started_at => Time.zone.local(2010, 1, 2, 8, 8),
+          :ended_at   => Time.zone.local(2010, 1, 2, 13, 13)
         )
         @cli.list("today")
         stdout.lines.must smart_match([
           "",
           "Today's tasks:",
           "",
-          " 2:00pm -        [#2] project 1 / task 2 <==",
-          "12:30pm - 2:00pm [#1] project 1 / task 1",
+          "  1:13pm  - 6:18pm [#1] some project / some task",
+          "  8:08am  - 1:13pm [#3] another project / yet another task",
+          "  3:03am  - 8:08am [#1] some project / some task",
+          "(12:00am) - 3:03am [#2] some project / another task",
           ""
         ])
       end
@@ -918,80 +809,48 @@ describe TimeTracker::Cli do
     end
     context "this week" do
       it "prints a list of tasks updated this week, ordered by last updated time" do
-        Timecop.freeze(2010, 8, 7)
-        project1 = Factory(:project, :name => "project 1")
+        Timecop.freeze Time.zone.local(2010, 8, 5)
+        project1 = Factory(:project, :name => "some project")
+        project2 = Factory(:project, :name => "another project")
         task1 = Factory(:task,
           :number => "1",
           :project => project1,
-          :name => "task 1",
-          :state => "paused"
+          :name => "some task",
+          :state => "stopped"
         )
         period1 = Factory(:time_period,
           :task => task1,
-          :started_at => Time.zone.local(2010, 7, 30, 0, 0),
-          :ended_at   => Time.zone.local(2010, 7, 30, 1, 0)
+          :started_at => Time.zone.local(2010, 8, 1, 0, 0),
+          :ended_at   => Time.zone.local(2010, 8, 2, 5, 5)
         )
         task2 = Factory(:task,
           :number => "2",
           :project => project1, 
-          :name => "task 2", 
+          :name => "another task", 
           :state => "stopped"
         )
         period2 = Factory(:time_period,
           :task => task2,
-          :started_at => Time.zone.local(2010, 7, 31, 1, 0),
-          :ended_at   => Time.zone.local(2010, 7, 31, 2, 30)
+          :started_at => Time.zone.local(2010, 8, 2, 5, 5),
+          :ended_at   => Time.zone.local(2010, 8, 3, 15, 15)
         )
-        project2 = Factory(:project, :name => "project 2222")
         task3 = Factory(:task, 
           :number => "3", 
           :project => project2, 
-          :name => "task 3", 
+          :name => "yet another task", 
           :state => "paused"
         )
         period3 = Factory(:time_period,
           :task => task3,
-          :started_at => Time.zone.local(2010, 8, 1, 2, 30),
-          :ended_at   => Time.zone.local(2010, 8, 1, 4, 30)
+          :started_at => Time.zone.local(2010, 8, 3, 15, 15),
+          :ended_at   => Time.zone.local(2010, 8, 5, 3, 3)
         )
         task4 = Factory(:task,
           :number => "4",
           :project => project2,
-          :name => "task 4",
-          :state => "stopped"
-        )
-        period4 = Factory(:time_period,
-          :task => task4,
-          :started_at => Time.zone.local(2010, 8, 2, 4, 30),
-          :ended_at   => Time.zone.local(2010, 8, 2, 23, 59)
-        )
-        period5 = Factory(:time_period,
-          :task => task4,
-          :started_at => Time.zone.local(2010, 8, 3, 0, 0),
-          :ended_at   => Time.zone.local(2010, 8, 3, 5, 20)
-        )
-        task5 = Factory(:task,
-          :number => "5",
-          :project => project2, 
-          :name => "task 5", 
-          :state => "paused"
-        )
-        period6 = Factory(:time_period,
-          :task => task5,
-          :started_at => Time.zone.local(2010, 8, 4, 5, 20),
-          :ended_at   => Time.zone.local(2010, 8, 4, 12, 30)
-        )
-        period7 = Factory(:time_period,
-          :task => task2,
-          :started_at => Time.zone.local(2010, 8, 5, 12, 30),
-          :ended_at   => Time.zone.local(2010, 8, 5, 14, 00)
-        )
-        task6 = Factory(:task,
-          :number => 61,
-          :project => project1,
-          :name => "task 6",
+          :name => "even yet another task",
           :state => "running",
-          :created_at => Time.zone.local(2010, 8, 6, 5, 23)
+          :last_started_at => Time.zone.local(2010, 8, 5, 3, 3)
         )
         @cli.list("this week")
         stdout.lines.must smart_match([
@@ -999,22 +858,22 @@ describe TimeTracker::Cli do
           "This week's tasks:",
           "",
           "8/1/2010:",
-          "   2:30am -  4:30am [ #3] project 2222 / task 3",
+          "   12:00am  - (11:59pm) [#1] some project / some task",
           "",
           "8/2/2010:",
-          "   4:30am - 11:59pm [ #4] project 2222 / task 4",
+          "  (12:00am) -   5:05am  [#1] some project / some task",
+          "    5:05am  - (11:59pm) [#2] some project / another task",
           "",
           "8/3/2010:",
-          "  12:00am -  5:20am [ #4] project 2222 / task 4",
-          "",
-          "8/4/2010:",
-          "   5:20am - 12:30pm [ #5] project 2222 / task 5",
-          "",
-          "8/5/2010:",
-          "  12:30pm -  2:00pm [ #2]    project 1 / task 2",
+          "  (12:00am) -   3:15pm  [#2] some project / another task",
+          "    3:15pm  - (11:59pm) [#3] another project / yet another task",
           "",
           "Yesterday:",
-          "   5:23am -         [#61]    project 1 / task 6 <==",
+          "  (12:00am) - (11:59pm) [#3] another project / yet another task",
+          "",
+          "Today:",
+          "  (12:00am) -   3:03am  [#3] another project / yet another task",
+          "    3:03am  -           [#4] another project / even yet another task (*)",
           ""
         ])
       end

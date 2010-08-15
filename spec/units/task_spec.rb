@@ -239,26 +239,35 @@ describe TimeTracker::Task do
   end
   
   describe '#info' do
-    it "returns an array containing the time the task was last started, and its name, number, and project name" do
-      project = TimeTracker::Project.new(:name => "some project")
-      task = TimeTracker::Task.new(
-        :project => project,
-        :number => "1",
-        :name => "some task",
-        :last_started_at => Time.zone.local(2010, 1, 1, 0, 0)
-      )
-      task.info.must == ['12:00am', ' - ', '', ' ', '[', '#1', ']', ' ', 'some project', ' / ', 'some task <==']
+    context "if :include_day not given" do
+      it "returns an array containing the time the task was last started, and its name, number, and project name" do
+        project = TimeTracker::Project.new(:name => "some project")
+        task = TimeTracker::Task.new(
+          :project => project,
+          :number => "1",
+          :name => "some task",
+          :last_started_at => Time.zone.local(2010, 1, 1, 0, 0)
+        )
+        task.info.must == [
+          [
+            Date.new(2010, 1, 1),
+            ['', '12:00am', '', ' - ', '', '', '', ' ', '[', '#1', ']', ' ', 'some project / some task (*)']
+          ]
+        ]
+      end
     end
-    it "includes the date part, if date was specified" do
-      project = TimeTracker::Project.new(:name => "some project")
-      task = TimeTracker::Task.new(
-        :project => project,
-        :number => "1",
-        :name => "some task",
-        :last_started_at => Time.zone.local(2010, 1, 1, 0, 0)
-      )
-      task.info(:include_date => true).must ==
-        ['1/1/2010', ', ', '12:00am', ' - ', '', '', '', ' ', '[', '#1', ']', ' ', 'some project', ' / ', 'some task <==']
+    context "if :include_day given" do
+      it "includes the day part" do
+        project = TimeTracker::Project.new(:name => "some project")
+        task = TimeTracker::Task.new(
+          :project => project,
+          :number => "1",
+          :name => "some task",
+          :last_started_at => Time.zone.local(2010, 1, 1, 0, 0)
+        )
+        task.info(:include_day => true).must ==
+          ['1/1/2010', ', ', '12:00am', ' - ', '', '  ', '', ' ', '[', '#1', ']', ' ', 'some project / some task (*)']
+      end
     end
     # the time stuff is tested in ruby_spec.rb
   end
