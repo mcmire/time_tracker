@@ -6,7 +6,7 @@ module TimeTracker
   class Config
     class << self
       def collection
-        @collection ||= ::MongoMapper.database.collection("time_tracker.config")
+        @collection ||= ::MongoMapper.database.collection("config")
       end
     
       def find

@@ -21,7 +21,7 @@ module TimeTracker
     key :number, Integer
     key :project_id, ObjectId
     key :name, String
-    key :state, String, :default => "running"
+    key :state, String, :default => "created"
     timestamps!
     key :last_started_at, Time
     
@@ -31,26 +31,33 @@ module TimeTracker
     before_create :set_number, :unless => :number?
     before_create :copy_created_at_to_last_started_at, :unless => :last_started_at?
     
-    state_machine :initial => :running do
+    state_machine :initial => :created do
+      event :start do
+        sets_state :running
+        transitions_from :created
+        runs_callback :before_save do |task|
+          task.last_started_at = Time.zone.now
+        end
+      end
       event :stop do
         sets_state :stopped
         transitions_from :running
         runs_callback :after_save do |task|
-          task.time_periods.create!(:started_at => task.last_started_at, :ended_at => Time.now)
+          task.time_periods.create!(:started_at => task.last_started_at, :ended_at => Time.zone.now)
         end
       end
       event :pause do
         sets_state :paused
         transitions_from :running
         runs_callback :after_save do |task|
-          task.time_periods.create!(:started_at => task.last_started_at, :ended_at => Time.now)
+          task.time_periods.create!(:started_at => task.last_started_at, :ended_at => Time.zone.now)
         end
       end
       event :resume do
         sets_state :running
         transitions_from :paused, :stopped
         runs_callback :before_save do |task|
-          task.last_started_at = Time.now
+          task.last_started_at = Time.zone.now
         end
       end
     end

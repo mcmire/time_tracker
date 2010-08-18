@@ -27,8 +27,8 @@ module TimeTracker
             (@callbacks[callback_type] ||= []) << block
           end
           
-          def can_transition_to?(state)
-            allowed_previous_states.include?(state)
+          def can_transition_from?(prev_state)
+            allowed_previous_states.include?(prev_state)
           end
           
           def run_callbacks(model, callback_type)
@@ -43,8 +43,8 @@ module TimeTracker
             @model_class = model_class
             @options = options
             if options[:initial]
-              define_state_query_method(options[:initial])
-              define_state_scope_methods(options[:initial])
+              define_state_query_method(options[:initial].to_s)
+              define_state_scope_methods(options[:initial].to_s)
             end
             @events = {}
             @transition_info = nil
@@ -53,7 +53,7 @@ module TimeTracker
           
           def event(name, &block)
             event = Event.new(self, name, &block)
-            @events[event.state] = event
+            (@events[event.state] ||= []) << event
             define_state_mutator_method(event.name, event.state)
             define_state_query_method(event.state)
             define_state_scope_methods(event.state)
@@ -62,12 +62,9 @@ module TimeTracker
           def start_transition!(model, current_state, next_state)
             current_state = current_state.to_s
             next_state = next_state.to_s
-            event = @events[next_state] or raise "Couldn't find event for '#{next_state}'"
+            event = @events[next_state].find {|event| event.can_transition_from?(current_state) }
+            raise "Can't go from #{current_state.inspect} to #{next_state.inspect}!" unless event
             @transition_info = {:event => event, :model => model}
-            #puts "Going from #{current_state.inspect} to #{next_state.inspect}"
-            unless event.can_transition_to?(current_state)
-              raise Error, "Can't go from #{current_state.inspect} to #{next_state.inspect}!" 
-            end
           end
           
           def finish_transition

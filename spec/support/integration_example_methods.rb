@@ -1,34 +1,21 @@
 require 'yaml'
 require 'fileutils'
+#require 'io/wait'
 
 module IntegrationExampleMethods
   extend self
   
-=begin
-  # Forks a ruby interpreter with same type as ourself.
-  # juby will fork jruby, ruby will fork ruby etc.
-  # Stolen from RSpec
-  def forked_ruby(args, stderr=nil)
-    config       = ::Config::CONFIG
-    interpreter  = File::join(config['bindir'], config['ruby_install_name']) + config['EXEEXT']
-    cmd = "#{interpreter} #{args}"
-    cmd << " 2> #{stderr}" unless stderr.nil?
-    #puts "Running command: <#{cmd}>"
-    # Set TEST environment variable here so that the test database will be used instead of the real one
-    `TEST=1 #{cmd}`
-  end
-  
-  # Stolen from RSpec
-  def ruby(args)
-    stderr_file = Tempfile.new('tt')
-    stderr_file.close
-    Dir.chdir(working_dir) do
-      @stdout = forked_ruby("-I #{tt_lib} #{args}", stderr_file.path)
+  module TeeIO
+    attr_accessor :tee
+    
+    #[:<<, :puts, :print, :write].each do |writer_method|
+    [:write].each do |writer_method|
+      define_method(writer_method) do |buf|
+        @tee << buf
+        super(buf)
+      end
     end
-    @stderr = IO.read(stderr_file.path)
-    @exit_code = $?.to_i
   end
-=end
   
   # Stolen from RSpec
   def working_dir
@@ -43,18 +30,21 @@ module IntegrationExampleMethods
     @tt_lib ||= File.join(File.dirname(__FILE__), "/../../lib")
   end
   
-  # Stolen from RSpec
   def stdout
-    @stdout#.strip
+    @stdout[0]
   end
-
-  # Stolen from RSpec
+  
   def stderr
-    @stderr#.strip
+    @stderr[0]
+  end
+  
+  def stdin
+    @stdin[1]
   end
   
   def output
-    stdout + stderr
+    ensure_last_command_finished
+    stdout.read + stderr.read
   end
 
   # Stolen from RSpec
@@ -75,46 +65,107 @@ module IntegrationExampleMethods
     YAML.load_file File.join(working_dir, "argv.yml")
   end
   
-  def capture_output
-    old_stdout = $stdout
-    old_stderr = $stderr
-    # Use a separate thread to keep changes to $stdout and $stderr contained
-    time_zone = Time.zone
-    thr = Thread.new do
-      # Since the time zone only holds for the current thread, we have to re-set it
-      Time.zone = time_zone
+  def execute_command
+    ensure_last_command_finished
+    
+    # Much of this was copied from Ruby's popen3 implementation
+    
+    # pipe[0] is reader, pipe[1] is writer
+    @stdout = IO.pipe
+    @stderr = IO.pipe
+    @stdin  = IO.pipe
+    (@pipes ||= []).concat [@stdout, @stderr, @stdin]
+    
+    $orig_stdout = $stdout.dup
+    $orig_stderr = $stderr.dup
+    
+    # TODO: If the parent process dies suddenly while the child is
+    # still active, then an Errno::EPIPE will be thrown
+    
+    @command_pid = fork do
+      @stdin[1].close
+      $stdin.reopen(@stdin[0])
+      @stdin[0].close
+      
+      @stdout[0].close
+      $stdout.reopen(@stdout[1])
+      @stdout[1].close
+      if Ribeye.debug?
+        $stdout.extend(TeeIO)
+        $stdout.tee = $orig_stdout
+      end
+      
+      @stderr[0].close
+      $stderr.reopen(@stderr[1])
+      @stderr[1].close
+      if Ribeye.debug?
+        $stderr.extend(TeeIO)
+        $stderr.tee = $orig_stderr
+      end
+      
+      #$stdin.sync = true
+      #$stdout.sync = true
+      #$stderr.sync = true
+    
+      # Somehow this was lost when we forked
+      TimeTracker.reload_config
+    
       begin
-        $stdout = File.open(File.join(working_dir, "stdout.txt"), "w")
-        $stderr = File.open(File.join(working_dir, "stderr.txt"), "w")
         yield
       rescue SystemExit => e
-        STDOUT.puts "Got an exit" if Ribeye.debug?
-        # do nothing
+        $orig_stdout.puts "Got an exit" if Ribeye.debug?
+        # just keep going..
       rescue => e
-        STDOUT.puts "Got a: #{e.class} - #{e.message}\n#{e.backtrace.join("\n")}" if Ribeye.debug?
-        # do nothing
-      ensure
-        # write to the files
-        $stdout.close
-        $stderr.close
+        $orig_stdout.puts "Got a: #{e.class} - #{e.message}\n#{e.backtrace.join("\n")}" if Ribeye.debug?
+        # just keep going..
       end
+      
+      # Don't fire the at_exit block that RSpec adds to auto-run all the tests
+      exit!(0)
     end
-    #Process.waitpid(pid)
-    thr.join
-    @stdout = File.read(File.join(working_dir, "stdout.txt"))
-    @stderr = File.read(File.join(working_dir, "stderr.txt"))
+    puts "Child process: #{@command_pid}" if Ribeye.debug?
+    
+    @stdin[0].close
+    @stdout[1].close
+    @stderr[1].close
+    
+    #@stdin[1].sync = true
+    #@stdout[0].sync = true
+    #@stderr[0].sync = true
+    
+    #ensure_last_command_finished
+  end
+  
+  def ensure_last_command_finished
+    # If a previous execution of `tt` is still going on, wait for it to finish first.
+    # (That it hasn't finished yet probably means it's waiting on stdin.)
+    if @command_pid
+      puts "Waiting for child process #{@command_pid} to finish..." if Ribeye.debug?
+      Process.waitpid(@command_pid) 
+      puts "Child process #{@command_pid} done with status #{$?.exitstatus}" if Ribeye.debug?
+    end
+  rescue Errno::ECHILD
+    # oh ok, I guess the child's already dead.
   ensure
-    old_stdout.write(@stdout) if Ribeye.debug?
-    old_stderr.write(@stderr) if Ribeye.debug?
-    $stdout = old_stdout
-    $stderr = old_stderr
+    @command_pid = nil
+  end
+  
+  def cleanup_open_io
+    ensure_last_command_finished
+    @pipes.each do |pipe|
+      begin; pipe[0].close; rescue IOError; end
+      begin; pipe[1].close; rescue IOError; end
+    end
+    $orig_stdout.close
+    $orig_stderr.close
   end
   
   def tt(args)
+    ensure_last_command_finished
     time1 = Time.now_without_mock_time
     freezing_time_and_skipping_ahead do
       args = parse_args(args)
-      capture_output do
+      execute_command do
         time3 = Time.now_without_mock_time
         TimeTracker::Cli.start(args)
         time4 = Time.now_without_mock_time

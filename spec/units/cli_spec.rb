@@ -15,6 +15,10 @@ describe TimeTracker::Cli do
     @stderr.string#.strip
   end
   
+  def stdin
+    @stdin
+  end
+  
   describe '.build' do
     it "allows stdout and stderr to be set" do
       cli = TimeTracker::Cli.build(:stdin, :stdout, :stderr)
@@ -30,6 +34,53 @@ describe TimeTracker::Cli do
       cli.stdin.must  == $stdin
       cli.stdout.must == $stdout
       cli.stderr.must == $stderr
+    end
+  end
+  
+  describe '#add' do
+    before do
+      @project = Factory(:project, :name => "some project")
+      TimeTracker.config.update("current_project_id", @project.id.to_s)
+    end
+    context "with 'task' argument" do
+      it "creates a new task in the current project" do
+        Timecop.freeze(@time) do
+          @cli.add("task", "some task")
+        end
+        TimeTracker::Task.count.must == 1
+        task = TimeTracker::Task.last(:order => :number)
+        task.project.name.must == "some project"
+        task.name.must == "some task"
+        task.created_at.must == @time
+        stdout.must == %{Task "some task" created.\n}
+      end
+      context "if a task by the given name already exists" do
+        it "bails if the task hasn't been started yet" do
+          @project.tasks.create!(:name => "some task", :state => "created")
+          expect { @cli.add("task", "some task") }.to raise_error \
+            "It looks like you've already added that task. Perhaps you'd like to upvote it instead?"
+        end
+        it "bails if the task is running" do
+          @project.tasks.create!(:name => "some task", :state => "running")
+          expect { @cli.add("task", "some task") }.to raise_error("Aren't you already working on that task?")
+        end
+        it "bails if the task is paused" do
+          @project.tasks.create!(:name => "some task", :state => "paused")
+          expect { @cli.add("task", "some task") }.to raise_error("Aren't you still working on that task?")
+        end
+        it "doesn't bail, but creates a new task, if the task is stopped" do
+          @project.tasks.create!(:name => "some task", :state => "stopped")
+          Timecop.freeze(@time) do
+            @cli.add("task", "some task")
+          end
+          TimeTracker::Task.count.must == 2
+          task = TimeTracker::Task.last(:order => :number)
+          task.project.name.must == "some project"
+          task.name.must == "some task"
+          task.created_at.must == @time
+          stdout.must == %{Task "some task" created.\n}
+        end
+      end
     end
   end
   
@@ -52,7 +103,7 @@ describe TimeTracker::Cli do
       TimeTracker.config.update("current_project_id", project.id.to_s)
       time1 = Time.zone.local(2010, 1, 1, 0, 0, 0)
       time2 = Time.zone.local(2010, 1, 1, 0, 1, 0)
-      task = Factory(:task, :project => project, :name => "some task", :created_at => time1)
+      task = Factory(:task, :project => project, :name => "some task", :created_at => time1, :state => "running")
       Timecop.freeze(time2) do
         @cli.switch("another project")
       end
@@ -73,49 +124,90 @@ describe TimeTracker::Cli do
   end
   
   describe '#start' do
+    before do
+      @project = Factory(:project, :name => "some project")
+      TimeTracker.config.update("current_project_id", @project.id.to_s)
+    end
     it "bails if no name given" do
-      expect { @cli.start }.to raise_error("Right, but what's the name of your task?")
+      expect { @cli.start }.to raise_error("Right, but which task do you want to start?")
     end
     it "bails if no project has been set yet" do
-      TimeTracker.config["current_project_id"]
+      TimeTracker.config.update("current_project_id", nil)
       expect { @cli.start("some task") }.to raise_error("Try switching to a project first.")
     end
-    it "bails if there's already task under the current project that hasn't been stopped yet" do
-      project = TimeTracker::Project.new(:name => "some project")
-      Factory(:task, :project => project, :name => "some task")
-      TimeTracker.config.update("current_project_id", project.id.to_s)
-      expect { @cli.start("some task") }.to raise_error("Aren't you already working on that task?")
+    context "when a task exists with the same name under the current project" do
+      it "starts the clock for the task if it hasn't been started yet" do
+        task = Factory(:task, :project => @project, :name => "some task", :state => "created")
+        Timecop.freeze(@time) do
+          @cli.start("some task")
+        end
+        TimeTracker::Task.count.must == 1
+        task.reload
+        task.must be_running
+        task.last_started_at.must == @time
+        stdout.must == %{Started clock for "some task".\n}
+      end
+      it "bails if the task is running" do
+        Factory(:task, :project => @project, :name => "some task", :state => "running")
+        expect { @cli.start("some task") }.to raise_error("Aren't you already working on that task?")
+      end
+      it "bails if the task is paused" do
+        Factory(:task, :project => @project, :name => "some task", :state => "paused")
+        expect { @cli.start("some task") }.to raise_error("Aren't you still working on that task?")
+      end
+      it "doesn't bail, but creates a new task, if the task is stopped" do
+        task = Factory(:task, :project => @project, :name => "some task", :state => "stopped")
+        Timecop.freeze(@time) do
+          stdin.sneak("y\n")
+          @cli.start("some task")
+        end
+        TimeTracker::Task.count.must == 2
+        task2 = TimeTracker::Task.last(:order => :number)
+        task2.id.must_not == task.id
+        task2.project.name.must == "some project"
+        task2.name.must == "some task"
+        task2.must be_running
+        task2.created_at.must == @time
+        stdout.must end_with(%{Started clock for "some task".\n})
+      end
     end
-    it "starts the clock for a task, creating it under the current project first" do
-      project = Factory(:project, :name => "some project")
-      TimeTracker.config.update("current_project_id", project.id.to_s)
+    it "auto-creates the task under the current project (given user accepts prompt) and starts the clock for it" do
       Timecop.freeze(@time) do
+        stdin.sneak("y\n")
         @cli.start("some task")
+        stdout.must start_with(%{I can't find this task. Did you want to create it? (y/n) })
       end
       TimeTracker::Task.count.must == 1
-      task = TimeTracker::Task.sort(:created_at.desc).first
+      task = TimeTracker::Task.last(:order => :number)
       task.project.name.must == "some project"
       task.name.must == "some task"
+      task.must be_running
       task.created_at.must == @time
-      stdout.must == %{Started clock for "some task".\n}
+      stdout.must end_with(%{Started clock for "some task".})
+    end
+    it "aborts if prompt to auto-create is denied" do
+      stdin.sneak("n\n")
+      @cli.start("some task")
+      stdout.must start_with(%{I can't find this task. Did you want to create it? (y/n) })
+      stdout.must end_with(%{Okay, never mind then.})
     end
     it "auto-pauses any task that's currently running before starting a new one" do
-      project = Factory(:project, :name => "some project")
-      TimeTracker.config.update("current_project_id", project.id.to_s)
       time1 = Time.zone.local(2010, 1, 1, 0, 0, 0)
       time2 = Time.zone.local(2010, 1, 1, 0, 1, 0)
-      task1 = Factory(:task, :project => project, :name => "some task", :created_at => time1)
+      task1 = Factory(:task, :project => @project, :name => "some task", :created_at => time1, :state => "running")
       Timecop.freeze(time2) do
+        stdin.sneak("y\n")
         @cli.start("another task")
       end
       TimeTracker::Task.count.must == 2
       task1.time_periods.first.ended_at.must == time2
       task1.must be_paused
-      task2 = TimeTracker::Task.sort(:created_at.desc).first
+      task2 = TimeTracker::Task.last(:order => :number)
       task2.project.name.must == "some project"
       task2.name.must == "another task"
+      task2.must be_running
       task2.created_at.must == time2
-      stdout.must == %{(Pausing clock for "some task", at 1m.)\nStarted clock for "another task".\n}
+      stdout.must end_with(%{(Pausing clock for "some task", at 1m.)\nStarted clock for "another task".\n})
     end
   end
   
@@ -134,7 +226,7 @@ describe TimeTracker::Cli do
         ended_at = Time.local(2010, 1, 1, 3, 29, 0)
         project = Factory(:project, :name => "some project")
         TimeTracker.config.update("current_project_id", project.id.to_s)
-        task1 = Factory(:task, :project => project, :name => "some task", :created_at => started_at)
+        task1 = Factory(:task, :project => project, :name => "some task", :created_at => started_at, :state => "running")
         task2 = Factory(:task, :project => project, :name => "another task", :state => "stopped")
         Timecop.freeze(ended_at) do
           @cli.stop
@@ -157,7 +249,7 @@ describe TimeTracker::Cli do
         TimeTracker.config.update("current_project_id", project.id.to_s)
         task1 = Factory(:task, :project => project, :name => "some task", :state => "paused", :updated_at => Time.local(2010, 1, 1, 1, 0, 0))
         task2 = Factory(:task, :project => project, :name => "another task", :state => "paused", :updated_at => Time.local(2010, 1, 1, 2, 0, 0))
-        task3 = Factory(:task, :project => project, :name => "yet another task", :created_at => Time.local(2010, 1, 1, 3, 0, 0))
+        task3 = Factory(:task, :project => project, :name => "yet another task", :created_at => Time.local(2010, 1, 1, 3, 0, 0), :state => "running")
         stopped_at = Time.local(2010, 1, 1, 3, 29, 0)
         Timecop.freeze(stopped_at) do
           @cli.stop
@@ -181,7 +273,7 @@ describe TimeTracker::Cli do
       it "stops the given task by name" do
         project = Factory(:project, :name => "some project")
         TimeTracker.config.update("current_project_id", project.id.to_s)
-        task1 = Factory(:task, :project => project, :name => "some task", :created_at => Time.local(2010, 1, 1, 0, 0, 0))
+        task1 = Factory(:task, :project => project, :name => "some task", :created_at => Time.local(2010, 1, 1, 0, 0, 0), :state => "running")
         stopped_at = Time.local(2010, 1, 1, 3, 29)
         Timecop.freeze(stopped_at) do
           @cli.stop("some task")
@@ -206,7 +298,7 @@ describe TimeTracker::Cli do
         project = Factory(:project, :name => "some project")
         TimeTracker.config.update("current_project_id", project.id.to_s)
         task1 = Factory(:task, :project => project, :name => "some task", :state => "paused")
-        task2 = Factory(:task, :project => project, :name => "another task", :created_at => Time.local(2010, 1, 1, 0, 0, 0))
+        task2 = Factory(:task, :project => project, :name => "another task", :created_at => Time.local(2010, 1, 1, 0, 0, 0), :state => "running")
         stopped_at = Time.local(2010, 1, 1, 3, 29, 0)
         Timecop.freeze(stopped_at) do
           @cli.stop("another task")
@@ -228,8 +320,8 @@ describe TimeTracker::Cli do
       it "stops the given task by task number" do
         project = Factory(:project, :name => "some project")
         TimeTracker.config.update("current_project_id", project.id.to_s)
-        task1 = Factory(:task, :project => project, :name => "some task", :number => "1", :created_at => Time.local(2010, 1, 1, 0, 0, 0))
-        task2 = Factory(:task, :project => project, :name => "another task", :number => "2", :created_at => Time.local(2010, 1, 1, 0, 2, 0))
+        task1 = Factory(:task, :project => project, :name => "some task", :number => "1", :created_at => Time.local(2010, 1, 1, 0, 0, 0), :state => "running")
+        task2 = Factory(:task, :project => project, :name => "another task", :number => "2", :created_at => Time.local(2010, 1, 1, 0, 2, 0), :state => "running")
         stopped_at = Time.local(2010, 1, 1, 3, 29)
         Timecop.freeze(stopped_at) do
           @cli.stop("1")
@@ -254,7 +346,7 @@ describe TimeTracker::Cli do
         project = Factory(:project, :name => "some project")
         TimeTracker.config.update("current_project_id", project.id.to_s)
         task1 = Factory(:task, :project => project, :name => "some task", :number => "1", :state => "paused")
-        task2 = Factory(:task, :project => project, :name => "another task", :number => "2", :created_at => Time.local(2010, 1, 1, 0, 0, 0))
+        task2 = Factory(:task, :project => project, :name => "another task", :number => "2", :created_at => Time.local(2010, 1, 1, 0, 0, 0), :state => "running")
         stopped_at = Time.local(2010, 1, 1, 3, 29, 0)
         Timecop.freeze(stopped_at) do
           @cli.stop("2")
@@ -331,7 +423,7 @@ describe TimeTracker::Cli do
         project = Factory(:project, :name => "some project")
         TimeTracker.config.update("current_project_id", project.id.to_s)
         task1 = Factory(:task, :project => project, :name => "some task", :state => "paused")
-        task2 = Factory(:task, :project => project, :name => "another task", :created_at => Time.local(2010, 1, 1, 0, 0, 0))
+        task2 = Factory(:task, :project => project, :name => "another task", :created_at => Time.local(2010, 1, 1, 0, 0, 0), :state => "running")
         paused_at = Time.local(2010, 1, 1, 3, 29, 0)
         Timecop.freeze(paused_at) do
           @cli.resume("some task")
@@ -344,7 +436,7 @@ describe TimeTracker::Cli do
         project = Factory(:project, :name => "some project")
         TimeTracker.config.update("current_project_id", project.id.to_s)
         task1 = Factory(:task, :project => project, :name => "some task", :state => "stopped")
-        task2 = Factory(:task, :project => project, :name => "another task", :created_at => Time.local(2010, 1, 1, 0, 0, 0))
+        task2 = Factory(:task, :project => project, :name => "another task", :created_at => Time.local(2010, 1, 1, 0, 0, 0), :state => "running")
         paused_at = Time.local(2010, 1, 1, 3, 29, 0)
         Timecop.freeze(paused_at) do
           @cli.resume("some task")
@@ -387,7 +479,7 @@ describe TimeTracker::Cli do
       it "bails if the given task can be found, but it's already running" do
         project = Factory(:project, :name => "some project")
         TimeTracker.config.update("current_project_id", project.id.to_s)
-        task1 = Factory(:task, :project => project, :name => "some task", :number => "1")
+        task1 = Factory(:task, :project => project, :name => "some task", :number => "1", :state => "running")
         expect { @cli.resume("1") }.to raise_error("Aren't you working on that task already?")
       end
       it "auto-switches to another project if given paused task is present there" do
@@ -412,7 +504,7 @@ describe TimeTracker::Cli do
         project1 = Factory(:project, :name => "some project")
         task1 = Factory(:task, :project => project1, :name => "some task", :number => "1", :state => "paused")
         project2 = Factory(:project, :name => "another project")
-        task2 = Factory(:task, :project => project2, :name => "another task", :created_at => Time.local(2010, 1, 1, 0, 0, 0))
+        task2 = Factory(:task, :project => project2, :name => "another task", :created_at => Time.local(2010, 1, 1, 0, 0, 0), :state => "running")
         TimeTracker.config.update("current_project_id", project2.id.to_s)
         stopped_at = Time.local(2010, 1, 1, 3, 29, 0)
         Timecop.freeze(stopped_at) do
@@ -426,7 +518,7 @@ describe TimeTracker::Cli do
         project1 = Factory(:project, :name => "some project")
         task1 = Factory(:task, :project => project1, :name => "some task", :number => "1", :state => "stopped")
         project2 = Factory(:project, :name => "another project")
-        task2 = Factory(:task, :project => project2, :name => "another task", :created_at => Time.local(2010, 1, 1, 0, 0, 0))
+        task2 = Factory(:task, :project => project2, :name => "another task", :created_at => Time.local(2010, 1, 1, 0, 0, 0), :state => "running")
         TimeTracker.config.update("current_project_id", project2.id.to_s)
         stopped_at = Time.local(2010, 1, 1, 3, 29, 0)
         Timecop.freeze(stopped_at) do
@@ -440,7 +532,7 @@ describe TimeTracker::Cli do
         project = Factory(:project, :name => "some project")
         TimeTracker.config.update("current_project_id", project.id.to_s)
         task1 = Factory(:task, :project => project, :name => "some task", :number => "1", :state => "paused")
-        task2 = Factory(:task, :project => project, :name => "another task", :number => "2", :created_at => Time.local(2010, 1, 1, 0, 0, 0))
+        task2 = Factory(:task, :project => project, :name => "another task", :number => "2", :created_at => Time.local(2010, 1, 1, 0, 0, 0), :state => "running")
         stopped_at = Time.local(2010, 1, 1, 3, 29, 0)
         Timecop.freeze(stopped_at) do
           @cli.resume("1")
@@ -453,7 +545,7 @@ describe TimeTracker::Cli do
         project = Factory(:project, :name => "some project")
         TimeTracker.config.update("current_project_id", project.id.to_s)
         task1 = Factory(:task, :project => project, :name => "some task", :number => "1", :state => "stopped")
-        task2 = Factory(:task, :project => project, :name => "another task", :number => "2", :created_at => Time.local(2010, 1, 1, 0, 0, 0))
+        task2 = Factory(:task, :project => project, :name => "another task", :number => "2", :created_at => Time.local(2010, 1, 1, 0, 0, 0), :state => "running")
         stopped_at = Time.local(2010, 1, 1, 3, 29, 0)
         Timecop.freeze(stopped_at) do
           @cli.resume("1")
@@ -568,6 +660,35 @@ describe TimeTracker::Cli do
           "    Today, 10:10am -     Today,  3:15pm [#1] some project / some task",
           "Yesterday,  5:05am -     Today, 10:10am [#2] another project / another task",
           " 1/1/2010, 12:00am - Yesterday,  5:05am [#1] some project / some task",
+          ""
+        ])
+      end
+      it "does not include tasks that have merely been created" do
+        Timecop.freeze Time.zone.local(2010, 1, 1)
+        project1 = Factory(:project, :name => "some project")
+        task1 = Factory(:task,
+          :number => "1",
+          :project => project1,
+          :name => "some task",
+          :state => "stopped"
+        )
+        period1 = Factory(:time_period,
+          :task => task1,
+          :started_at => Time.zone.local(2010, 1, 1, 0, 0),
+          :ended_at   => Time.zone.local(2010, 1, 1, 5, 5)
+        )
+        task2 = Factory(:task,
+          :number => "1",
+          :project => project1,
+          :name => "another task",
+          :state => "created"
+        )
+        @cli.list(*@args)
+        stdout.lines.must smart_match([
+          "",
+          "Latest tasks:",
+          "",
+          "12:00am - 5:05am [#1] some project / some task",
           ""
         ])
       end
@@ -734,6 +855,36 @@ describe TimeTracker::Cli do
           "",
           "1/1/2010:",
           "   12:00am  - (11:59pm) [#1] some project / some task",
+          ""
+        ])
+      end
+      it "does not include tasks which have merely been created" do
+        Timecop.freeze Time.zone.local(2010, 1, 1)
+        project1 = Factory(:project, :name => "some project")
+        task1 = Factory(:task,
+          :number => "1",
+          :project => project1,
+          :name => "some task",
+          :state => "stopped"
+        )
+        period1 = Factory(:time_period,
+          :task => task1,
+          :started_at => Time.zone.local(2010, 1, 1, 0, 0),
+          :ended_at   => Time.zone.local(2010, 1, 1, 5, 5)
+        )
+        task2 = Factory(:task,
+          :number => "1",
+          :project => project1,
+          :name => "another task",
+          :state => "created"
+        )
+        @cli.list("all")
+        stdout.lines.must smart_match([
+          "",
+          "All tasks:",
+          "",
+          "Today:",
+          "  12:00am - 5:05am [#1] some project / some task",
           ""
         ])
       end

@@ -11,4 +11,9 @@ end
 # Fortunately in Ruby, even if you mix a module into another one, you can reopen it
 # later and add more methods, and they'll get mixed in, too. So this works.
 #
-Spec::Runner.configuration.include(IntegrationExampleMethods, :type => :integration)
+Spec::Runner.configure do |c|
+  c.include(IntegrationExampleMethods, :type => :integration)
+  # If we don't do this and try to run a full spec suite,
+  # we get a "too many open files" error after a while
+  c.after(:each) { cleanup_open_io }
+end

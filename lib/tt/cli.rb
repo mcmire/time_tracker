@@ -1,6 +1,30 @@
+require 'thor'
+
 module TimeTracker
   class Cli < Thor
     class Error < StandardError; end
+    class Abort < StandardError; end
+    
+    WRONG_ANSWERS = [
+      %{What's that, now?},
+      %{Say that again?},
+      %{I'm sorry, I don't understand you.},
+      %{It's a "yes or no" question.},
+      %{Seriously?},
+      %{Oh, I get it, it's a game.},
+      %{Well two can play at this one.},
+      %{What's the capital of Nebraska?},
+      %{Bzzt! Wrong! It's lakflskjaf.},
+      %{I mean, everyone knows that.},
+      %{Hey, I've an idea. Don't say "yes" or "no".},
+      %{Ah ah! Simon didn't say.},
+      %{Right then, something else...},
+      %{Shh. I'm still thinking.},
+      %{..},
+      %{......},
+      %{Okay, I've got it. There once was a man from France...},
+      %{Oh, you've heard this one. Well I give up then!}
+    ]
     
     # Is this needed anymore?
     namespace :default
@@ -129,12 +153,21 @@ module TimeTracker
     end
     
     no_tasks do
-      def handle_error(e)
-        if $RUNNING_TESTS == :units
-          raise(e)
+      def handle_custom_task_error(exception)
+        case exception
+        when Abort
+          # All we're trying to do here is exit the command method,
+          # not necessarily the whole program
+          return
+        when Error        
+          if $RUNNING_TESTS == :units
+            raise(exception)
+          else
+            stderr.puts(exception.message)
+            exit 1 unless self.class.within_repl?
+          end
         else
-          stderr.puts(e.message)
-          exit 1 unless self.class.within_repl?
+          raise(exception)
         end
       end
       
@@ -147,6 +180,54 @@ module TimeTracker
           raise ArgumentError
         end
       end
+      
+      def print_wrong_answer
+        answer = WRONG_ANSWERS[@wrong_answer_index]
+        stderr.print(answer + " ")
+        raise Abort if @wrong_answer_index == WRONG_ANSWERS.size - 1
+      ensure
+        @wrong_answer_index += 1
+      end
+      
+      def keep_prompting(msg)
+        msg += " " unless msg =~ /[ ]$/
+        @wrong_answer_index = 0
+        if $RUNNING_TESTS == :integration && Ribeye.debug?
+          $orig_stdout.puts "Writing to stdout in child..."
+        end
+        stdout.print(msg)
+        stdout.flush
+        loop do
+          if $RUNNING_TESTS == :integration && Ribeye.debug?
+            $orig_stdout.puts "Reading stdin in child..."
+          end
+          answer = stdin.gets.to_s.strip
+          if $RUNNING_TESTS == :integration && Ribeye.debug?
+            $orig_stdout.puts "Answer: #{answer.inspect}"
+          end
+          yield(answer) && break
+        end
+      end
+    end
+    
+    desc "add {task|project} NAME", "Adds a task or a project."
+    def add(what, name=nil)
+      raise Error, "Right, but what do you want to call the new task?" unless name
+      curr_proj = TimeTracker::Project.find(TimeTracker.config["current_project_id"])
+      raise Error, "Try switching to a project first." unless curr_proj
+      if existing_task = curr_proj.tasks.find_by_name(name)
+        if existing_task.created?
+          raise Error, "It looks like you've already added that task. Perhaps you'd like to upvote it instead?"
+        elsif existing_task.paused?
+          raise Error, "Aren't you still working on that task?"
+        elsif existing_task.running?
+          raise Error, "Aren't you already working on that task?"
+        end
+      end
+      task = curr_proj.tasks.create!(:name => name)
+      stdout.puts %{Task "#{task.name}" created.}
+    rescue Exception => e
+      handle_custom_task_error(e)
     end
     
     desc "switch PROJECT", "Switches to a certain project. The project is created if it does not already exist."
@@ -164,30 +245,45 @@ module TimeTracker
         paused_task.resume!
         stdout.puts %{(Resuming clock for "#{paused_task.name}".)}
       end
-    rescue Error => e
-      handle_error(e)
     rescue Exception => e
-      raise(e)
+      handle_custom_task_error(e)
     end
     
     desc "start TASK", "Creates a new task, and starts the clock for it."
     def start(task_name=nil)
-      raise Error, "Right, but what's the name of your task?" unless task_name
+      raise Error, "Right, but which task do you want to start?" unless task_name
       curr_proj = TimeTracker::Project.find(TimeTracker.config["current_project_id"])
       raise Error, "Try switching to a project first." unless curr_proj
-      task = curr_proj.tasks.first(:name => task_name)
-      raise Error, "Aren't you already working on that task?" if task && task.running?
-      task ||= curr_proj.tasks.build(:name => task_name)
+      if task = curr_proj.tasks.not_stopped.first(:name => task_name)
+        if task.paused?
+          raise Error, "Aren't you still working on that task?"
+        elsif task.running?
+          raise Error, "Aren't you already working on that task?"
+        end
+      end
+      unless task
+        keep_prompting "I can't find this task. Did you want to create it? (y/n)" do |answer|
+          case answer
+          when /^y(es)?$/i
+            task = curr_proj.tasks.build(:name => task_name)
+            true
+          when /^n(o)?$/i
+            stdout.puts %{Okay, never mind then.}
+            raise Abort
+          else
+            print_wrong_answer
+            false
+          end
+        end
+      end
       if running_task = curr_proj.tasks.last_running
         running_task.pause!
         stdout.puts %{(Pausing clock for "#{running_task.name}", at #{running_task.total_running_time}.)}
       end
-      task.save!
+      task.start!
       stdout.puts %{Started clock for "#{task.name}".}
-    rescue Error => e
-      handle_error(e)
     rescue Exception => e
-      raise(e)
+      handle_custom_task_error(e)
     end
     
     desc "stop [TASK]", "Stops the clock for a task, or the last task if no task given"
@@ -213,10 +309,8 @@ module TimeTracker
         paused_task.resume!
         stdout.puts %{(Resuming clock for "#{paused_task.name}".)}
       end
-    rescue Error => e
-      handle_error(e)
     rescue Exception => e
-      raise(e)
+      handle_custom_task_error(e)
     end
     
     desc "resume [TASK]", "Resumes the clock for a task, or the last task if no task given"
@@ -265,10 +359,8 @@ module TimeTracker
       end
       task.resume!
       stdout.puts %{Resumed clock for "#{task.name}".}
-    rescue Error => e
-      handle_error(e)
     rescue Exception => e
-      raise(e)
+      handle_custom_task_error(e)
     end
 
     LIST_SUBCOMMANDS = ["lastfew", "completed", "all", "today", "this week"]
@@ -387,10 +479,8 @@ module TimeTracker
         end
       end
       stdout.print "\n"
-    rescue Error => e
-      handle_error(e)
     rescue Exception => e
-      raise(e)
+      handle_custom_task_error(e)
     end
     
     desc "search QUERY...", "Search for a task by name"
@@ -406,10 +496,8 @@ module TimeTracker
       for line in lines
         stdout.puts(line)
       end
-    rescue Error => e
-      handle_error(e)
     rescue Exception => e
-      raise(e)
+      handle_custom_task_error(e)
     end
     
     desc "clear", "Clears everything"

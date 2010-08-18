@@ -1,3 +1,5 @@
+require 'term/ansicolor'
+
 Color = Term::ANSIColor
 
 class String

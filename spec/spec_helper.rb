@@ -1,9 +1,9 @@
-require 'spork'
+#require 'spork'
 
 lib_dir = File.expand_path(File.dirname(__FILE__) + '/../lib')
 $:.unshift(lib_dir)
 
-Spork.prefork do
+#Spork.prefork do
   require 'pp'
 
   begin
@@ -55,9 +55,9 @@ Spork.prefork do
 
 #Spork.each_run do
   
-end
+#end
 
-Spork.each_run do
+#Spork.each_run do
   require 'tt'
   
   require 'factory_girl'
@@ -65,4 +65,4 @@ Spork.each_run do
   Spec::Runner.configuration.before(:each) do
     TimeTracker.reload_config
   end
-end
+#end

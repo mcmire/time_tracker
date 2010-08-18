@@ -1,14 +1,31 @@
-* Adjust list command so we handle time periods that cross days again
-* Make integration tests and cli_spec tests the same for the list command
+* Make an 'add task' command
+  * Default state for a task is now 'created' (or 'pending')
+  * Make it possible to add a task with the same name as a pre-existing
+    task, only if said task is stopped
+* Starting a non-existing task auto-creates it, but prompt first
+* Don't allow a stopped or paused task to be started
+* All task listings should not include 'created' tasks
+
+* How do we handle {stop|resume} "some task" ? Maybe only look
+  for tasks corresponding to the action you want to take... e.g. if
+  I start a named task, only look within tasks that aren't running
+  yet, or else bail with helpful text; if I stop a named task, only
+  look within tasks that are running
+
+* Make an 'add project' command
+  * Switching to a non-existent project auto-creates it, but prompt first
 
 * Up-vote a task (add a mention)
-* Make an 'add' task that searches before adding a new one and suggests pre-existing tasks to up-vote instead
-* Don't auto-create a task before starting it since creating it would upload it to Pivotal
-* Integrate with Pivotal
-  * Is there already a command-line version of Pivotal we can borrow code from?
+* Modify add task (and auto-adding before starting) to search before
+  adding a new one, and suggest pre-existing tasks to up-vote instead
 * Tagging
+  * Might need to tweak listings again
+* Integrate with Pivotal
+  * Is there already a command-line version of Pivotal we can borrow
+    code from?
 
+* Don't use Thor anymore, I think we can just hand-roll our own dispatcher
 * Add ability to pause a task manually?
-* color
-* pipe listing to less?
-* list today's task by ended_at asc?
+* Add colors to listings
+* Pipe listings to less?
+* List today's tasks by ended_at asc too?

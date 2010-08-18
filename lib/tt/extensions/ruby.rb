@@ -96,6 +96,48 @@ class String
   end
 end
 
+class StringIO
+  # Writes to io without affecting byte position.
+  def sneak(msg)
+    seek(-write(msg), IO::SEEK_END)
+  end
+end
+
+#class IO
+#  # This is an alternative for #read and is most helpful in the case
+#  # where we've used IO.pipe to split stdout and stdin into two sets
+#  # of reader/writer streams, and we've forked a child process such that:
+#  #
+#  # - the reader side of stdout is open in the parent process
+#  # - the writer side of stdout is open in the child process
+#  # - the writer side of stdin is open in the parent process
+#  # - the reader side of stdin is open in the child process.
+#  #
+#  # In this setup, imagine that in the parent process we want to 
+#  # verify that the child process has just written something to stdout.
+#  # We could use stdout.read in the parent, but the problem is that
+#  # we don't know *when exactly* the child will write to stdout.
+#  # If we read stdout first (which may very well happen in a fork or
+#  # thread type of situation), that read is going to hang forever,
+#  # since it's waiting for an EOF marker (which will never happen with
+#  # a stream, as opposed to a filehandle).
+#  #
+#  # Now, if we make the assumption that it will take a very short
+#  # amount of time for stdout to be written to, it's a lot easier to
+#  # just issue a non-blocking read, sleep for a bit, and keep doing
+#  # that until we have some input. So that's what we do.
+#  #
+#  def read_stream(bytes=1024)
+#    str = ""
+#    time = Time.now
+#    begin
+#      sleep 0.3
+#      str << read_nonblock(bytes)
+#    end while str.empty? && (Time.now - time) < 2
+#    str
+#  end
+#end
+
 Date::DATE_FORMATS[:relative_date] = lambda do |date|
   case date - Date.today
     when  0 then 'Today'

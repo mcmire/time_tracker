@@ -12,14 +12,18 @@ feature "Listing tasks" do
       Timecop.freeze Time.zone.local(2010, 1, 1, 0, 0)
       tt 'switch "some project"'
       tt 'start "some task"'
+      stdin << "y\n"
       Timecop.freeze Time.zone.local(2010, 1, 2, 5, 5)
       tt 'switch "another project"'
       tt 'start "another task"'
+      stdin << "y\n"
       Timecop.freeze Time.zone.local(2010, 1, 3, 10, 10)
       tt 'resume 1'
       Timecop.freeze Time.zone.local(2010, 1, 3, 15, 15)
       tt 'stop'
       tt 'start "yet another task"'
+      stdin << "y\n"
+      tt 'add task "even yet another task"'
       tt 'list lastfew'
     end
     output.lines.must smart_match([
@@ -38,14 +42,18 @@ feature "Listing tasks" do
       Timecop.freeze Time.zone.local(2010, 1, 1, 0, 0)
       tt 'switch "some project"'
       tt 'start "some task"'
+      stdin << "y\n"
       Timecop.freeze Time.zone.local(2010, 1, 2, 5, 5)
       tt 'switch "another project"'
       tt 'start "another task"'
+      stdin << "y\n"
       Timecop.freeze Time.zone.local(2010, 1, 3, 10, 10)
       tt 'resume 1'
       Timecop.freeze Time.zone.local(2010, 1, 3, 15, 15)
       tt 'stop'
       tt 'start "yet another task"'
+      stdin << "y\n"
+      tt 'add task "even yet another task"'
       tt 'list'
     end
     output.lines.must smart_match([
@@ -73,14 +81,17 @@ feature "Listing tasks" do
       Timecop.freeze Time.zone.local(2010, 1, 1, 0, 0)
       tt 'switch "some project"'
       tt 'start "some task"'
+      stdin << "y\n"
       Timecop.freeze Time.zone.local(2010, 1, 2, 5, 5)
       tt 'stop'
       tt 'switch "another project"'
       tt 'start "another task"'
+      stdin << "y\n"
       Timecop.freeze Time.zone.local(2010, 1, 3, 10, 10)
       tt 'stop'
       Timecop.freeze Time.zone.local(2010, 1, 3, 15, 15)
       tt 'start "yet another task"'
+      stdin << "y\n"
       tt 'list completed'
     end
     output.lines.must smart_match([
@@ -111,20 +122,26 @@ feature "Listing tasks" do
       Timecop.freeze Time.zone.local(2010, 1, 1, 0, 0)
       tt 'switch "some project"'
       tt 'start "some task"'
+      stdin << "y\n"
       Timecop.freeze Time.zone.local(2010, 1, 2, 5, 5)
       tt 'switch "another project"'
       tt 'start "another task"'
+      stdin << "y\n"
       Timecop.freeze Time.zone.local(2010, 1, 3, 10, 10)
       tt 'resume 1'
       Timecop.freeze Time.zone.local(2010, 1, 3, 15, 15)
       tt 'stop'
       tt 'start "yet another task"'
+      stdin << "y\n"
       Timecop.freeze Time.zone.local(2010, 1, 4, 20, 20)
       tt 'start "even yet another task"'
+      stdin << "y\n"
       Timecop.freeze Time.zone.local(2010, 1, 5, 1, 1)
       tt 'switch "another project"'
       Timecop.freeze Time.zone.local(2010, 1, 5, 6, 6)
       tt 'start "still yet another task"'
+      stdin << "y\n"
+      tt 'add task "even still yet another task"'
       tt 'list all'
     end
     output.lines.must smart_match([
@@ -166,13 +183,16 @@ feature "Listing tasks" do
       tt 'switch "some project"'
       Timecop.freeze Time.zone.local(2010, 1, 1, 0, 0)
       tt 'start "some task"'
+      stdin << "y\n"
       Timecop.freeze Time.zone.local(2010, 1, 1, 5, 5)
       tt 'start "another task"'
+      stdin << "y\n"
       Timecop.freeze Time.zone.local(2010, 1, 2, 3, 3)
       tt 'stop'
       Timecop.freeze Time.zone.local(2010, 1, 2, 8, 8)
       tt 'switch "another project"'
       tt 'start "yet another task"'
+      stdin << "y\n"
       Timecop.freeze Time.zone.local(2010, 1, 2, 13, 13)
       tt 'resume 1'
       Timecop.freeze Time.zone.local(2010, 1, 2, 18, 18)
@@ -202,15 +222,19 @@ feature "Listing tasks" do
       tt 'switch "some project"'
       Timecop.freeze Time.zone.local(2010, 8, 1, 0, 0)
       tt 'start "some task"'
+      stdin << "y\n"
       Timecop.freeze Time.zone.local(2010, 8, 2, 5, 5)
       tt 'stop'
       tt 'start "another task"'
+      stdin << "y\n"
       Timecop.freeze Time.zone.local(2010, 8, 3, 15, 15)
       tt 'stop'
       tt 'switch "another project"'
       tt 'start "yet another task"'
+      stdin << "y\n"
       Timecop.freeze Time.zone.local(2010, 8, 5, 3, 3)
       tt 'start "even yet another task"'
+      stdin << "y\n"
       tt 'list this week'
     end
     output.lines.must smart_match([

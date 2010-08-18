@@ -6,7 +6,7 @@ gem "term-ansicolor", :require => "term/ansicolor"
 
 group :test do
   gem "rake"
-  gem "spork"
+  #gem "spork"
   gem "rspec"#, ">= 2.0.0.beta.19"
   gem "rr"
   #gem "ribeye", :git => "git://github.com/mcmire/ribeye", :branch => "web_and_cli"

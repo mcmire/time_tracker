@@ -17,13 +17,16 @@ feature "Managing projects" do
     Timecop.freeze Time.zone.local(2010, 1, 1, 5, 0, 0)
     tt 'switch "moving to a new apartment"'
     tt 'start "pack up the foosball table"'
+    stdin << "y\n"
     tt 'stop'
     Timecop.freeze Time.zone.local(2010, 1, 3, 15, 0, 0)
     tt 'start "take out the foo bar"'
+    stdin << "y\n"
     tt 'stop'
     Timecop.freeze Time.zone.local(2010, 1, 7, 21, 0, 0)
     tt 'switch "outside stuff"'
     tt 'start "mow the lawn"'
+    stdin << "y\n"
     tt 'stop'
     tt 'switch "moving to a new apartment"'
     tt 'resume "take out the foo bar"'
@@ -39,13 +42,16 @@ feature "Managing projects" do
     Timecop.freeze Time.zone.local(2010, 1, 1, 5, 0, 0)
     tt 'switch "moving to a new apartment"'
     tt 'start "pack up the foosball table"'
+    stdin << "y\n"
     tt 'stop'
     Timecop.freeze Time.zone.local(2010, 1, 3, 15, 0, 0)
     tt 'start "take out the foo bar"'
+    stdin << "y\n"
     tt 'stop'
     Timecop.freeze Time.zone.local(2010, 1, 7, 21, 0, 0)
     tt 'switch "outside stuff"'
     tt 'start "mow the lawn"'
+    stdin << "y\n"
     tt 'stop'
     tt 'switch "moving to a new apartment"'
     tt 'resume "take out the foo bar"'

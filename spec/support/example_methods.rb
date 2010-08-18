@@ -1,4 +1,5 @@
-# Add a way to assert that an array is equal to another array, recursively. For instance:
+#
+# Assert that an array is equal to another array, recursively. For instance:
 #
 #   zing = ["zang", "hullabaloo"]
 #   zing == ["zang", /hulla/] #=> false
@@ -25,6 +26,40 @@ Spec::Matchers.define :smart_match do |expected|
   end
   description do
     "should smart match #{expected.inspect}"
+  end
+end
+
+# Assert that a string starts with a certain substring.
+#
+Spec::Matchers.define :start_with do |expected|
+  match do |actual|
+    actual =~ Regexp.new("^" + Regexp.escape(expected))
+  end
+  failure_message_for_should do |actual|
+    "expected <#{actual.inspect}> to start with <#{expected.inspect}>, but didn't"
+  end
+  failure_message_for_should_not do
+    "expected <#{actual.inspect}> to not start with <#{expected.inspect}>, but it did"
+  end
+  description do
+    "should start with #{expected.inspect}"
+  end
+end
+
+# Assert that a string starts with a certain substring.
+#
+Spec::Matchers.define :end_with do |expected|
+  match do |actual|
+    actual =~ Regexp.new(Regexp.escape(expected) + "$")
+  end
+  failure_message_for_should do |actual|
+    "expected <#{actual.inspect}> to end with <#{expected.inspect}>, but didn't"
+  end
+  failure_message_for_should_not do
+    "expected <#{actual.inspect}> to not end with <#{expected.inspect}>, but it did"
+  end
+  description do
+    "should end with #{expected.inspect}"
   end
 end
 
