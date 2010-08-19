@@ -302,7 +302,7 @@ module TimeTracker
           raise Error, "I don't think that task exists."
         end
       else
-        matching_tasks = curr_proj.tasks.where(:name => task_name).reverse.to_a
+        matching_tasks = curr_proj.tasks.where(:name => task_name).sort(:created_at.desc).to_a
         if matching_tasks.any?
           unless task = matching_tasks.find(&:running?)
             task = matching_tasks.first

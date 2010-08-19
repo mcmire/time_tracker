@@ -1,9 +1,3 @@
-* Resuming a task and finding matching tasks in other projects -
-  ensure that we exclude created tasks
-* Since MongoDB's natural sort order is not often desirable, are there
-  other cases in which we aren't ordering by something explicit?
-  Or is there a way to hack MM to sort by created_at by default?
-
 * Make an 'add project' command
   * Switching to a non-existent project auto-creates it, but prompt first
 
@@ -15,7 +9,6 @@
 * Integrate with Pivotal
   * Is there already a command-line version of Pivotal we can borrow
     code from?
-
 * Comments on tasks
 * 'show' command (list everything about a task - tags, comments, etc.)
 
@@ -23,5 +16,9 @@
   * or try out Optitron...
 * Add ability to pause a task manually?
 * Add colors to listings
+
+* Since MongoDB's natural sort order is not often desirable, are there
+  other cases in which we aren't ordering by something explicit?
+  Or is there a way to hack MM to sort by created_at by default?
 * Pipe listings to less?
 * List today's tasks by ended_at asc too?
