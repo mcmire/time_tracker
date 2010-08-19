@@ -1,16 +1,17 @@
-* Make an 'add task' command
-  * Default state for a task is now 'created' (or 'pending')
-  * Make it possible to add a task with the same name as a pre-existing
-    task, only if said task is stopped
-* Starting a non-existing task auto-creates it, but prompt first
-* Don't allow a stopped or paused task to be started
-* All task listings should not include 'created' tasks
+* What happens if we stop by name a running instance of another (stopped) task?
+* What happens if we stop by name a task that's paused? created?
+* What happens if we stop by number a task that's paused? created?
+* What happens if we resume by name a stopped instance of another (stopped) task?
+* What happens if we resume by name a task that's created?
+* What happens if we resume by number a task that's created?
 
-* How do we handle {stop|resume} "some task" ? Maybe only look
-  for tasks corresponding to the action you want to take... e.g. if
-  I start a named task, only look within tasks that aren't running
-  yet, or else bail with helpful text; if I stop a named task, only
-  look within tasks that are running
+* Ensure task_spec is up to date as far as events go
+* Test that last_started_at is set on resume
+* Resuming a task and finding matching tasks in other projects -
+  ensure that we exclude created tasks
+* Since MongoDB's natural sort order is not often desirable, are there
+  other cases in which we aren't ordering by something explicit?
+  Or is there a way to hack MM to sort by created_at by default?
 
 * Make an 'add project' command
   * Switching to a non-existent project auto-creates it, but prompt first
@@ -24,7 +25,11 @@
   * Is there already a command-line version of Pivotal we can borrow
     code from?
 
+* Comments on tasks
+* 'show' command (list everything about a task - tags, comments, etc.)
+
 * Don't use Thor anymore, I think we can just hand-roll our own dispatcher
+  * or try out Optitron...
 * Add ability to pause a task manually?
 * Add colors to listings
 * Pipe listings to less?

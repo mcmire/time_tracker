@@ -295,16 +295,31 @@ module TimeTracker
         task = curr_proj.tasks.last_running
         raise Error, "It doesn't look like you're working on anything at the moment." unless task
       elsif task_name =~ /^\d+$/
-        task = curr_proj.tasks.first(:number => task_name.to_i)
-        raise Error, "I don't think that task exists." unless task
-        raise Error, "I think you've stopped that task already." if task.stopped?
+        if task = curr_proj.tasks.first(:number => task_name.to_i)
+          raise Error, "I think you've stopped that task already." if task.stopped?
+          raise Error, "You can't stop a task without starting it first!" if task.created?
+        else
+          raise Error, "I don't think that task exists."
+        end
       else
-        task = curr_proj.tasks.first(:name => task_name)
-        raise Error, "I don't think that task exists." unless task
-        raise Error, "I think you've stopped that task already." if task.stopped?
+        matching_tasks = curr_proj.tasks.where(:name => task_name).reverse.to_a
+        if matching_tasks.any?
+          unless task = matching_tasks.find(&:running?)
+            task = matching_tasks.first
+            raise Error, "I think you've stopped that task already." if task.stopped?
+            raise Error, "You can't stop a task without starting it first!" if task.created?
+          end
+        else
+          raise Error, "I don't think that task exists."
+        end
       end
+      was_paused = task.paused?
       task.stop!
-      stdout.puts %{Stopped clock for "#{task.name}", at #{task.total_running_time}.}
+      if was_paused
+        stdout.puts %{Stopped clock for "#{task.name}".}
+      else
+        stdout.puts %{Stopped clock for "#{task.name}", at #{task.total_running_time}.}
+      end
       if paused_task = curr_proj.tasks.last_paused
         paused_task.resume!
         stdout.puts %{(Resuming clock for "#{paused_task.name}".)}
@@ -321,7 +336,9 @@ module TimeTracker
       raise Error, "It doesn't look like you've started any tasks yet." unless TimeTracker::Task.exists?
       already_paused = false
       if task_name =~ /^\d+$/
-        if task = TimeTracker::Task.first(:number => task_name.to_i)        
+        if task = TimeTracker::Task.first(:number => task_name.to_i)
+          raise Error, "Aren't you working on that task already?" if task.running?
+          raise Error, "You can't resume a task that you haven't started yet!" if task.created?
           if task.project_id != curr_proj.id
             if running_task = curr_proj.tasks.last_running
               running_task.pause!
@@ -332,13 +349,18 @@ module TimeTracker
             TimeTracker.config.update("current_project_id", curr_proj.id.to_s)
             stdout.puts %{(Switching to project "#{curr_proj.name}".)}
           end
-          raise Error, "Aren't you working on that task already?" if task.running?
         else
           raise Error, "I don't think that task exists."
         end
       else
-        task = curr_proj.tasks.first(:name => task_name)
-        unless task
+        matching_tasks = curr_proj.tasks.where(:name => task_name).sort(:created_at.desc).to_a
+        if matching_tasks.any?
+          unless task = matching_tasks.find {|task| task.stopped? || task.paused? }
+            task = matching_tasks.first
+            raise Error, "Aren't you working on that task already?" if task.running?
+            raise Error, "You can't resume a task that you haven't started yet!" if task.created?
+          end
+        else
           tasks = TimeTracker::Task.not_running.where(:name => task_name, :project_id.ne => curr_proj.id)
           if tasks.any?
             # Might be better to do this w/ native Ruby driver
@@ -351,7 +373,6 @@ module TimeTracker
             raise Error, "I don't think that task exists." 
           end
         end
-        raise Error, "Aren't you working on that task already?" if task.running?
       end
       if running_task = curr_proj.tasks.last_running and !already_paused
         running_task.pause!

@@ -41,9 +41,11 @@ module TimeTracker
       end
       event :stop do
         sets_state :stopped
-        transitions_from :running
+        transitions_from :running, :paused
         runs_callback :after_save do |task|
-          task.time_periods.create!(:started_at => task.last_started_at, :ended_at => Time.zone.now)
+          unless task.state_was == "paused"
+            task.time_periods.create!(:started_at => task.last_started_at, :ended_at => Time.zone.now)
+          end
         end
       end
       event :pause do
