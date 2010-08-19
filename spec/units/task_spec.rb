@@ -169,6 +169,22 @@ describe TimeTracker::Task do
     end
   end
   
+  describe '#start!' do
+    it "sets last_started_at to the current time" do
+      time = Time.zone.local(2010)
+      Timecop.freeze(time)
+      task = Factory.build(:task, :state => "created")
+      task.start!
+      task.last_started_at.must == time
+    end
+    it "sets the state to running and saves" do
+      task = Factory.build(:task, :state => "created")
+      task.start!
+      task.state.must == "running"
+      task.must_not be_a_new_record
+    end
+  end
+  
   describe '#stop!' do
     it "creates a new time period" do
       started_at = Time.local(2010, 1, 1, 0, 0, 0)
@@ -182,6 +198,11 @@ describe TimeTracker::Task do
       time_period = task.time_periods.first
       time_period.started_at.must == started_at
       time_period.ended_at.must == ended_at
+    end
+    it "doesn't create a new time period if task was previously paused" do
+      task = Factory(:task, :state => "paused")
+      task.stop!
+      task.time_periods.must be_empty
     end
     it "sets the state to stopped and saves" do
       task = Factory.build(:task, :state => "running")
@@ -214,14 +235,18 @@ describe TimeTracker::Task do
   end
   
   describe '#resume!' do
-    it "marks the task as running, sets last_started_at, and saves" do
+    it "sets last_started_at" do
       task = Factory.build(:task, :state => "paused")
       resumed_at = Time.zone.local(2010)
       Timecop.freeze(resumed_at) do
         task.resume!
       end
-      task.state.must == "running"
       task.last_started_at.must == resumed_at
+    end
+    it "marks the task as running, sets last_started_at, and saves" do
+      task = Factory.build(:task, :state => "paused")
+      task.resume!
+      task.state.must == "running"
       task.must_not be_new
     end
   end

@@ -1,5 +1,3 @@
-* Ensure task_spec is up to date as far as events go
-* Test that last_started_at is set on resume
 * Resuming a task and finding matching tasks in other projects -
   ensure that we exclude created tasks
 * Since MongoDB's natural sort order is not often desirable, are there
