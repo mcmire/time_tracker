@@ -38,14 +38,14 @@ feature "Resuming tasks" do
   end
   scenario "Resuming a paused task by name that may exist in other projects but not here" do
     tt 'switch "some project"'
-    tt 'start "some task"'
+    tt 'add task "some task"'
     stdin << "y\n"
     tt 'switch "another project"'
     tt 'start "some task"'
     stdin << "y\n"
     tt 'switch "a different project"'
     tt 'resume "some task"'
-    output.must == %{That task doesn't exist here. Perhaps you meant to switch to "some project" or "another project"?\n}
+    output.must == %{That task doesn't exist here. Perhaps you meant to switch to "another project"?\n}
   end
   scenario "Resuming a task by name that has a previous (stopped) instance" do
     with_manual_time_override do
@@ -85,7 +85,7 @@ feature "Resuming tasks" do
   end
   scenario "Resuming a stopped task by name that may exist in other projects but not here" do
     tt 'switch "some project"'
-    tt 'start "some task"'
+    tt 'add task "some task"'
     stdin << "y\n"
     tt 'stop'
     tt 'switch "another project"'
@@ -94,7 +94,7 @@ feature "Resuming tasks" do
     tt 'stop'
     tt 'switch "a different project"'
     tt 'resume "some task"'
-    output.must == %{That task doesn't exist here. Perhaps you meant to switch to "some project" or "another project"?\n}
+    output.must == %{That task doesn't exist here. Perhaps you meant to switch to "another project"?\n}
   end
   scenario "Resuming a running task by name" do
     tt 'switch "some project"'

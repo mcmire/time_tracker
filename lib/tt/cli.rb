@@ -361,7 +361,7 @@ module TimeTracker
             raise Error, "You can't resume a task that you haven't started yet!" if task.created?
           end
         else
-          tasks = TimeTracker::Task.not_running.where(:name => task_name, :project_id.ne => curr_proj.id)
+          tasks = TimeTracker::Task.where(:state => %w(stopped paused), :name => task_name, :project_id.ne => curr_proj.id)
           if tasks.any?
             # Might be better to do this w/ native Ruby driver
             # See <http://groups.google.com/group/mongomapper/browse_thread/thread/1a5a5b548123e07e/0c65f3e770e04f29>

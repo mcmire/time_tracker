@@ -432,6 +432,15 @@ describe TimeTracker::Cli do
         TimeTracker.config.update("current_project_id", project3.id.to_s)
         expect { @cli.resume("some task") }.to raise_error(%{That task doesn't exist here. Perhaps you meant to switch to "some project" or "another project"?})
       end
+      it "discounts created tasks when searching for other projects for a found paused task" do
+        project1 = Factory(:project, :name => "some project")
+        Factory(:task, :project => project1, :name => "some task", :state => "created")
+        project2 = Factory(:project, :name => "another project")
+        Factory(:task, :project => project2, :name => "some task", :state => "paused")
+        project3 = Factory(:project, :name => "a different project")
+        TimeTracker.config.update("current_project_id", project3.id.to_s)
+        expect { @cli.resume("some task") }.to raise_error(%{That task doesn't exist here. Perhaps you meant to switch to "another project"?})
+      end
       it "bails if a stopped task can be found by that name but it's in other projects" do
         project1 = Factory(:project, :name => "some project")
         Factory(:task, :project => project1, :name => "some task", :state => "stopped")
@@ -440,6 +449,15 @@ describe TimeTracker::Cli do
         project3 = Factory(:project, :name => "a different project")
         TimeTracker.config.update("current_project_id", project3.id.to_s)
         expect { @cli.resume("some task") }.to raise_error(%{That task doesn't exist here. Perhaps you meant to switch to "some project" or "another project"?})
+      end
+      it "discounts created tasks when searching for other projects for a found stopped task" do
+        project1 = Factory(:project, :name => "some project")
+        Factory(:task, :project => project1, :name => "some task", :state => "created")
+        project2 = Factory(:project, :name => "another project")
+        Factory(:task, :project => project2, :name => "some task", :state => "stopped")
+        project3 = Factory(:project, :name => "a different project")
+        TimeTracker.config.update("current_project_id", project3.id.to_s)
+        expect { @cli.resume("some task") }.to raise_error(%{That task doesn't exist here. Perhaps you meant to switch to "another project"?})
       end
       it "bails if the given task is already running" do
         task1 = Factory(:task, :project => @project, :name => "some task", :state => "running")
