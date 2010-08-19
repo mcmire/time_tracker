@@ -2,10 +2,9 @@ require File.expand_path(File.dirname(__FILE__) + '/spec_helper')
 
 feature "Managing projects" do
   story <<-EOT
-    As a programmer,
     I want to be able to search for tasks,
     so that I know whether or not I need to upvote a task I've already created,
-    or whether I need to create a new one
+    or whether I need to create a new one.
   EOT
   
   scenario "Searching for a task without specifying a query" do

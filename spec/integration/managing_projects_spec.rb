@@ -2,7 +2,6 @@ require File.expand_path(File.dirname(__FILE__) + '/spec_helper')
 
 feature "Managing projects" do
   story <<-EOT
-    As a programmer,
     I want to be able to file tasks under projects,
     so that I can keep my life organized.
   EOT

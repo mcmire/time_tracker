@@ -2,9 +2,8 @@ require File.expand_path(File.dirname(__FILE__) + '/spec_helper')
 
 feature "Automatic commands" do
   story <<-EOT
-    As a power user
-    I want the system to take care of executing certain commands automatically
-    Since that's how I'm thinking mentally anyway
+    I want the system to take care of executing certain commands automatically,
+    since that's how I'm thinking mentally anyway.
   EOT
   
   scenario "Switching to another project while a task in this project is still running" do
