@@ -2,12 +2,12 @@ require File.expand_path(File.dirname(__FILE__) + '/spec_helper')
 
 describe TimeTracker::Config do
   before do
-    @coll = MongoMapper.database.collection("time_tracker.config")
+    @coll = MongoMapper.database.collection("config")
   end
   describe '.collection' do
     it "returns the 'config' collection and caches the value" do
       config_klass = Class.new(TimeTracker::Config)
-      mock(MongoMapper.database).collection("time_tracker.config") { :collection }.once
+      mock(MongoMapper.database).collection("config") { :collection }.once
       ret = config_klass.collection
       ret = config_klass.collection
       ret.must == :collection

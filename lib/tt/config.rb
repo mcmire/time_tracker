@@ -10,7 +10,7 @@ module TimeTracker
       end
     
       def find
-        new(collection.find_one() || {})
+        new(collection.find_one || {})
       end
     end
     
