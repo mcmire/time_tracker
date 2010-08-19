@@ -1,6 +1,6 @@
 require File.expand_path(File.dirname(__FILE__) + '/spec_helper')
 
-feature do
+feature "Starting tasks" do
   story <<-EOT
     I want to be able to start a task
     so that I can see how long it takes to finish later.
@@ -18,6 +18,7 @@ feature do
   
   scenario "Starting a task without creating it first and accepting prompt" do
     tt 'switch "some project"'
+    stdin << "y\n"
     tt 'start "some task"'
     stdout.readpartial(1024).must == %{I can't find this task. Did you want to create it? (y/n) }
     stdin << "y\n"
@@ -26,6 +27,7 @@ feature do
   
   scenario "Starting a task without creating it first and denying prompt" do
     tt 'switch "some project"'
+    stdin << "y\n"
     tt 'start "some task"'
     stdout.readpartial(1024).must == %{I can't find this task. Did you want to create it? (y/n) }
     stdin << "n\n"
@@ -34,6 +36,7 @@ feature do
   
   scenario "Starting a task without creating it first and trying to get around prompt" do
     tt 'switch "some project"'
+    stdin << "y\n"
     tt 'start "some task"'
     stdout.readpartial(1024).must == %{I can't find this task. Did you want to create it? (y/n) }
     stdin << "q\n"
@@ -46,6 +49,7 @@ feature do
   
   scenario "Starting a task after creating it" do
     tt 'switch "some project"'
+    stdin << "y\n"
     tt 'add task "some task"'
     tt 'start "some task"'
     output.must == %{Started clock for "some task".\n}
@@ -53,6 +57,7 @@ feature do
   
   scenario "Starting an already started task" do
     tt 'switch "some project"'
+    stdin << "y\n"
     tt 'start "some task"'
     stdin << "y\n"
     tt 'start "some task"'
@@ -61,6 +66,7 @@ feature do
   
   scenario "Starting a paused task" do
     tt 'switch "some project"'
+    stdin << "y\n"
     tt 'start "some task"'
     stdin << "y\n"
     tt 'start "another task"'
@@ -71,6 +77,7 @@ feature do
   
   scenario "Starting a stopped task" do
     tt 'switch "some project"'
+    stdin << "y\n"
     tt 'start "some task"'
     stdin << "y\n"
     tt 'stop'

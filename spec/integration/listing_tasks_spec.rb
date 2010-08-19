@@ -10,10 +10,12 @@ feature "Listing tasks" do
     with_manual_time_override do
       Timecop.freeze Time.zone.local(2010, 1, 1, 0, 0)
       tt 'switch "some project"'
+      stdin << "y\n"
       tt 'start "some task"'
       stdin << "y\n"
       Timecop.freeze Time.zone.local(2010, 1, 2, 5, 5)
       tt 'switch "another project"'
+      stdin << "y\n"
       tt 'start "another task"'
       stdin << "y\n"
       Timecop.freeze Time.zone.local(2010, 1, 3, 10, 10)
@@ -40,10 +42,12 @@ feature "Listing tasks" do
     with_manual_time_override do
       Timecop.freeze Time.zone.local(2010, 1, 1, 0, 0)
       tt 'switch "some project"'
+      stdin << "y\n"
       tt 'start "some task"'
       stdin << "y\n"
       Timecop.freeze Time.zone.local(2010, 1, 2, 5, 5)
       tt 'switch "another project"'
+      stdin << "y\n"
       tt 'start "another task"'
       stdin << "y\n"
       Timecop.freeze Time.zone.local(2010, 1, 3, 10, 10)
@@ -79,11 +83,13 @@ feature "Listing tasks" do
     with_manual_time_override do
       Timecop.freeze Time.zone.local(2010, 1, 1, 0, 0)
       tt 'switch "some project"'
+      stdin << "y\n"
       tt 'start "some task"'
       stdin << "y\n"
       Timecop.freeze Time.zone.local(2010, 1, 2, 5, 5)
       tt 'stop'
       tt 'switch "another project"'
+      stdin << "y\n"
       tt 'start "another task"'
       stdin << "y\n"
       Timecop.freeze Time.zone.local(2010, 1, 3, 10, 10)
@@ -120,10 +126,12 @@ feature "Listing tasks" do
     with_manual_time_override do
       Timecop.freeze Time.zone.local(2010, 1, 1, 0, 0)
       tt 'switch "some project"'
+      stdin << "y\n"
       tt 'start "some task"'
       stdin << "y\n"
       Timecop.freeze Time.zone.local(2010, 1, 2, 5, 5)
       tt 'switch "another project"'
+      stdin << "y\n"
       tt 'start "another task"'
       stdin << "y\n"
       Timecop.freeze Time.zone.local(2010, 1, 3, 10, 10)
@@ -180,6 +188,7 @@ feature "Listing tasks" do
   scenario "Listing today's completed tasks with 'list today'" do
     with_manual_time_override do
       tt 'switch "some project"'
+      stdin << "y\n"
       Timecop.freeze Time.zone.local(2010, 1, 1, 0, 0)
       tt 'start "some task"'
       stdin << "y\n"
@@ -190,6 +199,7 @@ feature "Listing tasks" do
       tt 'stop'
       Timecop.freeze Time.zone.local(2010, 1, 2, 8, 8)
       tt 'switch "another project"'
+      stdin << "y\n"
       tt 'start "yet another task"'
       stdin << "y\n"
       Timecop.freeze Time.zone.local(2010, 1, 2, 13, 13)
@@ -219,6 +229,7 @@ feature "Listing tasks" do
   scenario "Listing this week's completed tasks with 'list this week'" do
     with_manual_time_override do
       tt 'switch "some project"'
+      stdin << "y\n"
       Timecop.freeze Time.zone.local(2010, 8, 1, 0, 0)
       tt 'start "some task"'
       stdin << "y\n"
@@ -229,6 +240,7 @@ feature "Listing tasks" do
       Timecop.freeze Time.zone.local(2010, 8, 3, 15, 15)
       tt 'stop'
       tt 'switch "another project"'
+      stdin << "y\n"
       tt 'start "yet another task"'
       stdin << "y\n"
       Timecop.freeze Time.zone.local(2010, 8, 5, 3, 3)

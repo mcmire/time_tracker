@@ -212,20 +212,31 @@ module TimeTracker
     
     desc "add {task|project} NAME", "Adds a task or a project."
     def add(what, name=nil)
-      raise Error, "Right, but what do you want to call the new task?" unless name
-      curr_proj = TimeTracker::Project.find(TimeTracker.config["current_project_id"])
-      raise Error, "Try switching to a project first." unless curr_proj
-      if existing_task = curr_proj.tasks.find_by_name(name)
-        if existing_task.created?
-          raise Error, "It looks like you've already added that task. Perhaps you'd like to upvote it instead?"
-        elsif existing_task.paused?
-          raise Error, "Aren't you still working on that task?"
-        elsif existing_task.running?
-          raise Error, "Aren't you already working on that task?"
+      case what
+      when "project"
+        raise Error, "Right, but what do you want to call the new project?" unless name
+        if project = TimeTracker::Project.first(:name => name)
+          raise Error, "It looks like this project already exists."
+        else
+          project = TimeTracker::Project.create!(:name => name)
+          stdout.puts %{Project "#{project.name}" created.}
         end
+      when "task"
+        raise Error, "Right, but what do you want to call the new task?" unless name
+        curr_proj = TimeTracker::Project.find(TimeTracker.config["current_project_id"])
+        raise Error, "Try switching to a project first." unless curr_proj
+        if existing_task = curr_proj.tasks.find_by_name(name)
+          if existing_task.created?
+            raise Error, "It looks like you've already added that task. Perhaps you'd like to upvote it instead?"
+          elsif existing_task.paused?
+            raise Error, "Aren't you still working on that task?"
+          elsif existing_task.running?
+            raise Error, "Aren't you already working on that task?"
+          end
+        end
+        task = curr_proj.tasks.create!(:name => name)
+        stdout.puts %{Task "#{task.name}" created.}
       end
-      task = curr_proj.tasks.create!(:name => name)
-      stdout.puts %{Task "#{task.name}" created.}
     rescue Exception => e
       handle_custom_task_error(e)
     end
@@ -233,12 +244,27 @@ module TimeTracker
     desc "switch PROJECT", "Switches to a certain project. The project is created if it does not already exist."
     def switch(project_name=nil)
       raise Error, "Right, but which project do you want to switch to?" unless project_name
+      proj = TimeTracker::Project.first(:name => project_name)
+      unless proj
+        keep_prompting "I can't find this project. Did you want to create it? (y/n)" do |answer|
+          case answer
+          when /^y(es)?$/i
+            proj = TimeTracker::Project.create!(:name => project_name)
+            true
+          when /^n(o)?$/i
+            stdout.puts %{Okay, never mind then.}
+            raise Abort
+          else
+            print_wrong_answer
+            false
+          end
+        end
+      end
       if curr_proj = TimeTracker::Project.find(TimeTracker.config["current_project_id"]) and
       running_task = curr_proj.tasks.last_running
         running_task.pause!
         stdout.puts %{(Pausing clock for "#{running_task.name}", at #{running_task.total_running_time}.)}
       end
-      proj = TimeTracker::Project.first(:name => project_name) || TimeTracker::Project.create!(:name => project_name)
       TimeTracker.config.update("current_project_id", proj.id)
       stdout.puts %{Switched to project "#{proj.name}".}
       if paused_task = proj.tasks.last_paused

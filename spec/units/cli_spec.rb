@@ -38,11 +38,25 @@ describe TimeTracker::Cli do
   end
   
   describe '#add' do
-    before do
-      @project = Factory(:project, :name => "some project")
-      TimeTracker.config.update("current_project_id", @project.id.to_s)
+    context "with 'project' argument" do
+      it "creates a new project" do
+        @cli.add("project", "some project")
+        TimeTracker::Project.count.must == 1
+        TimeTracker::Project.first.name.must == "some project"
+      end
+      it "bails if no name given" do
+        expect { @cli.add("project") }.to raise_error("Right, but what do you want to call the new project?")
+      end
+      it "bails if the project already exists" do
+        Factory(:project, :name => "some project")
+        expect { @cli.add("project", "some project") }.to raise_error("It looks like this project already exists.")
+      end
     end
     context "with 'task' argument" do
+      before do
+        @project = Factory(:project, :name => "some project")
+        TimeTracker.config.update("current_project_id", @project.id.to_s)
+      end
       it "creates a new task in the current project" do
         Timecop.freeze(@time) do
           @cli.add("task", "some task")
@@ -92,11 +106,20 @@ describe TimeTracker::Cli do
       TimeTracker.config["current_project_id"].must == project.id
       stdout.must == %{Switched to project "some project".\n}
     end
-    it "creates the given project if it doesn't already exist" do
+    it "creates the given project if it doesn't already exist (given user accepts prompt)" do
+      stdin.sneak("y\n")
       @cli.switch("some project")
       TimeTracker::Project.count.must == 1
+      TimeTracker::Project.first.name.must == "some project"
       TimeTracker.config["current_project_id"].must_not be_nil
-      stdout.must == %{Switched to project "some project".\n}
+      stdout.must start_with(%{I can't find this project. Did you want to create it? (y/n) })
+      stdout.must end_with(%{Switched to project "some project".\n})
+    end
+    it "aborts if prompt to auto-create project is denied" do
+      stdin.sneak("n\n")
+      @cli.switch("some project")
+      stdout.must start_with(%{I can't find this project. Did you want to create it? (y/n) })
+      stdout.must end_with(%{Okay, never mind then.})
     end
     it "auto-pauses any task that's running in the current project before switching to the given one" do
       project = Factory(:project, :name => "some project")
@@ -105,21 +128,23 @@ describe TimeTracker::Cli do
       time2 = Time.zone.local(2010, 1, 1, 0, 1, 0)
       task = Factory(:task, :project => project, :name => "some task", :created_at => time1, :state => "running")
       Timecop.freeze(time2) do
+        stdin.sneak("y\n")
         @cli.switch("another project")
       end
       task.time_periods.first.ended_at.must == time2
       task.must be_paused
-      stdout.must == %{(Pausing clock for "some task", at 1m.)\nSwitched to project "another project".\n}
+      stdout.must end_with(%{(Pausing clock for "some task", at 1m.)\nSwitched to project "another project".\n})
     end
     it "auto-resumes a task that had been paused in this project prior to switching to another one" do
       project1 = Factory(:project, :name => "some project")
       task = Factory(:task, :project => project1, :name => "some task", :state => "paused")
       project2 = Factory(:project, :name => "another project")
       TimeTracker.config.update("current_project_id", project2.id.to_s)
+      stdin.sneak("y\n")
       @cli.switch("some project")
       task.reload
       task.must be_running
-      stdout.must == %{Switched to project "some project".\n(Resuming clock for "some task".)\n}
+      stdout.must end_with(%{Switched to project "some project".\n(Resuming clock for "some task".)\n})
     end
   end
   

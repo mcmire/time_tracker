@@ -17,11 +17,13 @@ feature "Resuming tasks" do
   end
   scenario "Resuming a task by name when no tasks exist at all" do
     tt 'switch "some project"'
+    stdin << "y\n"
     tt 'resume "some task"'
     output.must == %{It doesn't look like you've started any tasks yet.\n}
   end
   scenario "Resuming a non-existent task by name" do
     tt 'switch "some project"'
+    stdin << "y\n"
     tt 'start "some task"'
     stdin << "y\n"
     tt 'resume "yet another task"'
@@ -29,6 +31,7 @@ feature "Resuming tasks" do
   end
   scenario "Resuming a paused task by name" do
     tt 'switch "some project"'
+    stdin << "y\n"
     tt 'start "some task"'
     stdin << "y\n"
     tt 'start "another task"'
@@ -38,12 +41,15 @@ feature "Resuming tasks" do
   end
   scenario "Resuming a paused task by name that may exist in other projects but not here" do
     tt 'switch "some project"'
+    stdin << "y\n"
     tt 'add task "some task"'
     stdin << "y\n"
     tt 'switch "another project"'
+    stdin << "y\n"
     tt 'start "some task"'
     stdin << "y\n"
     tt 'switch "a different project"'
+    stdin << "y\n"
     tt 'resume "some task"'
     output.must == %{That task doesn't exist here. Perhaps you meant to switch to "another project"?\n}
   end
@@ -51,6 +57,7 @@ feature "Resuming tasks" do
     with_manual_time_override do
       Timecop.freeze Time.zone.local(2010, 1, 1, 0, 0)
       tt 'switch "some project"'
+      stdin << "y\n"
       tt 'start "some task"'
       stdin << "y\n"
       Timecop.freeze Time.zone.local(2010, 1, 1, 5, 5)
@@ -77,6 +84,7 @@ feature "Resuming tasks" do
   end
   scenario "Resuming a stopped task by name" do
     tt 'switch "some project"'
+    stdin << "y\n"
     tt 'start "some task"'
     stdin << "y\n"
     tt 'stop'
@@ -85,19 +93,23 @@ feature "Resuming tasks" do
   end
   scenario "Resuming a stopped task by name that may exist in other projects but not here" do
     tt 'switch "some project"'
+    stdin << "y\n"
     tt 'add task "some task"'
     stdin << "y\n"
     tt 'stop'
     tt 'switch "another project"'
+    stdin << "y\n"
     tt 'start "some task"'
     stdin << "y\n"
     tt 'stop'
     tt 'switch "a different project"'
+    stdin << "y\n"
     tt 'resume "some task"'
     output.must == %{That task doesn't exist here. Perhaps you meant to switch to "another project"?\n}
   end
   scenario "Resuming a running task by name" do
     tt 'switch "some project"'
+    stdin << "y\n"
     tt 'start "some task"'
     stdin << "y\n"
     tt 'resume "some task"'
@@ -105,6 +117,7 @@ feature "Resuming tasks" do
   end
   scenario "Resuming a task by name that hasn't been started yet" do
     tt 'switch "some project"'
+    stdin << "y\n"
     tt 'add task "some task"'
     tt 'resume "some task"'
     output.must == %{You can't resume a task that you haven't started yet!\n}
@@ -116,11 +129,13 @@ feature "Resuming tasks" do
   end
   scenario "Resuming a task by number when no tasks exist" do
     tt 'switch "some project"'
+    stdin << "y\n"
     tt 'resume 1'
     output.must == %{It doesn't look like you've started any tasks yet.\n}
   end
   scenario "Resuming a non-existent task by number" do
     tt 'switch "some project"'
+    stdin << "y\n"
     tt 'start "some task"'
     stdin << "y\n"
     tt 'stop'
@@ -129,6 +144,7 @@ feature "Resuming tasks" do
   end
   scenario "Resuming a paused task by number" do
     tt 'switch "some project"'
+    stdin << "y\n"
     tt 'start "some task"'
     stdin << "y\n"
     tt 'start "another task"'
@@ -138,6 +154,7 @@ feature "Resuming tasks" do
   end
   scenario "Resuming a stopped task by number" do
     tt 'switch "some project"'
+    stdin << "y\n"
     tt 'start "some task"'
     stdin << "y\n"
     tt 'stop'
@@ -146,6 +163,7 @@ feature "Resuming tasks" do
   end
   scenario "Resuming a running task by number" do
     tt 'switch "some project"'
+    stdin << "y\n"
     tt 'start "some task"'
     stdin << "y\n"
     tt 'resume 1'
@@ -153,6 +171,7 @@ feature "Resuming tasks" do
   end
   scenario "Resuming a task by number that hasn't been started yet" do
     tt 'switch "some project"'
+    stdin << "y\n"
     tt 'add task "some task"'
     tt 'resume 1'
     output.must == %{You can't resume a task that you haven't started yet!\n}

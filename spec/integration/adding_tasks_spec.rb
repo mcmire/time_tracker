@@ -18,12 +18,14 @@ feature "Adding tasks" do
   
   scenario "Adding a task" do
     tt 'switch "some project"'
+    stdin << "y\n"
     tt 'add task "some task"'
     output.must == %{Task "some task" created.\n}
   end
   
   scenario "Adding a task that already exists, but hasn't been started yet" do
     tt 'switch "some project"'
+    stdin << "y\n"
     tt 'add task "some task"'
     tt 'add task "some task"'
     output.must == %{It looks like you've already added that task. Perhaps you'd like to upvote it instead?\n}
@@ -31,6 +33,7 @@ feature "Adding tasks" do
   
   scenario "Adding a task that exists, but is running" do
     tt 'switch "some project"'
+    stdin << "y\n"
     tt 'start "some task"'
     stdin << "y\n"
     tt 'add task "some task"'
@@ -39,6 +42,7 @@ feature "Adding tasks" do
   
   scenario "Adding a task that exists, but is paused" do
     tt 'switch "some project"'
+    stdin << "y\n"
     tt 'start "some task"'
     stdin << "y\n"
     tt 'start "another task"'
@@ -49,6 +53,7 @@ feature "Adding tasks" do
   
   scenario "Adding a task that exists, but is stopped" do
     tt 'switch "some project"'
+    stdin << "y\n"
     tt 'start "some task"'
     stdin << "y\n"
     tt 'stop'

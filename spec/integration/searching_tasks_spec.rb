@@ -15,6 +15,7 @@ feature "Managing projects" do
   scenario "Searching for a task by one term" do
     Timecop.freeze Time.zone.local(2010, 1, 1, 5, 0, 0)
     tt 'switch "moving to a new apartment"'
+    stdin << "y\n"
     tt 'start "pack up the foosball table"'
     stdin << "y\n"
     tt 'stop'
@@ -24,6 +25,7 @@ feature "Managing projects" do
     tt 'stop'
     Timecop.freeze Time.zone.local(2010, 1, 7, 21, 0, 0)
     tt 'switch "outside stuff"'
+    stdin << "y\n"
     tt 'start "mow the lawn"'
     stdin << "y\n"
     tt 'stop'
@@ -40,6 +42,7 @@ feature "Managing projects" do
   scenario "Searching for a task by two terms is an OR query" do
     Timecop.freeze Time.zone.local(2010, 1, 1, 5, 0, 0)
     tt 'switch "moving to a new apartment"'
+    stdin << "y\n"
     tt 'start "pack up the foosball table"'
     stdin << "y\n"
     tt 'stop'
@@ -49,6 +52,7 @@ feature "Managing projects" do
     tt 'stop'
     Timecop.freeze Time.zone.local(2010, 1, 7, 21, 0, 0)
     tt 'switch "outside stuff"'
+    stdin << "y\n"
     tt 'start "mow the lawn"'
     stdin << "y\n"
     tt 'stop'

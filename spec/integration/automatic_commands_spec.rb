@@ -8,9 +8,11 @@ feature "Automatic commands" do
   
   scenario "Switching to another project while a task in this project is still running" do
     tt 'switch "some project"'
+    stdin << "y\n"
     tt 'start "some task"'
     stdin << "y\n"
     tt 'switch "another project"'
+    stdin << "y\n"
     output.lines.must smart_match([
       /\(Pausing clock for "some task", at \dm\.\)/,
       %{Switched to project "another project".}
@@ -19,6 +21,7 @@ feature "Automatic commands" do
   
   scenario "Starting a task while another one is running" do
     tt 'switch "some project"'
+    stdin << "y\n"
     tt 'start "some task"'
     stdin << "y\n"
     tt 'start "another task"'
@@ -32,6 +35,7 @@ feature "Automatic commands" do
   # No tests for stop 1 or stop "another task" here -- they're unit tests though
   scenario "Starting 3 tasks in a row and returning to the last task" do
     tt 'switch "some project"'
+    stdin << "y\n"
     tt 'start "some task"'
     stdin << "y\n"
     tt 'start "another task"'
@@ -47,9 +51,11 @@ feature "Automatic commands" do
   
   scenario "Starting a task in one project, starting another task in another project, stopping that task, switching back to the other project" do
     tt 'switch "some project"'
+    stdin << "y\n"
     tt 'start "some task"'
     stdin << "y\n"
     tt 'switch "another project"'
+    stdin << "y\n"
     tt 'start "another task"'
     stdin << "y\n"
     tt 'stop'
@@ -63,6 +69,7 @@ feature "Automatic commands" do
   
   scenario "Resuming a paused task when another is already running" do
     tt 'switch "some project"'
+    stdin << "y\n"
     tt 'start "some task"'
     stdin << "y\n"
     tt 'start "another task"'
@@ -76,6 +83,7 @@ feature "Automatic commands" do
   
   scenario "Resuming a stopped task when another is already running" do
     tt 'switch "some project"'
+    stdin << "y\n"
     tt 'start "some task"'
     stdin << "y\n"
     tt 'stop'
@@ -90,9 +98,11 @@ feature "Automatic commands" do
   
   scenario "Resuming a paused task in another project by number without switching to that project first" do
     tt 'switch "some project"'
+    stdin << "y\n"
     tt 'start "some task"'
     stdin << "y\n"
     tt 'switch "another project"'
+    stdin << "y\n"
     tt 'resume 1'
     output.lines.must smart_match([
       %{(Switching to project "some project".)},
@@ -102,10 +112,12 @@ feature "Automatic commands" do
   
   scenario "Resuming a stopped task in another project by number without switching to that project first" do
     tt 'switch "some project"'
+    stdin << "y\n"
     tt 'start "some task"'
     stdin << "y\n"
     tt 'stop'
     tt 'switch "another project"'
+    stdin << "y\n"
     tt 'resume 1'
     output.lines.must smart_match([
       %{(Switching to project "some project".)},
@@ -115,9 +127,11 @@ feature "Automatic commands" do
   
   scenario "Resuming a paused task in another project by number when one in this project is already running" do
     tt 'switch "some project"'
+    stdin << "y\n"
     tt 'start "some task"'
     stdin << "y\n"
     tt 'switch "another project"'
+    stdin << "y\n"
     tt 'start "another task"'
     stdin << "y\n"
     tt 'resume 1'
@@ -130,10 +144,12 @@ feature "Automatic commands" do
   
   scenario "Resuming a stopped task in another project by number when one in this project is already running" do
     tt 'switch "some project"'
+    stdin << "y\n"
     tt 'start "some task"'
     stdin << "y\n"
     tt 'stop'
     tt 'switch "another project"'
+    stdin << "y\n"
     tt 'start "another task"'
     stdin << "y\n"
     tt 'resume 1'
