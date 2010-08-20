@@ -409,6 +409,36 @@ module TimeTracker
     rescue Exception => e
       handle_custom_task_error(e)
     end
+    
+    desc "upvote", "Records the number of times you've been asked to do a certain task."
+    def upvote(task_name=nil)
+      raise Error, "Yes, but which task do you want to upvote? (I'll accept a number or a name.)" unless task_name
+      curr_proj = TimeTracker::Project.find TimeTracker.config["current_project_id"]
+      raise Error, "Try switching to a project first." unless curr_proj
+      if task_name =~ /^\d+$/
+        if task = curr_proj.tasks.first(:number => task_name.to_i)
+          raise Error, "There isn't any point in upvoting a task you're already working on." if task.running? || task.paused?
+          raise Error, "There isn't any point in upvoting a task you've already completed."  if task.stopped?
+        else
+          raise Error, "I don't think that task exists."
+        end
+      else
+        matching_tasks = curr_proj.tasks.where(:name => task_name).sort(:created_at.desc).to_a
+        if matching_tasks.any?
+          unless task = matching_tasks.find(&:created?)
+            task = matching_tasks.first
+            raise Error, "There isn't any point in upvoting a task you're already working on." if task.running? || task.paused?
+            raise Error, "There isn't any point in upvoting a task you've already completed."  if task.stopped?
+          end
+        else
+          raise Error, "I don't think that task exists."
+        end
+      end
+      task.upvote!
+      stdout.puts %{This task now has #{task.num_votes} votes.\n}
+    rescue Exception => e
+      handle_custom_task_error(e)
+    end
 
     LIST_SUBCOMMANDS = ["lastfew", "completed", "all", "today", "this week"]
     desc "list {#{LIST_SUBCOMMANDS.join("|")}}", "List tasks"

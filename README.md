@@ -43,3 +43,8 @@ But one of the ways it will differ from other time-tracking tools is the ability
 Since I don't like forcing people to abandon the tools they're already using, one of the things I'm planning to add is integration with other tools, such as Pivotal Tracker, Freckle, or even git (using a hook or something).
 
 I'm also considering a web frontend, although that may come further down the line.
+
+## Similar projects
+
+* <http://github.com/ymendel/one_inch_punch>
+* <http://github.com/samg/timetrap>

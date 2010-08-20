@@ -22,6 +22,7 @@ module TimeTracker
     key :project_id, ObjectId
     key :name, String
     key :state, String, :default => "created"
+    key :num_votes, Integer, :default => 1
     timestamps!
     key :last_started_at, Time
     
@@ -62,6 +63,10 @@ module TimeTracker
           task.last_started_at = Time.zone.now
         end
       end
+    end
+    
+    def upvote!
+      update_attributes!(:num_votes => num_votes+1)
     end
     
     def total_running_time

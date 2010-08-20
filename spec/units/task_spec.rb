@@ -22,8 +22,11 @@ describe TimeTracker::Task do
       time = Time.local(2010, 1, 1)
       Factory(:task, :last_started_at => time).last_started_at.must == time
     end
-    it "sets state to 'crated' by default" do
+    it "sets state to 'created' by default" do
       Factory(:task).state.must == "created"
+    end
+    it "sets num_votes to 1 by default" do
+      Factory(:task).num_votes.must == 1
     end
   end
   
@@ -248,6 +251,15 @@ describe TimeTracker::Task do
       task.resume!
       task.state.must == "running"
       task.must_not be_new
+    end
+  end
+  
+  describe '#upvote!' do
+    it "increments num_votes and saves the record" do
+      task = Factory(:task, :num_votes => 2)
+      task.upvote!
+      task.upvote!
+      task.num_votes.must == 4
     end
   end
   

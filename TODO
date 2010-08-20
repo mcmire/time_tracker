@@ -1,7 +1,9 @@
-* Make an 'add project' command
-  * Switching to a non-existent project auto-creates it, but prompt first
-
 * Up-vote a task (add a mention)
+* Refactor start, stop, resume, upvote so that they're using the same
+  code to find task by name and number
+* Sort lists by mention
+* stop -> finish/end/complete, start -> begin (change error messages too)
+* Move a task up or down on the list
 * Modify add task (and auto-adding before starting) to search before
   adding a new one, and suggest pre-existing tasks to up-vote instead
 * Tagging
@@ -14,9 +16,19 @@
 
 * Don't use Thor anymore, I think we can just hand-roll our own dispatcher
   * or try out Optitron...
-* Add ability to pause a task manually?
+* Add ability to pause (put on hold, hold, suspend) a task manually?
 * Add colors to listings
 
+* Command-line UI, so that we can "stick" the prompt for commands at the
+  top of the terminal window and then if the user runs, say, `tt list`
+  and the list is really long, the user doesn't lose their place
+  * Seems ncurses is the only way to go
+  * http://github.com/elliottcable/nfoiled
+  * http://github.com/elliottcable/rat
+  * http://github.com/laurynasl/rubyrogue
+  * http://github.com/zdennis/ncurses_examples
+  * http://github.com/danopia/luck
+  * http://github.com/nsf/termbox - wish there were a ruby interface!
 * Since MongoDB's natural sort order is not often desirable, are there
   other cases in which we aren't ordering by something explicit?
   Or is there a way to hack MM to sort by created_at by default?

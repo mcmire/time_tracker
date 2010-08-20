@@ -620,6 +620,78 @@ describe TimeTracker::Cli do
     end
   end
   
+  describe '#upvote' do
+    before do
+      @project = Factory(:project, :name => "some project")
+      TimeTracker.config.update("current_project_id", @project.id.to_s)
+    end
+    it "bails if no project has been set yet" do
+      TimeTracker.config.update("current_project_id", nil)
+      expect { @cli.upvote("some task") }.to raise_error("Try switching to a project first.")
+    end
+    it "bails if no name given" do
+      expect { @cli.upvote }.to raise_error("Yes, but which task do you want to upvote? (I'll accept a number or a name.)")
+    end
+    context "given a string" do
+      it "increments the number of votes for the task on each call" do
+        task = Factory(:task, :project => @project, :name => "some task", :num_votes => 3)
+        @cli.upvote("some task")
+        task.reload
+        task.num_votes.must == 4
+        stdout.lines.last.must == %{This task now has 4 votes.}
+      
+        @cli.upvote("some task")
+        task.reload
+        task.num_votes.must == 5
+        stdout.lines.last.must == %{This task now has 5 votes.}
+      end
+      it "bails if the task can't be found" do
+        expect { @cli.upvote("some task") }.to raise_error("I don't think that task exists.")
+      end
+      it "bails if the task is running" do
+        Factory(:task, :project => @project, :name => "some task", :state => "running")
+        expect { @cli.upvote("some task") }.to raise_error("There isn't any point in upvoting a task you're already working on.")
+      end
+      it "bails if the task is stopped" do
+        Factory(:task, :project => @project, :name => "some task", :state => "stopped")
+        expect { @cli.upvote("some task") }.to raise_error("There isn't any point in upvoting a task you've already completed.")
+      end
+      it "bails if the task is paused" do
+        Factory(:task, :project => @project, :name => "some task", :state => "paused")
+        expect { @cli.upvote("some task") }.to raise_error("There isn't any point in upvoting a task you're already working on.")
+      end
+    end
+    context "given a number" do
+      it "increments the number of votes for the task on each call" do
+        task = Factory(:task, :project => @project, :number => 1, :num_votes => 3)
+        @cli.upvote("1")
+        task.reload
+        task.num_votes.must == 4
+        stdout.lines.last.must == %{This task now has 4 votes.}
+      
+        @cli.upvote("1")
+        task.reload
+        task.num_votes.must == 5
+        stdout.lines.last.must == %{This task now has 5 votes.}
+      end
+      it "bails if the task can't be found" do
+        expect { @cli.upvote("1") }.to raise_error("I don't think that task exists.")
+      end
+      it "bails if the task is running" do
+        Factory(:task, :project => @project, :number => 1, :state => "running")
+        expect { @cli.upvote("1") }.to raise_error("There isn't any point in upvoting a task you're already working on.")
+      end
+      it "bails if the task is stopped" do
+        Factory(:task, :project => @project, :number => 1, :state => "stopped")
+        expect { @cli.upvote("1") }.to raise_error("There isn't any point in upvoting a task you've already completed.")
+      end
+      it "bails if the task is paused" do
+        Factory(:task, :project => @project, :number => 1, :state => "paused")
+        expect { @cli.upvote("1") }.to raise_error("There isn't any point in upvoting a task you're already working on.")
+      end
+    end
+  end
+  
   describe '#list' do
     context "lastfew subcommand", :shared => true do
       it "prints a list of the last 4 time periods plus the currently running task, ordered by last active" do
