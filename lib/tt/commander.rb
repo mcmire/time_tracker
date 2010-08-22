@@ -4,6 +4,10 @@ module TimeTracker
     class Abort < StandardError; end
     
     class << self
+      def execute(options={})
+        new(options).execute!
+      end
+      
       def command(name, info={})
         commands[name.to_s] = info
       end

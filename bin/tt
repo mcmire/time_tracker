@@ -21,4 +21,4 @@ Bundler.require(:default)
 
 require 'tt'
 
-TimeTracker::Cli.execute!
+TimeTracker::Cli.execute
