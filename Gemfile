@@ -1,7 +1,5 @@
 gem "bson_ext"#, :require => false
 gem "mongo_mapper"#, :require => false
-gem "thor"#, :require => false
-#gem "micromachine", :require => false
 gem "term-ansicolor", :require => "term/ansicolor"
 
 group :test do

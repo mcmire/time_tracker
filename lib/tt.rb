@@ -6,7 +6,7 @@ require 'tt/extensions/ruby'
 require 'tt/extensions/term_ansicolor'
 require 'tt/columnator'
 
-require 'tt/cli_methods'
+require 'tt/commander'
 require 'tt/cli'
 require 'tt/config'
 require 'tt/project'

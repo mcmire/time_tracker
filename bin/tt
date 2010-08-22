@@ -21,7 +21,4 @@ Bundler.require(:default)
 
 require 'tt'
 
-# We set this so that thor does not include namespaces in the help/usage text
-# when printing the names of tasks
-$thor_runner = false
-TimeTracker::Cli.run(ARGV)
+TimeTracker::Cli.execute!

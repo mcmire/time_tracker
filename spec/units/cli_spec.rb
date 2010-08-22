@@ -3,8 +3,7 @@ require File.expand_path(File.dirname(__FILE__) + '/spec_helper')
 describe TimeTracker::Cli do
   before do
     @stdin, @stdout, @stderr = Array.new(3) { StringIO.new }
-    @cli = TimeTracker::Cli.build(@stdin, @stdout, @stderr)
-    @time = Time.zone.local(2010)
+    @cli = TimeTracker::Cli.new(:stdin => @stdin, :stdout => @stdout, :stderr => @stderr)
   end
   
   def stdout
@@ -19,47 +18,30 @@ describe TimeTracker::Cli do
     @stdin
   end
   
-  describe '.build' do
-    it "allows stdout and stderr to be set" do
-      cli = TimeTracker::Cli.build(:stdin, :stdout, :stderr)
-      cli.stdin.must  == :stdin
-      cli.stdout.must == :stdout
-      cli.stderr.must == :stderr
-    end
-  end
-  
-  describe '.new' do
-    it "initializes stdout and stderr to the default stdout and stderr" do
-      cli = TimeTracker::Cli.new
-      cli.stdin.must  == $stdin
-      cli.stdout.must == $stdout
-      cli.stderr.must == $stderr
-    end
-  end
-  
   describe '#add' do
     context "with 'project' argument" do
       it "creates a new project" do
-        @cli.add("project", "some project")
+        @cli.run_command!("add", "project", "some project")
         TimeTracker::Project.count.must == 1
         TimeTracker::Project.first.name.must == "some project"
       end
       it "bails if no name given" do
-        expect { @cli.add("project") }.to raise_error("Right, but what do you want to call the new project?")
+        expect { @cli.run_command!("add", "project") }.to raise_error("Right, but what do you want to call the new project?")
       end
       it "bails if the project already exists" do
         Factory(:project, :name => "some project")
-        expect { @cli.add("project", "some project") }.to raise_error("It looks like this project already exists.")
+        expect { @cli.run_command!("add", "project", "some project") }.to raise_error("It looks like this project already exists.")
       end
     end
     context "with 'task' argument" do
       before do
         @project = Factory(:project, :name => "some project")
         TimeTracker.config.update("current_project_id", @project.id.to_s)
+        @time = Time.zone.local(2010)
       end
       it "creates a new task in the current project" do
         Timecop.freeze(@time) do
-          @cli.add("task", "some task")
+          @cli.run_command!("add", "task", "some task")
         end
         TimeTracker::Task.count.must == 1
         task = TimeTracker::Task.last(:order => :number)
@@ -71,21 +53,21 @@ describe TimeTracker::Cli do
       context "if a task by the given name already exists" do
         it "bails if the task hasn't been started yet" do
           @project.tasks.create!(:name => "some task", :state => "created")
-          expect { @cli.add("task", "some task") }.to
+          expect { @cli.run_command!("add", "task", "some task") }.to
             raise_error("It looks like you've already added that task. Perhaps you'd like to upvote it instead?")
         end
         it "bails if the task is running" do
           @project.tasks.create!(:name => "some task", :state => "running")
-          expect { @cli.add("task", "some task") }.to raise_error("Aren't you already working on that task?")
+          expect { @cli.run_command!("add", "task", "some task") }.to raise_error("Aren't you already working on that task?")
         end
         it "bails if the task is paused" do
           @project.tasks.create!(:name => "some task", :state => "paused")
-          expect { @cli.add("task", "some task") }.to raise_error("Aren't you still working on that task?")
+          expect { @cli.run_command!("add", "task", "some task") }.to raise_error("Aren't you still working on that task?")
         end
         it "doesn't bail, but creates a new task, if the task is stopped" do
           @project.tasks.create!(:name => "some task", :state => "stopped")
           Timecop.freeze(@time) do
-            @cli.add("task", "some task")
+            @cli.run_command!("add", "task", "some task")
           end
           TimeTracker::Task.count.must == 2
           task = TimeTracker::Task.last(:order => :number)
@@ -101,14 +83,14 @@ describe TimeTracker::Cli do
   describe '#switch' do
     it "finds the given project and sets the current one to that" do
       project = Factory(:project, :name => "some project")
-      @cli.switch("some project")
+      @cli.run_command!("switch", "some project")
       TimeTracker::Project.count.must == 1
       TimeTracker.config["current_project_id"].must == project.id
       stdout.must == %{Switched to project "some project".\n}
     end
     it "creates the given project if it doesn't already exist (given user accepts prompt)" do
       stdin.sneak("y\n")
-      @cli.switch("some project")
+      @cli.run_command!("switch", "some project")
       TimeTracker::Project.count.must == 1
       TimeTracker::Project.first.name.must == "some project"
       TimeTracker.config["current_project_id"].must_not be_nil
@@ -117,7 +99,7 @@ describe TimeTracker::Cli do
     end
     it "aborts if prompt to auto-create project is denied" do
       stdin.sneak("n\n")
-      @cli.switch("some project")
+      @cli.run_command!("switch", "some project")
       stdout.must start_with(%{I can't find this project. Did you want to create it? (y/n) })
       stdout.must end_with(%{Okay, never mind then.})
     end
@@ -129,7 +111,7 @@ describe TimeTracker::Cli do
       task = Factory(:task, :project => project, :name => "some task", :created_at => time1, :state => "running")
       Timecop.freeze(time2) do
         stdin.sneak("y\n")
-        @cli.switch("another project")
+        @cli.run_command!("switch", "another project")
       end
       task.time_periods.first.ended_at.must == time2
       task.must be_paused
@@ -141,7 +123,7 @@ describe TimeTracker::Cli do
       project2 = Factory(:project, :name => "another project")
       TimeTracker.config.update("current_project_id", project2.id.to_s)
       stdin.sneak("y\n")
-      @cli.switch("some project")
+      @cli.run_command!("switch", "some project")
       task.reload
       task.must be_running
       stdout.must end_with(%{Switched to project "some project".\n(Resuming clock for "some task".)\n})
@@ -152,19 +134,20 @@ describe TimeTracker::Cli do
     before do
       @project = Factory(:project, :name => "some project")
       TimeTracker.config.update("current_project_id", @project.id.to_s)
+      @time = Time.zone.local(2010)
     end
     it "bails if no name given" do
       expect { @cli.start }.to raise_error("Right, but which task do you want to start?")
     end
     it "bails if no project has been set yet" do
       TimeTracker.config.update("current_project_id", nil)
-      expect { @cli.start("some task") }.to raise_error("Try switching to a project first.")
+      expect { @cli.run_command!("start", "some task") }.to raise_error("Try switching to a project first.")
     end
     context "when a task exists with the same name under the current project" do
       it "starts the clock for the task if it hasn't been started yet" do
         task = Factory(:task, :project => @project, :name => "some task", :state => "created")
         Timecop.freeze(@time) do
-          @cli.start("some task")
+          @cli.run_command!("start", "some task")
         end
         TimeTracker::Task.count.must == 1
         task.reload
@@ -174,17 +157,17 @@ describe TimeTracker::Cli do
       end
       it "bails if the task is running" do
         Factory(:task, :project => @project, :name => "some task", :state => "running")
-        expect { @cli.start("some task") }.to raise_error("Aren't you already working on that task?")
+        expect { @cli.run_command!("start", "some task") }.to raise_error("Aren't you already working on that task?")
       end
       it "bails if the task is paused" do
         Factory(:task, :project => @project, :name => "some task", :state => "paused")
-        expect { @cli.start("some task") }.to raise_error("Aren't you still working on that task?")
+        expect { @cli.run_command!("start", "some task") }.to raise_error("Aren't you still working on that task?")
       end
       it "doesn't bail, but creates a new task, if the task is stopped" do
         task = Factory(:task, :project => @project, :name => "some task", :state => "stopped")
         Timecop.freeze(@time) do
           stdin.sneak("y\n")
-          @cli.start("some task")
+          @cli.run_command!("start", "some task")
         end
         TimeTracker::Task.count.must == 2
         task2 = TimeTracker::Task.last(:order => :number)
@@ -199,7 +182,7 @@ describe TimeTracker::Cli do
     it "auto-creates the task under the current project (given user accepts prompt) and starts the clock for it" do
       Timecop.freeze(@time) do
         stdin.sneak("y\n")
-        @cli.start("some task")
+        @cli.run_command!("start", "some task")
         stdout.must start_with(%{I can't find this task. Did you want to create it? (y/n) })
       end
       TimeTracker::Task.count.must == 1
@@ -212,7 +195,7 @@ describe TimeTracker::Cli do
     end
     it "aborts if prompt to auto-create is denied" do
       stdin.sneak("n\n")
-      @cli.start("some task")
+      @cli.run_command!("start", "some task")
       stdout.must start_with(%{I can't find this task. Did you want to create it? (y/n) })
       stdout.must end_with(%{Okay, never mind then.})
     end
@@ -222,7 +205,7 @@ describe TimeTracker::Cli do
       task1 = Factory(:task, :project => @project, :name => "some task", :created_at => time1, :state => "running")
       Timecop.freeze(time2) do
         stdin.sneak("y\n")
-        @cli.start("another task")
+        @cli.run_command!("start", "another task")
       end
       TimeTracker::Task.count.must == 2
       task1.time_periods.first.ended_at.must == time2
@@ -290,16 +273,16 @@ describe TimeTracker::Cli do
     context "given a string" do
       it "bails if no project has been set yet" do
         TimeTracker.config.update("current_project_id", nil)
-        expect { @cli.stop("some task") }.to raise_error("Try switching to a project first.")
+        expect { @cli.run_command!("stop", "some task") }.to raise_error("Try switching to a project first.")
       end
       it "bails if no tasks have been created under this project yet" do
-        expect { @cli.stop("some task") }.to raise_error("It doesn't look like you've started any tasks yet.")
+        expect { @cli.run_command!("stop", "some task") }.to raise_error("It doesn't look like you've started any tasks yet.")
       end
       it "stops the task matching the given name" do
         task1 = Factory(:task, :project => @project, :name => "some task", :created_at => Time.local(2010, 1, 1, 0, 0, 0), :state => "running")
         stopped_at = Time.local(2010, 1, 1, 3, 29)
         Timecop.freeze(stopped_at) do
-          @cli.stop("some task")
+          @cli.run_command!("stop", "some task")
         end
         task1.reload
         task1.must be_stopped
@@ -310,7 +293,7 @@ describe TimeTracker::Cli do
         task2 = Factory(:task, :project => @project, :name => "some task", :created_at => Time.local(2010, 1, 1, 0, 0, 0), :state => "running")
         stopped_at = Time.local(2010, 1, 1, 3, 29)
         Timecop.freeze(stopped_at) do
-          @cli.stop("some task")
+          @cli.run_command!("stop", "some task")
         end
         task1.reload
         task1.updated_at.must == Time.local(2009, 12, 1)
@@ -320,15 +303,15 @@ describe TimeTracker::Cli do
       end
       it "bails if a task can't be found by the given name" do
         Factory(:task, :project => @project, :name => "another task")
-        expect { @cli.stop("some task") }.to raise_error("I don't think that task exists.")
+        expect { @cli.run_command!("stop", "some task") }.to raise_error("I don't think that task exists.")
       end
       it "bails if the given task has already been stopped" do
         Factory(:task, :project => @project, :name => "some task", :state => "stopped")
-        expect { @cli.stop("some task") }.to raise_error("I think you've stopped that task already.")
+        expect { @cli.run_command!("stop", "some task") }.to raise_error("I think you've stopped that task already.")
       end
       it "doesn't bail if the given task is paused, but stops it" do
         task1 = Factory(:task, :project => @project, :name => "some task", :state => "paused")
-        @cli.stop("some task")
+        @cli.run_command!("stop", "some task")
         task1.reload
         task1.must be_stopped
         task1.time_periods.must be_empty
@@ -336,14 +319,14 @@ describe TimeTracker::Cli do
       end
       it "bails if the given task is merely created" do
         task1 = Factory(:task, :project => @project, :name => "some task", :state => "created")
-        expect { @cli.stop("some task") }.to raise_error("You can't stop a task without starting it first!")
+        expect { @cli.run_command!("stop", "some task") }.to raise_error("You can't stop a task without starting it first!")
       end
       it "auto-resumes the last task under this project that was paused" do
         task1 = Factory(:task, :project => @project, :name => "some task", :state => "paused")
         task2 = Factory(:task, :project => @project, :name => "another task", :created_at => Time.local(2010, 1, 1, 0, 0, 0), :state => "running")
         stopped_at = Time.local(2010, 1, 1, 3, 29, 0)
         Timecop.freeze(stopped_at) do
-          @cli.stop("another task")
+          @cli.run_command!("stop", "another task")
         end
         task1.reload
         task1.must be_running
@@ -353,16 +336,16 @@ describe TimeTracker::Cli do
     context "given a number" do
       it "bails if no project has been set yet" do
         TimeTracker.config.update("current_project_id", nil)
-        expect { @cli.stop("1") }.to raise_error("Try switching to a project first.")
+        expect { @cli.run_command!("stop", "1") }.to raise_error("Try switching to a project first.")
       end
       it "bails if no tasks have been created under this project yet" do
-        expect { @cli.stop("1") }.to raise_error("It doesn't look like you've started any tasks yet.")
+        expect { @cli.run_command!("stop", "1") }.to raise_error("It doesn't look like you've started any tasks yet.")
       end
       it "stops the task matching the given number" do
         task1 = Factory(:task, :project => @project, :name => "some task", :number => "1", :created_at => Time.local(2010, 1, 1, 0, 0, 0), :state => "running")
         stopped_at = Time.local(2010, 1, 1, 3, 29)
         Timecop.freeze(stopped_at) do
-          @cli.stop("1")
+          @cli.run_command!("stop", "1")
         end
         task1.reload
         task1.must be_stopped
@@ -370,15 +353,15 @@ describe TimeTracker::Cli do
       end
       it "bails if a task can't be found by the given number" do
         Factory(:task, :project => @project, :name => "another task")
-        expect { @cli.stop("2") }.to raise_error("I don't think that task exists.")
+        expect { @cli.run_command!("stop", "2") }.to raise_error("I don't think that task exists.")
       end
       it "bails if the given task has already been stopped" do
         Factory(:task, :project => @project, :name => "some task", :number => "1", :state => "stopped")
-        expect { @cli.stop("1") }.to raise_error("I think you've stopped that task already.")
+        expect { @cli.run_command!("stop", "1") }.to raise_error("I think you've stopped that task already.")
       end
       it "doesn't bail if the given task is paused, but stops it" do
         task1 = Factory(:task, :project => @project, :number => "1", :state => "paused")
-        @cli.stop("1")
+        @cli.run_command!("stop", "1")
         task1.reload
         task1.must be_stopped
         task1.time_periods.must be_empty
@@ -386,14 +369,14 @@ describe TimeTracker::Cli do
       end
       it "bails if the given task is merely created" do
         task1 = Factory(:task, :project => @project, :name => "some task", :state => "created")
-        expect { @cli.stop("1") }.to raise_error("You can't stop a task without starting it first!")
+        expect { @cli.run_command!("stop", "1") }.to raise_error("You can't stop a task without starting it first!")
       end
       it "auto-resumes the last task under this project that was paused" do
         task1 = Factory(:task, :project => @project, :name => "some task", :number => "1", :state => "paused")
         task2 = Factory(:task, :project => @project, :name => "another task", :number => "2", :created_at => Time.local(2010, 1, 1, 0, 0, 0), :state => "running")
         stopped_at = Time.local(2010, 1, 1, 3, 29, 0)
         Timecop.freeze(stopped_at) do
-          @cli.stop("2")
+          @cli.run_command!("stop", "2")
         end
         task1.reload
         task1.must be_running
@@ -415,21 +398,21 @@ describe TimeTracker::Cli do
     context "given a string" do
       it "bails if no project has been set yet" do
         TimeTracker.config.update("current_project_id", nil)
-        expect { @cli.resume("some task") }.to raise_error("Try switching to a project first.")
+        expect { @cli.run_command!("resume", "some task") }.to raise_error("Try switching to a project first.")
       end
       it "bails if no tasks exist at all" do
-        expect { @cli.resume("some task") }.to raise_error("It doesn't look like you've started any tasks yet.")
+        expect { @cli.run_command!("resume", "some task") }.to raise_error("It doesn't look like you've started any tasks yet.")
       end
       it "resumes the given paused task" do
         task1 = Factory(:task, :project => @project, :name => "some task", :state => "paused")
-        @cli.resume("some task")
+        @cli.run_command!("resume", "some task")
         task1.reload
         task1.must be_running
         stdout.must == %{Resumed clock for "some task".\n}
       end
       it "resumes the given stopped task" do
         task1 = Factory(:task, :project => @project, :name => "some task", :state => "stopped")
-        @cli.resume("some task")
+        @cli.run_command!("resume", "some task")
         task1.reload
         task1.must be_running
         stdout.must == %{Resumed clock for "some task".\n}
@@ -437,7 +420,7 @@ describe TimeTracker::Cli do
       it "resumes the last stopped task if there are two tasks by the given name" do
         task1 = Factory(:task, :project => @project, :name => "some task", :state => "stopped", :created_at => Time.zone.local(2010, 1, 1))
         task2 = Factory(:task, :project => @project, :name => "some task", :state => "stopped", :created_at => Time.zone.local(2010, 2, 1))
-        @cli.resume("some task")
+        @cli.run_command!("resume", "some task")
         task1.reload
         task1.must be_stopped
         task2.reload
@@ -446,7 +429,7 @@ describe TimeTracker::Cli do
       end
       it "bails if the given task can't be found in this project" do
         Factory(:task, :project => @project, :name => "some task")
-        expect { @cli.resume("another task") }.to raise_error("I don't think that task exists.")
+        expect { @cli.run_command!("resume", "another task") }.to raise_error("I don't think that task exists.")
       end
       it "bails if a paused task can be found by that name but it's in other projects" do
         project1 = Factory(:project, :name => "some project")
@@ -455,7 +438,7 @@ describe TimeTracker::Cli do
         Factory(:task, :project => project2, :name => "some task", :state => "paused")
         project3 = Factory(:project, :name => "a different project")
         TimeTracker.config.update("current_project_id", project3.id.to_s)
-        expect { @cli.resume("some task") }.to raise_error(%{That task doesn't exist here. Perhaps you meant to switch to "some project" or "another project"?})
+        expect { @cli.run_command!("resume", "some task") }.to raise_error(%{That task doesn't exist here. Perhaps you meant to switch to "some project" or "another project"?})
       end
       it "discounts created tasks when searching for other projects for a found paused task" do
         project1 = Factory(:project, :name => "some project")
@@ -464,7 +447,7 @@ describe TimeTracker::Cli do
         Factory(:task, :project => project2, :name => "some task", :state => "paused")
         project3 = Factory(:project, :name => "a different project")
         TimeTracker.config.update("current_project_id", project3.id.to_s)
-        expect { @cli.resume("some task") }.to raise_error(%{That task doesn't exist here. Perhaps you meant to switch to "another project"?})
+        expect { @cli.run_command!("resume", "some task") }.to raise_error(%{That task doesn't exist here. Perhaps you meant to switch to "another project"?})
       end
       it "bails if a stopped task can be found by that name but it's in other projects" do
         project1 = Factory(:project, :name => "some project")
@@ -473,7 +456,7 @@ describe TimeTracker::Cli do
         Factory(:task, :project => project2, :name => "some task", :state => "stopped")
         project3 = Factory(:project, :name => "a different project")
         TimeTracker.config.update("current_project_id", project3.id.to_s)
-        expect { @cli.resume("some task") }.to raise_error(%{That task doesn't exist here. Perhaps you meant to switch to "some project" or "another project"?})
+        expect { @cli.run_command!("resume", "some task") }.to raise_error(%{That task doesn't exist here. Perhaps you meant to switch to "some project" or "another project"?})
       end
       it "discounts created tasks when searching for other projects for a found stopped task" do
         project1 = Factory(:project, :name => "some project")
@@ -482,22 +465,22 @@ describe TimeTracker::Cli do
         Factory(:task, :project => project2, :name => "some task", :state => "stopped")
         project3 = Factory(:project, :name => "a different project")
         TimeTracker.config.update("current_project_id", project3.id.to_s)
-        expect { @cli.resume("some task") }.to raise_error(%{That task doesn't exist here. Perhaps you meant to switch to "another project"?})
+        expect { @cli.run_command!("resume", "some task") }.to raise_error(%{That task doesn't exist here. Perhaps you meant to switch to "another project"?})
       end
       it "bails if the given task is already running" do
         task1 = Factory(:task, :project => @project, :name => "some task", :state => "running")
-        expect { @cli.resume("some task") }.to raise_error("Aren't you working on that task already?")
+        expect { @cli.run_command!("resume", "some task") }.to raise_error("Aren't you working on that task already?")
       end
       it "bails if the given task hasn't been started yet" do
         task1 = Factory(:task, :project => @project, :name => "some task", :state => "created")
-        expect { @cli.resume("some task") }.to raise_error("You can't resume a task that you haven't started yet!")
+        expect { @cli.run_command!("resume", "some task") }.to raise_error("You can't resume a task that you haven't started yet!")
       end
       it "auto-pauses any task that's already running before resuming the given paused task" do
         task1 = Factory(:task, :project => @project, :name => "some task", :state => "paused")
         task2 = Factory(:task, :project => @project, :name => "another task", :created_at => Time.local(2010, 1, 1, 0, 0, 0), :state => "running")
         paused_at = Time.local(2010, 1, 1, 3, 29, 0)
         Timecop.freeze(paused_at) do
-          @cli.resume("some task")
+          @cli.run_command!("resume", "some task")
         end
         task2.reload
         task2.must be_paused
@@ -508,7 +491,7 @@ describe TimeTracker::Cli do
         task2 = Factory(:task, :project => @project, :name => "another task", :created_at => Time.local(2010, 1, 1, 0, 0, 0), :state => "running")
         paused_at = Time.local(2010, 1, 1, 3, 29, 0)
         Timecop.freeze(paused_at) do
-          @cli.resume("some task")
+          @cli.run_command!("resume", "some task")
         end
         task2.reload
         task2.must be_paused
@@ -518,43 +501,43 @@ describe TimeTracker::Cli do
     context "given a number" do
       it "bails if no project has been set yet" do
         TimeTracker.config.update("current_project_id", nil)
-        expect { @cli.resume("1") }.to raise_error("Try switching to a project first.")
+        expect { @cli.run_command!("resume", "1") }.to raise_error("Try switching to a project first.")
       end
       it "bails if no tasks exist at all" do
-        expect { @cli.resume("1") }.to raise_error("It doesn't look like you've started any tasks yet.")
+        expect { @cli.run_command!("resume", "1") }.to raise_error("It doesn't look like you've started any tasks yet.")
       end
       it "resumes the given paused task" do
         task1 = Factory(:task, :project => @project, :name => "some task", :number => "1", :state => "paused")
-        @cli.resume("1")
+        @cli.run_command!("resume", "1")
         task1.reload
         task1.must be_running
         stdout.must == %{Resumed clock for "some task".\n}
       end
       it "resumes the given stopped task" do
         task1 = Factory(:task, :project => @project, :name => "some task", :number => "1", :state => "stopped")
-        @cli.resume("1")
+        @cli.run_command!("resume", "1")
         task1.reload
         task1.must be_running
         stdout.must == %{Resumed clock for "some task".\n}
       end
       it "bails if the given task can't be found" do
         Factory(:task, :project => @project)
-        expect { @cli.resume("2") }.to raise_error("I don't think that task exists.")
+        expect { @cli.run_command!("resume", "2") }.to raise_error("I don't think that task exists.")
       end
       it "bails if the given task is already running" do
         task1 = Factory(:task, :project => @project, :number => "1", :state => "running")
-        expect { @cli.resume("1") }.to raise_error("Aren't you working on that task already?")
+        expect { @cli.run_command!("resume", "1") }.to raise_error("Aren't you working on that task already?")
       end
       it "bails if the given task hasn't been started yet" do
         task1 = Factory(:task, :project => @project, :number => "1", :state => "created")
-        expect { @cli.resume("1") }.to raise_error("You can't resume a task that you haven't started yet!")
+        expect { @cli.run_command!("resume", "1") }.to raise_error("You can't resume a task that you haven't started yet!")
       end
       it "auto-switches to another project if given paused task is present there" do
         project1 = Factory(:project, :name => "some project")
         task = Factory(:task, :project => project1, :name => "some task", :number => "1", :state => "paused")
         project2 = Factory(:project, :name => "another project")
         TimeTracker.config.update("current_project_id", project2.id.to_s)
-        @cli.resume("1")
+        @cli.run_command!("resume", "1")
         TimeTracker.config["current_project_id"].must == project1.id.to_s
         stdout.must == %{(Switching to project "some project".)\nResumed clock for "some task".\n}
       end
@@ -563,7 +546,7 @@ describe TimeTracker::Cli do
         task = Factory(:task, :project => project1, :name => "some task", :number => "1", :state => "stopped")
         project2 = Factory(:project, :name => "another project")
         TimeTracker.config.update("current_project_id", project2.id.to_s)
-        @cli.resume("1")
+        @cli.run_command!("resume", "1")
         TimeTracker.config["current_project_id"].must == project1.id.to_s
         stdout.must == %{(Switching to project "some project".)\nResumed clock for "some task".\n}
       end
@@ -575,7 +558,7 @@ describe TimeTracker::Cli do
         TimeTracker.config.update("current_project_id", project2.id.to_s)
         stopped_at = Time.local(2010, 1, 1, 3, 29, 0)
         Timecop.freeze(stopped_at) do
-          @cli.resume("1")
+          @cli.run_command!("resume", "1")
         end
         task2.reload
         task2.must be_paused
@@ -589,7 +572,7 @@ describe TimeTracker::Cli do
         TimeTracker.config.update("current_project_id", project2.id.to_s)
         stopped_at = Time.local(2010, 1, 1, 3, 29, 0)
         Timecop.freeze(stopped_at) do
-          @cli.resume("1")
+          @cli.run_command!("resume", "1")
         end
         task2.reload
         task2.must be_paused
@@ -600,7 +583,7 @@ describe TimeTracker::Cli do
         task2 = Factory(:task, :project => @project, :name => "another task", :number => "2", :created_at => Time.local(2010, 1, 1, 0, 0, 0), :state => "running")
         stopped_at = Time.local(2010, 1, 1, 3, 29, 0)
         Timecop.freeze(stopped_at) do
-          @cli.resume("1")
+          @cli.run_command!("resume", "1")
         end
         task2.reload
         task2.must be_paused
@@ -611,7 +594,7 @@ describe TimeTracker::Cli do
         task2 = Factory(:task, :project => @project, :name => "another task", :number => "2", :created_at => Time.local(2010, 1, 1, 0, 0, 0), :state => "running")
         stopped_at = Time.local(2010, 1, 1, 3, 29, 0)
         Timecop.freeze(stopped_at) do
-          @cli.resume("1")
+          @cli.run_command!("resume", "1")
         end
         task2.reload
         task2.must be_paused
@@ -627,7 +610,7 @@ describe TimeTracker::Cli do
     end
     it "bails if no project has been set yet" do
       TimeTracker.config.update("current_project_id", nil)
-      expect { @cli.upvote("some task") }.to raise_error("Try switching to a project first.")
+      expect { @cli.run_command!("upvote", "some task") }.to raise_error("Try switching to a project first.")
     end
     it "bails if no name given" do
       expect { @cli.upvote }.to raise_error("Yes, but which task do you want to upvote? (I'll accept a number or a name.)")
@@ -635,59 +618,59 @@ describe TimeTracker::Cli do
     context "given a string" do
       it "increments the number of votes for the task on each call" do
         task = Factory(:task, :project => @project, :name => "some task", :num_votes => 3)
-        @cli.upvote("some task")
+        @cli.run_command!("upvote", "some task")
         task.reload
         task.num_votes.must == 4
         stdout.lines.last.must == %{This task now has 4 votes.}
       
-        @cli.upvote("some task")
+        @cli.run_command!("upvote", "some task")
         task.reload
         task.num_votes.must == 5
         stdout.lines.last.must == %{This task now has 5 votes.}
       end
       it "bails if the task can't be found" do
-        expect { @cli.upvote("some task") }.to raise_error("I don't think that task exists.")
+        expect { @cli.run_command!("upvote", "some task") }.to raise_error("I don't think that task exists.")
       end
       it "bails if the task is running" do
         Factory(:task, :project => @project, :name => "some task", :state => "running")
-        expect { @cli.upvote("some task") }.to raise_error("There isn't any point in upvoting a task you're already working on.")
+        expect { @cli.run_command!("upvote", "some task") }.to raise_error("There isn't any point in upvoting a task you're already working on.")
       end
       it "bails if the task is stopped" do
         Factory(:task, :project => @project, :name => "some task", :state => "stopped")
-        expect { @cli.upvote("some task") }.to raise_error("There isn't any point in upvoting a task you've already completed.")
+        expect { @cli.run_command!("upvote", "some task") }.to raise_error("There isn't any point in upvoting a task you've already completed.")
       end
       it "bails if the task is paused" do
         Factory(:task, :project => @project, :name => "some task", :state => "paused")
-        expect { @cli.upvote("some task") }.to raise_error("There isn't any point in upvoting a task you're already working on.")
+        expect { @cli.run_command!("upvote", "some task") }.to raise_error("There isn't any point in upvoting a task you're already working on.")
       end
     end
     context "given a number" do
       it "increments the number of votes for the task on each call" do
         task = Factory(:task, :project => @project, :number => 1, :num_votes => 3)
-        @cli.upvote("1")
+        @cli.run_command!("upvote", "1")
         task.reload
         task.num_votes.must == 4
         stdout.lines.last.must == %{This task now has 4 votes.}
       
-        @cli.upvote("1")
+        @cli.run_command!("upvote", "1")
         task.reload
         task.num_votes.must == 5
         stdout.lines.last.must == %{This task now has 5 votes.}
       end
       it "bails if the task can't be found" do
-        expect { @cli.upvote("1") }.to raise_error("I don't think that task exists.")
+        expect { @cli.run_command!("upvote", "1") }.to raise_error("I don't think that task exists.")
       end
       it "bails if the task is running" do
         Factory(:task, :project => @project, :number => 1, :state => "running")
-        expect { @cli.upvote("1") }.to raise_error("There isn't any point in upvoting a task you're already working on.")
+        expect { @cli.run_command!("upvote", "1") }.to raise_error("There isn't any point in upvoting a task you're already working on.")
       end
       it "bails if the task is stopped" do
         Factory(:task, :project => @project, :number => 1, :state => "stopped")
-        expect { @cli.upvote("1") }.to raise_error("There isn't any point in upvoting a task you've already completed.")
+        expect { @cli.run_command!("upvote", "1") }.to raise_error("There isn't any point in upvoting a task you've already completed.")
       end
       it "bails if the task is paused" do
         Factory(:task, :project => @project, :number => 1, :state => "paused")
-        expect { @cli.upvote("1") }.to raise_error("There isn't any point in upvoting a task you're already working on.")
+        expect { @cli.run_command!("upvote", "1") }.to raise_error("There isn't any point in upvoting a task you're already working on.")
       end
     end
   end
@@ -732,7 +715,7 @@ describe TimeTracker::Cli do
           :state => "running",
           :last_started_at => Time.zone.local(2010, 1, 3, 15, 15)
         )
-        @cli.list(*@args)
+        @cli.run_command!("list", *@args)
         stdout.lines.must smart_match([
           "",
           "Latest tasks:",
@@ -786,7 +769,7 @@ describe TimeTracker::Cli do
           :started_at => Time.zone.local(2010, 1, 3, 15, 15),
           :ended_at   => Time.zone.local(2010, 1, 3, 20, 20)
         )
-        @cli.list(*@args)
+        @cli.run_command!("list", *@args)
         stdout.lines.must smart_match([
           "",
           "Latest tasks:",
@@ -818,7 +801,7 @@ describe TimeTracker::Cli do
           :name => "another task",
           :state => "created"
         )
-        @cli.list(*@args)
+        @cli.run_command!("list", *@args)
         stdout.lines.must smart_match([
           "",
           "Latest tasks:",
@@ -828,7 +811,7 @@ describe TimeTracker::Cli do
         ])
       end
       it "prints a notice message if no tasks are in the database" do
-        @cli.list(*@args)
+        @cli.run_command!("list", *@args)
         stdout.must == "It doesn't look like you've started any tasks yet.\n"
       end
     end
@@ -877,7 +860,7 @@ describe TimeTracker::Cli do
           :name => "yet another task", 
           :state => "running"
         )
-        @cli.list("completed")
+        @cli.run_command!("list", "completed")
         stdout.lines.must smart_match([
           "",
           "Completed tasks:",
@@ -895,7 +878,7 @@ describe TimeTracker::Cli do
         ])
       end
       it "prints a notice message if no tasks are in the database" do
-        @cli.list("completed")
+        @cli.run_command!("list", "completed")
         stdout.must == "It doesn't look like you've started any tasks yet.\n"
       end
     end
@@ -965,7 +948,7 @@ describe TimeTracker::Cli do
           :state => "running",
           :last_started_at => Time.zone.local(2010, 1, 5, 6, 6)
         )
-        @cli.list("all")
+        @cli.run_command!("list", "all")
         stdout.lines.must smart_match([
           "",
           "All tasks:",
@@ -1013,7 +996,7 @@ describe TimeTracker::Cli do
           :name => "another task",
           :state => "created"
         )
-        @cli.list("all")
+        @cli.run_command!("list", "all")
         stdout.lines.must smart_match([
           "",
           "All tasks:",
@@ -1024,7 +1007,7 @@ describe TimeTracker::Cli do
         ])
       end
       it "prints a notice message if no tasks are in the database" do
-        @cli.list("all")
+        @cli.run_command!("list", "all")
         stdout.must == "It doesn't look like you've started any tasks yet.\n"
       end
     end
@@ -1076,7 +1059,7 @@ describe TimeTracker::Cli do
           :started_at => Time.zone.local(2010, 1, 2, 8, 8),
           :ended_at   => Time.zone.local(2010, 1, 2, 13, 13)
         )
-        @cli.list("today")
+        @cli.run_command!("list", "today")
         stdout.lines.must smart_match([
           "",
           "Today's tasks:",
@@ -1089,7 +1072,7 @@ describe TimeTracker::Cli do
         ])
       end
       it "prints a notice message if no tasks are in the database" do
-        @cli.list("today")
+        @cli.run_command!("list", "today")
         stdout.must == "It doesn't look like you've started any tasks yet.\n"
       end
     end
@@ -1138,7 +1121,7 @@ describe TimeTracker::Cli do
           :state => "running",
           :last_started_at => Time.zone.local(2010, 8, 5, 3, 3)
         )
-        @cli.list("this week")
+        @cli.run_command!("list", "this week")
         stdout.lines.must smart_match([
           "",
           "This week's tasks:",
@@ -1164,13 +1147,13 @@ describe TimeTracker::Cli do
         ])
       end
       it "prints a notice message if no tasks are in the database" do
-        @cli.list("this week")
+        @cli.run_command!("list", "this week")
         stdout.must == "It doesn't look like you've started any tasks yet.\n"
       end
     end
     context "unknown command" do
       it "fails with an ArgumentError" do
-        expect { @cli.list("yourmom") }.to raise_error(ArgumentError)
+        expect { @cli.run_command!("list", "yourmom") }.to raise_error(ArgumentError)
       end
     end
   end
@@ -1207,7 +1190,7 @@ describe TimeTracker::Cli do
         :state => "running"
       )
       Factory(:time_period, :task => task3)
-      @cli.search("foo")
+      @cli.run_command!("search", "foo")
       stdout.lines.must smart_match([
         "Search results:",
         '[#21] project 2222 / foosball table (*) (last active: 1/21/2010)',
@@ -1242,7 +1225,7 @@ describe TimeTracker::Cli do
         :state => "running"
       )
       Factory(:time_period, :task => task3)
-      @cli.search("foo", "pelosi")
+      @cli.run_command!("search", "foo", "pelosi")
       stdout.lines.must smart_match([
         "Search results:",
         '[#21] project 2222 / foosball table   (last active: 1/21/2010)',
