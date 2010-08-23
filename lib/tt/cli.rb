@@ -1,5 +1,7 @@
 module TimeTracker
   class Cli < Commander
+    include TimeTracker::Cli::Repl
+    
     WRONG_ANSWERS = [
       %{What's that, now?},
       %{Say that again?},
@@ -23,14 +25,6 @@ module TimeTracker
     
     REPL_REGEX = /(?:^|[ ])(?:"([^"]+)"|'([^']+)'|([^ ]+))/
     
-    def execute!
-      if @argv.reject {|a| a =~ /^-/ }.empty?
-        start_repl
-      else
-        super
-      end
-    end
-    
     cmd :add, :args => "{task|project} NAME", :desc => "Adds a task or a project."
     def add(what, name=nil)
       case what
@@ -44,8 +38,7 @@ module TimeTracker
         end
       when "task"
         raise Error, "Right, but what do you want to call the new task?" unless name
-        curr_proj = TimeTracker::Project.find(TimeTracker.config["current_project_id"])
-        raise Error, "Try switching to a project first." unless curr_proj
+        curr_proj = get_current_project()
         if existing_task = curr_proj.tasks.find_by_name(name)
           if existing_task.created?
             raise Error, "It looks like you've already added that task. Perhaps you'd like to upvote it instead?"
@@ -65,21 +58,11 @@ module TimeTracker
       raise Error, "Right, but which project do you want to switch to?" unless project_name
       proj = TimeTracker::Project.first(:name => project_name)
       unless proj
-        keep_prompting "I can't find this project. Did you want to create it? (y/n)" do |answer|
-          case answer
-          when /^y(es)?$/i
-            proj = TimeTracker::Project.create!(:name => project_name)
-            true
-          when /^n(o)?$/i
-            stdout.puts %{Okay, never mind then.}
-            raise Abort
-          else
-            print_wrong_answer
-            false
-          end
+        proj = yes_or_no "I can't find this project. Did you want to create it? (y/n)" do
+          TimeTracker::Project.create!(:name => project_name)
         end
       end
-      if curr_proj = TimeTracker::Project.find(TimeTracker.config["current_project_id"]) and
+      if curr_proj = TimeTracker.current_project and
       running_task = curr_proj.tasks.last_running
         running_task.pause!
         stdout.puts %{(Pausing clock for "#{running_task.name}", at #{running_task.total_running_time}.)}
@@ -95,28 +78,15 @@ module TimeTracker
     cmd :start, :args => "TASK", :desc => "Creates a new task, and starts the clock for it."
     def start(task_name=nil)
       raise Error, "Right, but which task do you want to start?" unless task_name
-      curr_proj = TimeTracker::Project.find(TimeTracker.config["current_project_id"])
-      raise Error, "Try switching to a project first." unless curr_proj
+      curr_proj = get_current_project()
       if task = curr_proj.tasks.not_stopped.first(:name => task_name)
-        if task.paused?
-          raise Error, "Aren't you still working on that task?"
-        elsif task.running?
-          raise Error, "Aren't you already working on that task?"
+        if message = task.invalid_message_for_transition_to("start")
+          raise Error, message
         end
       end
       unless task
-        keep_prompting "I can't find this task. Did you want to create it? (y/n)" do |answer|
-          case answer
-          when /^y(es)?$/i
-            task = curr_proj.tasks.build(:name => task_name)
-            true
-          when /^n(o)?$/i
-            stdout.puts %{Okay, never mind then.}
-            raise Abort
-          else
-            print_wrong_answer
-            false
-          end
+        task = yes_or_no "I can't find this task. Did you want to create it? (y/n)" do
+          curr_proj.tasks.build(:name => task_name)
         end
       end
       if running_task = curr_proj.tasks.last_running
@@ -128,31 +98,14 @@ module TimeTracker
     end
     
     cmd :stop, :args => "[TASK]", :desc => "Stops the clock for a task, or the last task if no task given"
-    def stop(task_name=:last)
-      curr_proj = TimeTracker::Project.find TimeTracker.config["current_project_id"]
-      raise Error, "Try switching to a project first." unless curr_proj
+    def stop(arg=:last)
+      curr_proj = get_current_project()
       raise Error, "It doesn't look like you've started any tasks yet." if curr_proj.tasks.empty?
-      if task_name == :last
+      if arg == :last
         task = curr_proj.tasks.last_running
         raise Error, "It doesn't look like you're working on anything at the moment." unless task
-      elsif task_name =~ /^\d+$/
-        if task = curr_proj.tasks.first(:number => task_name.to_i)
-          raise Error, "I think you've stopped that task already." if task.stopped?
-          raise Error, "You can't stop a task without starting it first!" if task.created?
-        else
-          raise Error, "I don't think that task exists."
-        end
       else
-        matching_tasks = curr_proj.tasks.where(:name => task_name).sort(:created_at.desc).to_a
-        if matching_tasks.any?
-          unless task = matching_tasks.find(&:running?)
-            task = matching_tasks.first
-            raise Error, "I think you've stopped that task already." if task.stopped?
-            raise Error, "You can't stop a task without starting it first!" if task.created?
-          end
-        else
-          raise Error, "I don't think that task exists."
-        end
+        task = find_task(arg, "stop")
       end
       was_paused = task.paused?
       task.stop!
@@ -168,54 +121,20 @@ module TimeTracker
     end
     
     cmd :resume, :args => "[TASK]", :desc => "Resumes the clock for a task, or the last task if no task given"
-    def resume(task_name=nil)
-      raise Error, "Yes, but which task do you want to resume? (I'll accept a number or a name.)" unless task_name
-      curr_proj = TimeTracker::Project.find TimeTracker.config["current_project_id"]
-      raise Error, "Try switching to a project first." unless curr_proj
+    def resume(arg=nil)
+      raise Error, "Yes, but which task do you want to resume? (I'll accept a number or a name.)" unless arg
+      curr_proj = get_current_project()
       raise Error, "It doesn't look like you've started any tasks yet." unless TimeTracker::Task.exists?
       already_paused = false
-      if task_name =~ /^\d+$/
-        if task = TimeTracker::Task.first(:number => task_name.to_i)
-          raise Error, "Aren't you working on that task already?" if task.running?
-          raise Error, "You can't resume a task that you haven't started yet!" if task.created?
-          if task.project_id != curr_proj.id
-            if running_task = curr_proj.tasks.last_running
-              running_task.pause!
-              stdout.puts %{(Pausing clock for "#{running_task.name}", at #{running_task.total_running_time}.)}
-              already_paused = true
-            end
-            curr_proj = task.project
-            TimeTracker.config.update("current_project_id", curr_proj.id.to_s)
-            stdout.puts %{(Switching to project "#{curr_proj.name}".)}
-          end
-        else
-          raise Error, "I don't think that task exists."
-        end
-      else
-        matching_tasks = curr_proj.tasks.where(:name => task_name).sort(:created_at.desc).to_a
-        if matching_tasks.any?
-          unless task = matching_tasks.find {|task| task.stopped? || task.paused? }
-            task = matching_tasks.first
-            raise Error, "Aren't you working on that task already?" if task.running?
-            raise Error, "You can't resume a task that you haven't started yet!" if task.created?
-          end
-        else
-          tasks = TimeTracker::Task.where(:state => %w(stopped paused), :name => task_name, :project_id.ne => curr_proj.id)
-          if tasks.any?
-            # Might be better to do this w/ native Ruby driver
-            # See <http://groups.google.com/group/mongomapper/browse_thread/thread/1a5a5b548123e07e/0c65f3e770e04f29>
-            projects = tasks.map(&:project).uniq.
-                       map {|p| %{"#{p.name}"} }.
-                       to_sentence(:two_words_connector => " or ", :last_word_connector => ", or ")
-            raise Error, "That task doesn't exist here. Perhaps you meant to switch to #{projects}?"
-          else
-            raise Error, "I don't think that task exists." 
-          end
-        end
-      end
-      if running_task = curr_proj.tasks.last_running and !already_paused
+      task = find_task(arg, "resume")
+      if running_task = curr_proj.tasks.last_running
         running_task.pause!
         stdout.puts %{(Pausing clock for "#{running_task.name}", at #{running_task.total_running_time}.)}
+      end
+      if task.project_id != curr_proj.id
+        curr_proj = task.project
+        TimeTracker.config.update("current_project_id", curr_proj.id.to_s)
+        stdout.puts %{(Switching to project "#{curr_proj.name}".)}
       end
       task.resume!
       stdout.puts %{Resumed clock for "#{task.name}".}
@@ -224,13 +143,9 @@ module TimeTracker
     cmd :upvote, :args => "[TASK]", :desc => "Records the number of times you've been asked to do a certain task."
     def upvote(task_name=nil)
       raise Error, "Yes, but which task do you want to upvote? (I'll accept a number or a name.)" unless task_name
-      curr_proj = TimeTracker::Project.find TimeTracker.config["current_project_id"]
-      raise Error, "Try switching to a project first." unless curr_proj
+      curr_proj = get_current_project()
       if task_name =~ /^\d+$/
-        if task = curr_proj.tasks.first(:number => task_name.to_i)
-          raise Error, "There isn't any point in upvoting a task you're already working on." if task.running? || task.paused?
-          raise Error, "There isn't any point in upvoting a task you've already completed."  if task.stopped?
-        else
+        unless task = curr_proj.tasks.first(:number => task_name.to_i)
           raise Error, "I don't think that task exists."
         end
       else
@@ -238,12 +153,16 @@ module TimeTracker
         if matching_tasks.any?
           unless task = matching_tasks.find(&:created?)
             task = matching_tasks.first
-            raise Error, "There isn't any point in upvoting a task you're already working on." if task.running? || task.paused?
-            raise Error, "There isn't any point in upvoting a task you've already completed."  if task.stopped?
           end
         else
           raise Error, "I don't think that task exists."
         end
+      end
+      if task.running? || task.paused?
+        raise Error, "There isn't any point in upvoting a task you're already working on."
+      end
+      if task.stopped?
+        raise Error, "There isn't any point in upvoting a task you've already completed."
       end
       task.upvote!
       stdout.puts %{This task now has #{task.num_votes} votes.\n}
@@ -297,7 +216,6 @@ module TimeTracker
       group_by_date = (type != "lastfew" && type != "today")
       include_day = (
         type == "lastfew" &&
-        #!group_by_date &&
         records.grep(TimeTracker::TimePeriod).any? {|record| record.started_at.to_date != record.ended_at.to_date }
       )
       reverse = (type != "this week")
@@ -313,10 +231,6 @@ module TimeTracker
           :where_date => (lambda {|date| date == Date.today } if type == "today")
         )
       end
-      #pp :alignments => alignments,
-      #   :info_arrays => info_arrays,
-      #   :group_by_date => group_by_date,
-      #   :include_day => include_day
       columnator = Columnator.new(info_arrays, :alignments => alignments)
       unless include_day
         columnator.each_row = lambda do |data, block|
@@ -335,7 +249,6 @@ module TimeTracker
         end
       end
       columnated_rows = columnator.columnate
-      #pp :columnated_rows => columnated_rows
       
       stdout.puts
       stdout.puts(header)
@@ -376,7 +289,7 @@ module TimeTracker
       stdout.puts "Search results:"
       rows = tasks.map {|task| task.info_for_search }
       alignments = [:none, :right, :none, :none, :left, :none, :left, :none, :none, :right]
-      lines = Columnator.columnate(rows, :alignments => alignments, :write_to => :array)
+      lines = Columnator.columnate(rows, :alignments => alignments)
       for line in lines
         stdout.puts(line)
       end
@@ -392,68 +305,61 @@ module TimeTracker
     end
     
   private
-    def within_repl?
-      @within_repl
-    end
-  
-    def start_repl
-      @within_repl = true
-      require 'readline'
-      require 'term/ansicolor'
-      stdout.puts "Welcome to TimeTracker."
-      if curr_proj = TimeTracker::Project.find(TimeTracker.config["current_project_id"])
-        stdout.puts %{You're currently in the "#{curr_proj.name}" project.}
+    # Override method in Commander
+    def handle_command_error(e)
+      if $RUNNING_TESTS == :units
+        raise(e)
+      else
+        stderr.puts(e.message)
+        exit 1 unless within_repl?
       end
-      stdout.puts "What would you like to do?"
-      load_history
-      stdout.sync = true
-      loop do
-        begin
-          stdout.print Color.bold + Color.yellow
-          #stdout.print "> "
-          #line = stdin.gets.chomp
-          line = Readline.readline("> ")
-          stdout.print Color.clear
-          #stdout.puts "ok"
-          end_repl if line =~ /^(exit|quit|q)$/
-          Readline::HISTORY << line
-          Readline::HISTORY.unshift if Readline::HISTORY.size > 100
-          args = line.scan(REPL_REGEX).map {|a| a.compact.first }
-          start(args)
-        rescue Interrupt => e
-          stdout.print Color.clear
-          stdout.puts 'Type "exit", "quit", or "q" to quit.'
-          #end_repl(true)
-        rescue Exception => e
-          raise(e)
+    end
+    
+    def get_current_project
+      curr_proj = TimeTracker.current_project
+      raise Error, "Try switching to a project first." unless curr_proj
+      curr_proj
+    end
+    
+    def find_task(arg, next_event)
+      # Note that we look in other projects only for resume, since it's impossible
+      # to have started a task we want to stop without that task being in the same
+      # project that we are in right now (since switching to another project
+      # would have stopped it automatically anyway)
+      
+      curr_proj = TimeTracker.current_project
+      event = TimeTracker::Task.state_machine.events[next_event]
+      if arg =~ /^\d+$/
+        tasks = (next_event == "resume" ? TimeTracker::Task : curr_proj.tasks)
+        unless task = tasks.first(:number => arg.to_i)
+          raise Error, "I don't think that task exists."
+        end
+      else
+        matching_tasks = curr_proj.tasks.where(:name => arg).sort(:created_at.desc).to_a
+        if matching_tasks.any?
+          unless task = matching_tasks.find {|task| event.allowed_previous_states.include?(task.state) }
+            task = matching_tasks.first
+          end
+        elsif next_event != "resume"
+          raise Error, "I don't think that task exists." 
+        else
+          tasks = TimeTracker::Task.where(:state => event.allowed_previous_states, :name => arg, :project_id.ne => curr_proj.id)
+          if tasks.any?
+            # Might be better to do this w/ native Ruby driver
+            # See <http://groups.google.com/group/mongomapper/browse_thread/thread/1a5a5b548123e07e/0c65f3e770e04f29>
+            projects = tasks.map(&:project).uniq.
+                       map {|p| %{"#{p.name}"} }.
+                       to_sentence(:two_words_connector => " or ", :last_word_connector => ", or ")
+            raise Error, "That task doesn't exist here. Perhaps you meant to switch to #{projects}?"
+          else
+            raise Error, "I don't think that task exists." 
+          end
         end
       end
-    end
-    
-    def end_repl(interrupted=false)
-      stdout.puts if interrupted
-      stdout.puts "Thanks for playing!"
-      save_history
-      exit
-    end
-    
-    def history_file
-      File.join(ENV["HOME"], ".tt_history")
-    end
-    
-    def load_history
-      #puts "Loading history..."
-      File.open(history_file, "r") do |f|
-        f.each {|line| Readline::HISTORY << line }
+      if message = event.invalid_message_for_transition_from(task.state)
+        raise Error, message
       end
-    rescue Errno::ENOENT
-    end
-    
-    def save_history
-      #puts "Saving history..."
-      File.open(history_file, "w") do |f|
-        Readline::HISTORY.each {|line| f.puts(line) }
-      end
+      return task
     end
   
     def print_wrong_answer
@@ -472,6 +378,7 @@ module TimeTracker
       end
       stdout.print(msg)
       stdout.flush
+      ret = nil
       loop do
         if $RUNNING_TESTS == :integration && Ribeye.debug?
           $orig_stdout.puts "Reading stdin in child..."
@@ -480,7 +387,23 @@ module TimeTracker
         if $RUNNING_TESTS == :integration && Ribeye.debug?
           $orig_stdout.puts "Answer: #{answer.inspect}"
         end
-        yield(answer) && break
+        ret = yield(answer) and break
+      end
+      ret
+    end
+    
+    def yes_or_no(msg, &block)
+      keep_prompting(msg) do |answer|
+        case answer
+        when /^y(es)?$/i
+          yield
+        when /^n(o)?$/i
+          stdout.puts %{Okay, never mind then.}
+          raise Abort
+        else
+          print_wrong_answer
+          false
+        end
       end
     end
   end

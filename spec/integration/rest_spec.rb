@@ -4,7 +4,7 @@ feature "The rest" do
   
   scenario "Running a non-existent command" do
     tt 'foo'
-    output.lines.must include(%{Oops! "foo" isn't a valid command. Try one of these instead:})
+    output.lines.must include(%{Oops! "foo" isn't a command. Try one of these instead:})
   end
   
 end

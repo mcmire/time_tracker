@@ -32,17 +32,28 @@ module TimeTracker
     before_create :set_number, :unless => :number?
     before_create :copy_created_at_to_last_started_at, :unless => :last_started_at?
     
-    state_machine :initial => :created do
+    state_machine do
+      initial_state :created
       event :start do
         sets_state :running
-        transitions_from :created
+        transitions do
+          allows :created
+          disallows \
+            :paused => "Aren't you still working on that task?",
+            :running => "Aren't you already working on that task?"
+        end
         runs_callback :before_save do |task|
           task.last_started_at = Time.zone.now
         end
       end
       event :stop do
         sets_state :stopped
-        transitions_from :running, :paused
+        transitions do
+          allows :running, :paused
+          disallows \
+            :stopped => "I think you've stopped that task already.",
+            :created => "You can't stop a task without starting it first!"
+        end
         runs_callback :after_save do |task|
           unless task.state_was == "paused"
             task.time_periods.create!(:started_at => task.last_started_at, :ended_at => Time.zone.now)
@@ -51,14 +62,21 @@ module TimeTracker
       end
       event :pause do
         sets_state :paused
-        transitions_from :running
+        transitions do
+          allows :running
+        end
         runs_callback :after_save do |task|
           task.time_periods.create!(:started_at => task.last_started_at, :ended_at => Time.zone.now)
         end
       end
       event :resume do
         sets_state :running
-        transitions_from :paused, :stopped
+        transitions do
+          allows :paused, :stopped
+          disallows \
+            :created => "You can't resume a task that you haven't started yet!",
+            :running => "Aren't you working on that task already?"
+        end
         runs_callback :before_save do |task|
           task.last_started_at = Time.zone.now
         end

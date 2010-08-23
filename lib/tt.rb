@@ -7,6 +7,7 @@ require 'tt/extensions/term_ansicolor'
 require 'tt/columnator'
 
 require 'tt/commander'
+require 'tt/cli/repl'
 require 'tt/cli'
 require 'tt/config'
 require 'tt/project'
@@ -24,6 +25,10 @@ module TimeTracker
     
     def reload_config
       @config = TimeTracker::Config.find()
+    end
+    
+    def current_project
+      TimeTracker::Project.find(TimeTracker.config["current_project_id"])
     end
   end
 end

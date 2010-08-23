@@ -167,7 +167,7 @@ module IntegrationExampleMethods
       args = parse_args(args)
       execute_command do
         time3 = Time.now_without_mock_time
-        TimeTracker::Cli.start(args)
+        TimeTracker::Cli.execute(:argv => args, :program_name => "tt")
         time4 = Time.now_without_mock_time
         diff2 = time4 - time3
         #puts "Took: #{diff2} seconds"

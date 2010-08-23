@@ -440,7 +440,7 @@ describe TimeTracker::Cli do
         TimeTracker.config.update("current_project_id", project3.id.to_s)
         expect { @cli.run_command!("resume", "some task") }.to raise_error(%{That task doesn't exist here. Perhaps you meant to switch to "some project" or "another project"?})
       end
-      it "discounts created tasks when searching for other projects for a found paused task" do
+      it "ignores created tasks when listing other projects our paused task might be in" do
         project1 = Factory(:project, :name => "some project")
         Factory(:task, :project => project1, :name => "some task", :state => "created")
         project2 = Factory(:project, :name => "another project")
@@ -458,7 +458,7 @@ describe TimeTracker::Cli do
         TimeTracker.config.update("current_project_id", project3.id.to_s)
         expect { @cli.run_command!("resume", "some task") }.to raise_error(%{That task doesn't exist here. Perhaps you meant to switch to "some project" or "another project"?})
       end
-      it "discounts created tasks when searching for other projects for a found stopped task" do
+      it "ignores created tasks when listing other projects our stopped task might be in" do
         project1 = Factory(:project, :name => "some project")
         Factory(:task, :project => project1, :name => "some task", :state => "created")
         project2 = Factory(:project, :name => "another project")
@@ -1152,8 +1152,8 @@ describe TimeTracker::Cli do
       end
     end
     context "unknown command" do
-      it "fails with an ArgumentError" do
-        expect { @cli.run_command!("list", "yourmom") }.to raise_error(ArgumentError)
+      it "fails with an InvalidInvocationError" do
+        expect { @cli.run_command!("list", "yourmom") }.to raise_error(TimeTracker::Commander::InvalidInvocationError)
       end
     end
   end

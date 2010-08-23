@@ -15,18 +15,32 @@ describe TimeTracker::Commander do
       @metaclass.command(:foo)
       @metaclass.commands.must include("foo")
     end
-    it "also stores an argument string if that was given" do
+    it "also stores an argument string if that's given" do
       @metaclass.command(:foo, :args => "BAR")
-      @metaclass.commands["foo"].must == {:args => "BAR"}
+      info = @metaclass.commands["foo"]
+      info[:args].must == "BAR"
     end
-    it "also stores a description if that was given" do
+    it "also stores a description if that's given" do
       @metaclass.command(:foo, :args => "BAR", :desc => "This command does something")
-      @metaclass.commands["foo"].must == {:args => "BAR", :desc => "This command does something"}
+      info = @metaclass.commands["foo"]
+      info[:args].must == "BAR"
+      info[:desc].must == "This command does something"
     end
     it "also works if you don't supply an argument string" do
       @metaclass.command(:foo, :desc => "This command does something")
-      @metaclass.commands["foo"].must == {:desc => "This command does something"}
+      info = @metaclass.commands["foo"]
+      info[:desc].must == "This command does something"
     end
+    #it "stores a list of subcommands if that's given" do
+    #  @metaclass.command(:foo, :subcommands => %w(foo bar baz))
+    #  info = @metaclass.commands["foo"]
+    #  info[:subcommands].must == %w(foo bar baz)
+    #end
+    #it "sets @args to a joined list of subcommands if those are given and :args isn't" do
+    #  @metaclass.command(:foo, :subcommands => %w(foo bar baz))
+    #  info = @metaclass.commands["foo"]
+    #  info[:args] = "{foo|bar|baz}"
+    #end
   end
   
   describe '.command_list' do
@@ -147,6 +161,15 @@ describe TimeTracker::Commander do
       e = rescuing(TimeTracker::Commander::Error) { cli.execute! }
       e.message.must == %{Oops! That isn't the right way to call "foo". Try this instead: program foo BAR}
     end
+    #it "bails if method wasn't called with the right subcommand" do
+    #  @subclass.class_eval do
+    #    command :foo, :subcommands => %w(bar baz quux), :desc => "Does the foo"
+    #    def foo(subcommand); end
+    #  end
+    #  cli = @subclass.new(:program_name => "program", :argv => ["foo", "zing"])
+    #  e = rescuing(TimeTracker::Commander::Error) { cli.execute! }
+    #  e.message.must == %/Oops! That isn't the right way to call "foo". Try this instead: program foo {bar|baz|quux}/
+    #end
     it "bails if method wasn't marked as a command" do
       @subclass.class_eval do
         def foo(one, two); end

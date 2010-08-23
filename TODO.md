@@ -18,14 +18,14 @@
   top of the terminal window and then if the user runs, say, `tt list`
   and the list is really long, the user doesn't lose their place
   * ncurses
-    * http://raggle.org/about/
-    * http://github.com/laurynasl/rubyrogue
-    * http://github.com/zdennis/ncurses_examples
-  * nfoiled: http://github.com/elliottcable/nfoiled
-    * http://github.com/elliottcable/rat
-  * termbox: http://github.com/nsf/termbox - wish there were a ruby interface!
-  * luck: http://github.com/danopia/luck - I like!!
-    * http://github.com/danopia/remora
+    * <http://raggle.org/about/>
+    * <http://github.com/laurynasl/rubyrogue>
+    * <http://github.com/zdennis/ncurses_examples>
+  * nfoiled: <http://github.com/elliottcable/nfoiled>
+    * <http://github.com/elliottcable/rat>
+  * termbox: <http://github.com/nsf/termbox> - wish there were a ruby interface!
+  * luck: <http://github.com/danopia/luck> - I like!!
+    * <http://github.com/danopia/remora>
 * Pipe listings to less
 
 * Feature: Pause (put on hold, hold, suspend) a task manually?
