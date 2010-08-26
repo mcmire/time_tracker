@@ -33,8 +33,16 @@ module TimeTracker
       @doc[key] = value
     end
     
-    def update(key, value)
+    def update_one(key, value)
       self[key] = value
+      save
+    end
+    alias :update :update_one
+    
+    def update_many(attrs)
+      attrs.each do |key, value|
+        self[key] = value
+      end
       save
     end
   end

@@ -1,4 +1,4 @@
 require 'bundler'
 Bundler.setup
 
-require 'ribeye/tasks/cli'
+require 'ribeye/cli/tasks'

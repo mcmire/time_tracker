@@ -1235,4 +1235,55 @@ describe TimeTracker::Cli do
     end
   end
   
+  describe '#configure' do
+    before do
+      TimeTracker.pivotal_tracker = nil
+    end
+    it "allows the user to set an API key and password for Pivotal Tracker" do
+      stdin.sneak("y\nxxxx\n")
+      (resp = stub!).code { 200 }
+      stub(Net::HTTP).start { resp }
+      @cli.run_command!("configure")
+      TimeTracker.pivotal_tracker.must_not be_nil
+      TimeTracker.reload_config
+      TimeTracker.config["integration"].must == "pivotal_tracker"
+      TimeTracker.config["pt_api_key"].must == "xxxx"
+    end
+    it "bails if the credentials are incorrect" do
+      stdin.sneak("y\nxxxx\n")
+      (resp = stub!).code { 500 }
+      stub(Net::HTTP).start { resp }
+      @cli.run_command!("configure")
+      TimeTracker.pivotal_tracker.must be_nil
+      TimeTracker.reload_config
+      TimeTracker.config["integration"].must be_nil
+      TimeTracker.config["pt_api_key"].must be_nil
+    end
+    it "aborts if the user doesn't want to integrate with Pivotal Tracker" do
+      stdin.sneak("n\n")
+      @cli.run_command!("configure")
+      TimeTracker.pivotal_tracker.must be_nil
+      TimeTracker.reload_config
+      TimeTracker.config["integration"].must be_nil
+      TimeTracker.config["pt_api_key"].must be_nil
+    end
+    it "bails if projects already exist" do
+      Factory(:project)
+      stdin.sneak("y\n")
+      @cli.run_command!("configure")
+      TimeTracker.reload_config
+      TimeTracker.config["integration"].must be_nil
+      TimeTracker.config["pt_api_key"].must be_nil
+    end
+    it "bails if tasks already exist" do
+      project = Factory(:project)
+      Factory(:task, :project => project)
+      stdin.sneak("y\n")
+      @cli.run_command!("configure")
+      TimeTracker.reload_config
+      TimeTracker.config["integration"].must be_nil
+      TimeTracker.config["pt_api_key"].must be_nil
+    end
+  end
+  
 end

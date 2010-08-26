@@ -116,6 +116,10 @@ describe TimeTracker::Commander do
       @commander = TimeTracker::Commander.new
       @commander.stderr.must == $stderr
     end
+    it "inits @highline to a new Highline object" do
+      @commander = TimeTracker::Commander.new
+      @commander.highline.must be_a(::HighLine)
+    end
   end
   
   describe '#execute!' do

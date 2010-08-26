@@ -3,24 +3,10 @@ module TimeTracker
     include TimeTracker::Cli::Repl
     
     WRONG_ANSWERS = [
-      %{What's that, now?},
-      %{Say that again?},
-      %{I'm sorry, I don't understand you.},
-      %{It's a "yes or no" question.},
-      %{Seriously?},
-      %{Oh, I get it, it's a game.},
-      %{Well two can play at this one.},
-      %{What's the capital of Nebraska?},
-      %{Bzzt! Wrong! It's lakflskjaf.},
-      %{I mean, everyone knows that.},
-      %{Hey, I've an idea. Don't say "yes" or "no".},
-      %{Ah ah! Simon didn't say.},
-      %{Right then, something else...},
-      %{Shh. I'm still thinking.},
-      %{..},
-      %{......},
-      %{Okay, I've got it. There once was a man from France...},
-      %{Oh, you've heard this one. Well I give up then!}
+      "I'm sorry, I didn't understand you. Try that again: ",
+      "I'm not sure what you mean. Try again: ",
+      "Okay, but that's not a valid answer. Again? ",
+      "Must be the static. Let's try that again: "
     ]
     
     REPL_REGEX = /(?:^|[ ])(?:"([^"]+)"|'([^']+)'|([^ ]+))/
@@ -295,6 +281,42 @@ module TimeTracker
       end
     end
     
+    cmd :configure, :desc => "Configures tt"
+    def configure
+      yes_or_no "Do you want to sync projects and tasks with Pivotal Tracker? (y/n) " do
+        if TimeTracker::Project.exists? || TimeTracker::Task.exists?
+          stderr.puts "Actually -- you can't do that if you've already created a project or task. Sorry."
+          raise Abort
+        end
+        keep_prompting "What's your API key?" do |answer|
+          if answer.blank?
+            print_wrong_answer
+            false
+          else
+            require 'pivotal_tracker'
+            pt = PivotalTracker.new(answer)
+            # let's test it out
+            resp = Net::HTTP.start("pivotaltracker.com", 80) do |http|
+              http.head("/services/v3/activities?limit=1", "X-TrackerToken" => answer)
+            end
+            if resp.code == "200"
+              stdout.puts "Great, you're all set up to use tt with Pivotal Tracker now!"
+              TimeTracker.pivotal_tracker = pt
+              TimeTracker.config.update_many(
+                "integration" => "pivotal_tracker",
+                "pt_api_key" => answer
+              )
+              true
+            else
+              stderr.print "Hmm, I'm not able to connect using that key. Try that again: "
+              stderr.flush
+              false
+            end
+          end
+        end
+      end
+    end
+    
     cmd :clear, :desc => "Clears everything"
     def clear
       TimeTracker::Project.delete_all
@@ -305,6 +327,10 @@ module TimeTracker
     end
     
   private
+    def debug_stdout
+      $RUNNING_TESTS == :integration ? $orig_stdout : stdout
+    end
+  
     # Override method in Commander
     def handle_command_error(e)
       if $RUNNING_TESTS == :units
@@ -365,28 +391,33 @@ module TimeTracker
     def print_wrong_answer
       answer = WRONG_ANSWERS[@wrong_answer_index]
       stderr.print(answer + " ")
-      raise Abort if @wrong_answer_index == WRONG_ANSWERS.size - 1
+      stderr.flush
     ensure
       @wrong_answer_index += 1
+      @wrong_answer_index %= WRONG_ANSWERS.size
     end
     
     def keep_prompting(msg)
       msg += " " unless msg =~ /[ ]$/
       @wrong_answer_index = 0
-      if $RUNNING_TESTS == :integration && Ribeye.debug?
-        $orig_stdout.puts "Writing to stdout in child..."
-      end
+      debug_stdout.puts "Writing to stdout in child..." if Ribeye.debug?
       stdout.print(msg)
       stdout.flush
       ret = nil
+      num_blank_answers = 0
       loop do
-        if $RUNNING_TESTS == :integration && Ribeye.debug?
-          $orig_stdout.puts "Reading stdin in child..."
-        end
+        debug_stdout.puts "Reading stdin in child..." if Ribeye.debug?
         answer = stdin.gets.to_s.strip
-        if $RUNNING_TESTS == :integration && Ribeye.debug?
-          $orig_stdout.puts "Answer: #{answer.inspect}"
-        end
+        debug_stdout.puts "Answer: #{answer.inspect}" if Ribeye.debug?
+        #if answer.blank?
+        #  print_wrong_answer
+        #  num_blank_answers += 1
+        #  if num_blank_answers == 2
+        #    stderr.puts "Okay, never mind then."
+        #    raise Abort
+        #  end
+        #  next
+        #end
         ret = yield(answer) and break
       end
       ret

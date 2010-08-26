@@ -16,7 +16,7 @@ require 'tt/time_period'
 
 module TimeTracker
   class << self
-    attr_accessor :current_project
+    attr_accessor :current_project, :pivotal_tracker
     
     def config
       # TODO: Maybe this should not be stored in the db, but just in memory or in /tmp

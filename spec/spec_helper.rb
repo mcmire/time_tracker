@@ -30,7 +30,6 @@ $:.unshift(lib_dir)
   $USE_TEST_DB = true
   
   class UnitsExampleGroup < Spec::ExampleGroup; end
-  
   Spec::Example::ExampleGroupFactory.register(:units, UnitsExampleGroup)
   Spec::Runner.configure do |c|
     c.before(:each, :type => :units) do
@@ -61,6 +60,7 @@ $:.unshift(lib_dir)
   require 'tt'
   
   require 'factory_girl'
+  Factory.find_definitions
   
   Spec::Runner.configuration.before(:each) do
     TimeTracker.reload_config

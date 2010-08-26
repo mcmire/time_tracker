@@ -1,3 +1,5 @@
+require 'highline'
+
 module TimeTracker
   class Commander
     class Error < StandardError; end
@@ -37,7 +39,7 @@ module TimeTracker
       end
     end
     
-    attr_reader :program_name, :argv, :stdin, :stdout, :stderr, :current_command
+    attr_reader :program_name, :argv, :stdin, :stdout, :stderr, :highline, :current_command
     
     def initialize(options={})
       @program_name = options[:program_name] || $0
@@ -45,6 +47,7 @@ module TimeTracker
       @stdin = options[:stdin] || $stdin
       @stdout = options[:stdout] || $stdout
       @stderr = options[:stderr] || $stderr
+      @highline = ::HighLine.new(@stdin, @stdout)
     end
     
     def execute!
