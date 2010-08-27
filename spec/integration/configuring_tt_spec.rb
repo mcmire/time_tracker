@@ -3,7 +3,7 @@ require File.expand_path(File.dirname(__FILE__) + '/spec_helper')
 feature "Configuring TimeTracker" do
   
   scenario "Enabling Pivotal Tracker integration" do
-    stub_request(:head, "pivotaltracker.com/services/v3/activities?limit=1").
+    stub_request(:head, "www.pivotaltracker.com/services/v3/activities?limit=1").
       with(:headers => {'Accept' => '*/*', "X-TrackerToken" => "xxxx"})
     tt "configure"
     stdout.readpartial(1024).must == %{Do you want to sync projects and tasks with Pivotal Tracker? (y/n) }
@@ -14,11 +14,11 @@ feature "Configuring TimeTracker" do
   end
   
   scenario "Enabling Pivotal Tracker integration with wrong credentials" do
-    stub_request(:head, "pivotaltracker.com/services/v3/activities?limit=1").
+    stub_request(:head, "www.pivotaltracker.com/services/v3/activities?limit=1").
       with(:headers => {'Accept' => '*/*', "X-TrackerToken" => "xxxx"}).
       to_return(:status => 500)
       
-    stub_request(:head, "pivotaltracker.com/services/v3/activities?limit=1").
+    stub_request(:head, "www.pivotaltracker.com/services/v3/activities?limit=1").
       with(:headers => {'Accept' => '*/*', "X-TrackerToken" => "yyyy"}).
       to_return(:status => 200)
       

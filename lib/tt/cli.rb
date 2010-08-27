@@ -296,7 +296,7 @@ module TimeTracker
             require 'pivotal_tracker'
             pt = PivotalTracker.new(answer)
             # let's test it out
-            resp = Net::HTTP.start("pivotaltracker.com", 80) do |http|
+            resp = Net::HTTP.start("www.pivotaltracker.com", 80) do |http|
               http.head("/services/v3/activities?limit=1", "X-TrackerToken" => answer)
             end
             if resp.code == "200"
