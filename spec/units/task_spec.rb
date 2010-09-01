@@ -23,10 +23,19 @@ describe TimeTracker::Task do
       Factory(:task, :last_started_at => time).last_started_at.must == time
     end
     it "sets state to 'created' by default" do
-      Factory(:task).state.must == "created"
+      Factory(:task).state.must == "unstarted"
     end
     it "sets num_votes to 1 by default" do
       Factory(:task).num_votes.must == 1
+    end
+    it "adds the task to whichever external service is selected and saves the external id" do
+      project = Factory(:project)
+      @service = Object.new
+      stub(TimeTracker).external_service { @service }
+      stub(@task = Object.new).id { 5 }
+      mock(@service).add_task(project, "some task") { @task }
+      task = Factory(:task, :name => "some task", :project => project)
+      task.external_id.must == 5
     end
   end
   
@@ -44,6 +53,20 @@ describe TimeTracker::Task do
       task.save!
       task.reload
       task.last_started_at == last_started_at
+    end
+    it "hits the external service to ensure the task still exists" do
+      task = Factory(:task, :external_id => 1)
+      mock(@service = Object.new).check_task_exists!(1)
+      stub(TimeTracker).external_service { @service }
+      task.save!
+    end
+    it "bails if the task doesn't exist in the external service" do
+      task = Factory(:task, :external_id => 1)
+      mock(@service = Object.new).check_task_exists!(1) do
+        raise TimeTracker::Service::ResourceNotFoundError.new(nil, nil)
+      end
+      stub(TimeTracker).external_service { @service }
+      expect { task.save! }.to raise_error(TimeTracker::Service::ResourceNotFoundError)
     end
   end
   
@@ -128,14 +151,14 @@ describe TimeTracker::Task do
     end
   end
   
-  describe '#created?' do
-    it "returns true if state is set to 'created'" do
-      @task.state = "created"
-      @task.must be_created
+  describe '#unstarted?' do
+    it "returns true if state is set to 'unstarted'" do
+      @task.state = "unstarted"
+      @task.must be_unstarted
     end
-    it "returns false if state is not set to 'created'" do
+    it "returns false if state is not set to 'unstarted'" do
       @task.state = "running"
-      @task.must_not be_created
+      @task.must_not be_unstarted
     end
   end
     
@@ -176,12 +199,12 @@ describe TimeTracker::Task do
     it "sets last_started_at to the current time" do
       time = Time.zone.local(2010)
       Timecop.freeze(time)
-      task = Factory.build(:task, :state => "created")
+      task = Factory.build(:task, :state => "unstarted")
       task.start!
       task.last_started_at.must == time
     end
     it "sets the state to running and saves" do
-      task = Factory.build(:task, :state => "created")
+      task = Factory.build(:task, :state => "unstarted")
       task.start!
       task.state.must == "running"
       task.must_not be_a_new_record

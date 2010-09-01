@@ -20,6 +20,18 @@ describe TimeTracker::Cli do
   
   describe '#add' do
     context "with 'project' argument" do
+      context "integration with Pivotal Tracker" do
+        before do
+          @service = Object.new
+          stub(TimeTracker).external_service { @service }
+          stub(@project = Object.new).id { 5 }
+        end
+        it "pulls the latest projects from Pivotal Tracker" do
+          mock(@service).pull_projects
+          stub(@service).add_project { @project }
+          @cli.run_command!("add", "project", "some project")
+        end
+      end
       it "creates a new project" do
         @cli.run_command!("add", "project", "some project")
         TimeTracker::Project.count.must == 1
@@ -39,6 +51,18 @@ describe TimeTracker::Cli do
         TimeTracker.config.update("current_project_id", @project.id.to_s)
         @time = Time.zone.local(2010)
       end
+      context "integration with Pivotal Tracker" do
+        before do
+          @service = Object.new
+          stub(TimeTracker).external_service { @service }
+          stub(@task = Object.new).id { 5 }
+        end
+        it "pulls the latest tasks from Pivotal Tracker" do
+          mock(@service).pull_tasks(@project)
+          stub(@service).add_task { @task }
+          @cli.run_command!("add", "task", "some task")
+        end
+      end
       it "creates a new task in the current project" do
         Timecop.freeze(@time) do
           @cli.run_command!("add", "task", "some task")
@@ -52,7 +76,7 @@ describe TimeTracker::Cli do
       end
       context "if a task by the given name already exists" do
         it "bails if the task hasn't been started yet" do
-          @project.tasks.create!(:name => "some task", :state => "created")
+          @project.tasks.create!(:name => "some task", :state => "unstarted")
           expect { @cli.run_command!("add", "task", "some task") }.to
             raise_error("It looks like you've already added that task. Perhaps you'd like to upvote it instead?")
         end
@@ -81,6 +105,27 @@ describe TimeTracker::Cli do
   end
   
   describe '#switch' do
+    context "integration with Pivotal Tracker" do
+      before do
+        @service = Object.new
+        stub(TimeTracker).external_service { @service }
+        stub(@project = Object.new).id { 5 }
+        stub(@service).pull_projects
+        stub(@service).add_project { @project }
+      end
+      it "pulls the latest projects from Pivotal Tracker" do
+        mock(@service).pull_projects
+        stdin.sneak("y\n")
+        @cli.run_command!("switch", "some project")
+      end
+      it "also pulls the latest tasks in the current project, if one is set, from Pivotal Tracker" do
+        curr_proj = Factory(:project)
+        stub(TimeTracker).current_project { curr_proj }
+        mock(@service).pull_tasks(curr_proj)
+        stdin.sneak("y\n")
+        @cli.run_command!("switch", "some project")
+      end
+    end
     it "finds the given project and sets the current one to that" do
       project = Factory(:project, :name => "some project")
       @cli.run_command!("switch", "some project")
@@ -143,9 +188,22 @@ describe TimeTracker::Cli do
       TimeTracker.config.update("current_project_id", nil)
       expect { @cli.run_command!("start", "some task") }.to raise_error("Try switching to a project first.")
     end
+    context "integration with Pivotal Tracker" do
+      before do
+        @service = Object.new
+        stub(TimeTracker).external_service { @service }
+        stub(@task = Object.new).id { 5 }
+        stub(@service).add_task { @task }
+      end
+      it "pulls the latest tasks in the current project from Pivotal Tracker" do
+        mock(@service).pull_tasks(@project)
+        stdin.sneak("y\n")
+        @cli.run_command!("start", "some task")
+      end
+    end
     context "when a task exists with the same name under the current project" do
       it "starts the clock for the task if it hasn't been started yet" do
-        task = Factory(:task, :project => @project, :name => "some task", :state => "created")
+        task = Factory(:task, :project => @project, :name => "some task", :state => "unstarted")
         Timecop.freeze(@time) do
           @cli.run_command!("start", "some task")
         end
@@ -229,6 +287,21 @@ describe TimeTracker::Cli do
         TimeTracker.config.update("current_project_id", nil)
         expect { @cli.stop }.to raise_error("Try switching to a project first.")
       end
+      context "integration with Pivotal Tracker" do
+        before do
+          Factory(:task, :project => @project, :state => "running")
+          @service = Object.new
+          stub(TimeTracker).external_service { @service }
+          stub(@task = Object.new).id { 5 }
+          stub(@service).add_task { @task }
+          stub(@service).check_task_exists!
+        end
+        it "pulls the latest tasks in the current project from Pivotal Tracker" do
+          mock(@service).pull_tasks(@project)
+          stdin.sneak("y\n")
+          @cli.run_command!("stop")
+        end
+      end
       it "bails if no tasks have been created under this project yet" do
         expect { @cli.stop }.to raise_error("It doesn't look like you've started any tasks yet.")
       end
@@ -252,7 +325,7 @@ describe TimeTracker::Cli do
         expect { @cli.stop }.to raise_error("It doesn't look like you're working on anything at the moment.")
       end
       it "bails if none of the tasks under this project have been started yet" do
-        Factory(:task, :project => @project, :state => "created")
+        Factory(:task, :project => @project, :state => "unstarted")
         expect { @cli.stop }.to raise_error("It doesn't look like you're working on anything at the moment.")
       end
       it "auto-resumes the last task under this project that was paused" do
@@ -274,6 +347,20 @@ describe TimeTracker::Cli do
       it "bails if no project has been set yet" do
         TimeTracker.config.update("current_project_id", nil)
         expect { @cli.run_command!("stop", "some task") }.to raise_error("Try switching to a project first.")
+      end
+      context "integration with Pivotal Tracker" do
+        before do
+          Factory(:task, :project => @project, :name => "some task", :state => "running")
+          @service = Object.new
+          stub(TimeTracker).external_service { @service }
+          stub(@task = Object.new).id { 5 }
+          stub(@service).add_task { @task }
+          stub(@service).check_task_exists!
+        end
+        it "pulls the latest tasks in the current project from Pivotal Tracker" do
+          mock(@service).pull_tasks(@project)
+          @cli.run_command!("stop", "some task")
+        end
       end
       it "bails if no tasks have been created under this project yet" do
         expect { @cli.run_command!("stop", "some task") }.to raise_error("It doesn't look like you've started any tasks yet.")
@@ -318,7 +405,7 @@ describe TimeTracker::Cli do
         stdout.must == %{Stopped clock for "some task".\n}
       end
       it "bails if the given task is merely created" do
-        task1 = Factory(:task, :project => @project, :name => "some task", :state => "created")
+        task1 = Factory(:task, :project => @project, :name => "some task", :state => "unstarted")
         expect { @cli.run_command!("stop", "some task") }.to raise_error("You can't stop a task without starting it first!")
       end
       it "auto-resumes the last task under this project that was paused" do
@@ -337,6 +424,20 @@ describe TimeTracker::Cli do
       it "bails if no project has been set yet" do
         TimeTracker.config.update("current_project_id", nil)
         expect { @cli.run_command!("stop", "1") }.to raise_error("Try switching to a project first.")
+      end
+      context "integration with Pivotal Tracker" do
+        before do
+          Factory(:task, :project => @project, :number => "1", :state => "running")
+          @service = Object.new
+          stub(TimeTracker).external_service { @service }
+          stub(@task = Object.new).id { 5 }
+          stub(@service).add_task { @task }
+          stub(@service).check_task_exists!
+        end
+        it "pulls the latest tasks in the current project from Pivotal Tracker" do
+          mock(@service).pull_tasks(@project)
+          @cli.run_command!("stop", "1")
+        end
       end
       it "bails if no tasks have been created under this project yet" do
         expect { @cli.run_command!("stop", "1") }.to raise_error("It doesn't look like you've started any tasks yet.")
@@ -368,7 +469,7 @@ describe TimeTracker::Cli do
         stdout.must == %{Stopped clock for "some task".\n}
       end
       it "bails if the given task is merely created" do
-        task1 = Factory(:task, :project => @project, :name => "some task", :state => "created")
+        task1 = Factory(:task, :project => @project, :name => "some task", :state => "unstarted")
         expect { @cli.run_command!("stop", "1") }.to raise_error("You can't stop a task without starting it first!")
       end
       it "auto-resumes the last task under this project that was paused" do
@@ -399,6 +500,18 @@ describe TimeTracker::Cli do
       it "bails if no project has been set yet" do
         TimeTracker.config.update("current_project_id", nil)
         expect { @cli.run_command!("resume", "some task") }.to raise_error("Try switching to a project first.")
+      end
+      context "integration with Pivotal Tracker" do
+        before do
+          Factory(:task, :project => @project, :name => "some task", :state => "paused")
+          @service = Object.new
+          stub(TimeTracker).external_service { @service }
+          stub(@service).check_task_exists!
+        end
+        it "pulls the latest tasks in the current project from Pivotal Tracker" do
+          mock(@service).pull_tasks(@project)
+          @cli.run_command!("resume", "some task")
+        end
       end
       it "bails if no tasks exist at all" do
         expect { @cli.run_command!("resume", "some task") }.to raise_error("It doesn't look like you've started any tasks yet.")
@@ -442,7 +555,7 @@ describe TimeTracker::Cli do
       end
       it "ignores created tasks when listing other projects our paused task might be in" do
         project1 = Factory(:project, :name => "some project")
-        Factory(:task, :project => project1, :name => "some task", :state => "created")
+        Factory(:task, :project => project1, :name => "some task", :state => "unstarted")
         project2 = Factory(:project, :name => "another project")
         Factory(:task, :project => project2, :name => "some task", :state => "paused")
         project3 = Factory(:project, :name => "a different project")
@@ -460,7 +573,7 @@ describe TimeTracker::Cli do
       end
       it "ignores created tasks when listing other projects our stopped task might be in" do
         project1 = Factory(:project, :name => "some project")
-        Factory(:task, :project => project1, :name => "some task", :state => "created")
+        Factory(:task, :project => project1, :name => "some task", :state => "unstarted")
         project2 = Factory(:project, :name => "another project")
         Factory(:task, :project => project2, :name => "some task", :state => "stopped")
         project3 = Factory(:project, :name => "a different project")
@@ -472,7 +585,7 @@ describe TimeTracker::Cli do
         expect { @cli.run_command!("resume", "some task") }.to raise_error("Aren't you working on that task already?")
       end
       it "bails if the given task hasn't been started yet" do
-        task1 = Factory(:task, :project => @project, :name => "some task", :state => "created")
+        task1 = Factory(:task, :project => @project, :name => "some task", :state => "unstarted")
         expect { @cli.run_command!("resume", "some task") }.to raise_error("You can't resume a task that you haven't started yet!")
       end
       it "auto-pauses any task that's already running before resuming the given paused task" do
@@ -503,6 +616,18 @@ describe TimeTracker::Cli do
         TimeTracker.config.update("current_project_id", nil)
         expect { @cli.run_command!("resume", "1") }.to raise_error("Try switching to a project first.")
       end
+      context "integration with Pivotal Tracker" do
+        before do
+          Factory(:task, :project => @project, :number => "1", :state => "paused")
+          @service = Object.new
+          stub(TimeTracker).external_service { @service }
+          stub(@service).check_task_exists!
+        end
+        it "pulls the latest tasks in the current project from Pivotal Tracker" do
+          mock(@service).pull_tasks(@project)
+          @cli.run_command!("resume", "1")
+        end
+      end
       it "bails if no tasks exist at all" do
         expect { @cli.run_command!("resume", "1") }.to raise_error("It doesn't look like you've started any tasks yet.")
       end
@@ -529,7 +654,7 @@ describe TimeTracker::Cli do
         expect { @cli.run_command!("resume", "1") }.to raise_error("Aren't you working on that task already?")
       end
       it "bails if the given task hasn't been started yet" do
-        task1 = Factory(:task, :project => @project, :number => "1", :state => "created")
+        task1 = Factory(:task, :project => @project, :number => "1", :state => "unstarted")
         expect { @cli.run_command!("resume", "1") }.to raise_error("You can't resume a task that you haven't started yet!")
       end
       it "auto-switches to another project if given paused task is present there" do
@@ -608,14 +733,27 @@ describe TimeTracker::Cli do
       @project = Factory(:project, :name => "some project")
       TimeTracker.config.update("current_project_id", @project.id.to_s)
     end
-    it "bails if no project has been set yet" do
-      TimeTracker.config.update("current_project_id", nil)
-      expect { @cli.run_command!("upvote", "some task") }.to raise_error("Try switching to a project first.")
-    end
     it "bails if no name given" do
       expect { @cli.upvote }.to raise_error("Yes, but which task do you want to upvote? (I'll accept a number or a name.)")
     end
     context "given a string" do
+      it "bails if no project has been set yet" do
+        Factory(:task, :project => @project, :name => "some task", :num_votes => 3)
+        TimeTracker.config.update("current_project_id", nil)
+        expect { @cli.run_command!("upvote", "some task") }.to raise_error("Try switching to a project first.")
+      end
+      context "integration with Pivotal Tracker" do
+        before do
+          Factory(:task, :project => @project, :name => "some task", :num_votes => 3)
+          @service = Object.new
+          stub(TimeTracker).external_service { @service }
+          stub(@service).check_task_exists!
+        end
+        it "pulls the latest tasks in the current project from Pivotal Tracker" do
+          mock(@service).pull_tasks(@project)
+          @cli.run_command!("upvote", "some task")
+        end
+      end
       it "increments the number of votes for the task on each call" do
         task = Factory(:task, :project => @project, :name => "some task", :num_votes => 3)
         @cli.run_command!("upvote", "some task")
@@ -645,6 +783,23 @@ describe TimeTracker::Cli do
       end
     end
     context "given a number" do
+      it "bails if no project has been set yet" do
+        Factory(:task, :project => @project, :number => 1, :num_votes => 3)
+        TimeTracker.config.update("current_project_id", nil)
+        expect { @cli.run_command!("upvote", "1") }.to raise_error("Try switching to a project first.")
+      end
+      context "integration with Pivotal Tracker" do
+        before do
+          Factory(:task, :project => @project, :number => 1, :num_votes => 3)
+          @service = Object.new
+          stub(TimeTracker).external_service { @service }
+          stub(@service).check_task_exists!
+        end
+        it "pulls the latest tasks in the current project from Pivotal Tracker" do
+          mock(@service).pull_tasks(@project)
+          @cli.run_command!("upvote", "1")
+        end
+      end
       it "increments the number of votes for the task on each call" do
         task = Factory(:task, :project => @project, :number => 1, :num_votes => 3)
         @cli.run_command!("upvote", "1")
@@ -799,7 +954,7 @@ describe TimeTracker::Cli do
           :number => "1",
           :project => project1,
           :name => "another task",
-          :state => "created"
+          :state => "unstarted"
         )
         @cli.run_command!("list", *@args)
         stdout.lines.must smart_match([
@@ -813,6 +968,16 @@ describe TimeTracker::Cli do
       it "prints a notice message if no tasks are in the database" do
         @cli.run_command!("list", *@args)
         stdout.must == "It doesn't look like you've started any tasks yet.\n"
+      end
+      context "Pivotal Tracker integration" do
+        it "pulls the latest tasks from the API" do
+          task = Factory(:task)
+          Factory(:time_period, :task => task)
+          @service = Object.new
+          stub(TimeTracker).external_service { @service }
+          mock(@service).pull_tasks
+          @cli.run_command!("list", *@args)
+        end
       end
     end
     context "lastfew" do
@@ -880,6 +1045,16 @@ describe TimeTracker::Cli do
       it "prints a notice message if no tasks are in the database" do
         @cli.run_command!("list", "completed")
         stdout.must == "It doesn't look like you've started any tasks yet.\n"
+      end
+      context "Pivotal Tracker integration" do
+        it "pulls the latest tasks from the API" do
+          task = Factory(:task, :state => "stopped")
+          Factory(:time_period, :task => task)
+          @service = Object.new
+          stub(TimeTracker).external_service { @service }
+          mock(@service).pull_tasks
+          @cli.run_command!("list", "completed")
+        end
       end
     end
     context "all" do
@@ -994,7 +1169,7 @@ describe TimeTracker::Cli do
           :number => "1",
           :project => project1,
           :name => "another task",
-          :state => "created"
+          :state => "unstarted"
         )
         @cli.run_command!("list", "all")
         stdout.lines.must smart_match([
@@ -1010,10 +1185,22 @@ describe TimeTracker::Cli do
         @cli.run_command!("list", "all")
         stdout.must == "It doesn't look like you've started any tasks yet.\n"
       end
+      context "Pivotal Tracker integration" do
+        it "pulls the latest tasks from the API" do
+          task = Factory(:task, :state => "stopped")
+          Factory(:time_period, :task => task)
+          @service = Object.new
+          stub(TimeTracker).external_service { @service }
+          mock(@service).pull_tasks
+          @cli.run_command!("list", "all")
+        end
+      end
     end
     context "today" do
-      it "prints a list of time periods that ended today, ordered by ended_at" do
+      before do
         Timecop.freeze Time.zone.local(2010, 1, 2)
+      end
+      it "prints a list of time periods that ended today, ordered by ended_at" do
         project1 = Factory(:project, :name => "some project")
         project2 = Factory(:project, :name => "another project")
         task1 = Factory(:task,
@@ -1075,10 +1262,26 @@ describe TimeTracker::Cli do
         @cli.run_command!("list", "today")
         stdout.must == "It doesn't look like you've started any tasks yet.\n"
       end
+      context "Pivotal Tracker integration" do
+        it "pulls the latest tasks from the API" do
+          task = Factory(:task, :state => "stopped")
+          Factory(:time_period,
+            :task => task,
+            :started_at => Time.zone.local(2010, 1, 2),
+            :ended_at => Time.zone.local(2010, 1, 2)
+          )
+          @service = Object.new
+          stub(TimeTracker).external_service { @service }
+          mock(@service).pull_tasks
+          @cli.run_command!("list", "today")
+        end
+      end
     end
     context "this week" do
-      it "prints a list of tasks updated this week, ordered by last updated time" do
+      before do
         Timecop.freeze Time.zone.local(2010, 8, 5)
+      end
+      it "prints a list of tasks updated this week, ordered by last updated time" do
         project1 = Factory(:project, :name => "some project")
         project2 = Factory(:project, :name => "another project")
         task1 = Factory(:task,
@@ -1149,6 +1352,20 @@ describe TimeTracker::Cli do
       it "prints a notice message if no tasks are in the database" do
         @cli.run_command!("list", "this week")
         stdout.must == "It doesn't look like you've started any tasks yet.\n"
+      end
+      context "Pivotal Tracker integration" do
+        it "pulls the latest tasks from the API" do
+          task = Factory(:task, :state => "stopped")
+          Factory(:time_period,
+            :task => task,
+            :started_at => Time.zone.local(2010, 8, 5),
+            :ended_at => Time.zone.local(2010, 8, 5)
+          )
+          @service = Object.new
+          stub(TimeTracker).external_service { @service }
+          mock(@service).pull_tasks
+          @cli.run_command!("list", "this week")
+        end
       end
     end
     context "unknown command" do
@@ -1233,56 +1450,70 @@ describe TimeTracker::Cli do
         '[ #1] project 1    / foo bar baz      (last active:  1/1/2010)'
       ])
     end
+    # TODO: show a different message if no search results found
+    context "Pivotal Tracker integration" do
+      it "pulls the latest tasks from the API" do
+        Factory(:task, :name => "foosball table")
+        @service = Object.new
+        stub(TimeTracker).external_service { @service }
+        mock(@service).pull_tasks
+        @cli.run_command!("search", "foo")
+      end
+    end
   end
   
   describe '#configure' do
     before do
-      TimeTracker.pivotal_tracker = nil
+      TimeTracker.external_service = nil
     end
     it "allows the user to set an API key and password for Pivotal Tracker" do
       stdin.sneak("y\nxxxx\n")
-      (resp = stub!).code { 200 }
-      stub(Net::HTTP).start { resp }
+      stub.proxy(TimeTracker::Service::PivotalTracker).new do |service|
+        stub(service).valid? { true }
+      end
       @cli.run_command!("configure")
-      TimeTracker.pivotal_tracker.must_not be_nil
+      TimeTracker.external_service.must be_a(TimeTracker::Service::PivotalTracker)
       TimeTracker.reload_config
-      TimeTracker.config["integration"].must == "pivotal_tracker"
-      TimeTracker.config["pt_api_key"].must == "xxxx"
+      TimeTracker.config["external_service"].must == "pivotal_tracker"
+      TimeTracker.config["external_service_options"].must == {"api_key" => "xxxx"}
     end
     it "bails if the credentials are incorrect" do
-      stdin.sneak("y\nxxxx\n")
-      (resp = stub!).code { 500 }
-      stub(Net::HTTP).start { resp }
+      stdin.sneak("y\nxxxx\nyyyy")
+      stub.proxy(TimeTracker::Service::PivotalTracker).new(:api_key => "xxxx") do |service|
+        stub(service).valid? { false }
+      end
       @cli.run_command!("configure")
-      TimeTracker.pivotal_tracker.must be_nil
+      TimeTracker.external_service.must be_nil
       TimeTracker.reload_config
-      TimeTracker.config["integration"].must be_nil
-      TimeTracker.config["pt_api_key"].must be_nil
+      TimeTracker.config["external_service"].must be_nil
+      TimeTracker.config["external_service_options"].must be_nil
     end
     it "aborts if the user doesn't want to integrate with Pivotal Tracker" do
       stdin.sneak("n\n")
       @cli.run_command!("configure")
-      TimeTracker.pivotal_tracker.must be_nil
+      TimeTracker.external_service.must be_nil
       TimeTracker.reload_config
-      TimeTracker.config["integration"].must be_nil
-      TimeTracker.config["pt_api_key"].must be_nil
+      TimeTracker.config["external_service"].must be_nil
+      TimeTracker.config["external_service_options"].must be_nil
     end
     it "bails if projects already exist" do
       Factory(:project)
       stdin.sneak("y\n")
       @cli.run_command!("configure")
+      TimeTracker.external_service.must be_nil
       TimeTracker.reload_config
-      TimeTracker.config["integration"].must be_nil
-      TimeTracker.config["pt_api_key"].must be_nil
+      TimeTracker.config["external_service"].must be_nil
+      TimeTracker.config["external_service_options"].must be_nil
     end
     it "bails if tasks already exist" do
       project = Factory(:project)
       Factory(:task, :project => project)
       stdin.sneak("y\n")
       @cli.run_command!("configure")
+      TimeTracker.external_service.must be_nil
       TimeTracker.reload_config
-      TimeTracker.config["integration"].must be_nil
-      TimeTracker.config["pt_api_key"].must be_nil
+      TimeTracker.config["external_service"].must be_nil
+      TimeTracker.config["external_service_options"].must be_nil
     end
   end
   

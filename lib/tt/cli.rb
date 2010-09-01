@@ -2,11 +2,15 @@ module TimeTracker
   class Cli < Commander
     include TimeTracker::Cli::Repl
     
+    def self.ribeye_debug?
+      defined?(Ribeye) && Ribeye.respond_to?(:debug) && Ribeye.debug?
+    end
+    
     WRONG_ANSWERS = [
-      "I'm sorry, I didn't understand you. Try that again: ",
-      "I'm not sure what you mean. Try again: ",
-      "Okay, but that's not a valid answer. Again? ",
-      "Must be the static. Let's try that again: "
+      "I'm sorry, I didn't understand you. Try that again:",
+      "I'm not sure what you mean. Try again:",
+      "Okay, but that's not a valid answer. Again?",
+      "Must be the static. Let's try that again:"
     ]
     
     REPL_REGEX = /(?:^|[ ])(?:"([^"]+)"|'([^']+)'|([^ ]+))/
@@ -16,6 +20,7 @@ module TimeTracker
       case what
       when "project"
         raise Error, "Right, but what do you want to call the new project?" unless name
+        TimeTracker.external_service.andand.pull_projects
         if project = TimeTracker::Project.first(:name => name)
           raise Error, "It looks like this project already exists."
         else
@@ -25,8 +30,9 @@ module TimeTracker
       when "task"
         raise Error, "Right, but what do you want to call the new task?" unless name
         curr_proj = get_current_project()
+        TimeTracker.external_service.andand.pull_tasks(curr_proj)
         if existing_task = curr_proj.tasks.find_by_name(name)
-          if existing_task.created?
+          if existing_task.unstarted?
             raise Error, "It looks like you've already added that task. Perhaps you'd like to upvote it instead?"
           elsif existing_task.paused?
             raise Error, "Aren't you still working on that task?"
@@ -42,20 +48,23 @@ module TimeTracker
     cmd :switch, :args => "PROJECT", :desc => "Switches to a certain project. The project is created if it does not already exist."
     def switch(project_name=nil)
       raise Error, "Right, but which project do you want to switch to?" unless project_name
-      proj = TimeTracker::Project.first(:name => project_name)
-      unless proj
-        proj = yes_or_no "I can't find this project. Did you want to create it? (y/n)" do
+      TimeTracker.external_service.andand.pull_projects
+      project = TimeTracker::Project.first(:name => project_name)
+      unless project
+        project = yes_or_no "I can't find this project. Did you want to create it? (y/n)" do
           TimeTracker::Project.create!(:name => project_name)
         end
       end
-      if curr_proj = TimeTracker.current_project and
-      running_task = curr_proj.tasks.last_running
-        running_task.pause!
-        stdout.puts %{(Pausing clock for "#{running_task.name}", at #{running_task.total_running_time}.)}
+      if curr_proj = TimeTracker.current_project
+        TimeTracker.external_service.andand.pull_tasks(curr_proj)
+        if running_task = curr_proj.tasks.last_running
+          running_task.pause!
+          stdout.puts %{(Pausing clock for "#{running_task.name}", at #{running_task.total_running_time}.)}
+        end
       end
-      TimeTracker.config.update("current_project_id", proj.id)
-      stdout.puts %{Switched to project "#{proj.name}".}
-      if paused_task = proj.tasks.last_paused
+      TimeTracker.config.update("current_project_id", project.id)
+      stdout.puts %{Switched to project "#{project.name}".}
+      if paused_task = project.tasks.last_paused
         paused_task.resume!
         stdout.puts %{(Resuming clock for "#{paused_task.name}".)}
       end
@@ -65,6 +74,7 @@ module TimeTracker
     def start(task_name=nil)
       raise Error, "Right, but which task do you want to start?" unless task_name
       curr_proj = get_current_project()
+      TimeTracker.external_service.andand.pull_tasks(curr_proj)
       if task = curr_proj.tasks.not_stopped.first(:name => task_name)
         if message = task.invalid_message_for_transition_to("start")
           raise Error, message
@@ -86,6 +96,7 @@ module TimeTracker
     cmd :stop, :args => "[TASK]", :desc => "Stops the clock for a task, or the last task if no task given"
     def stop(arg=:last)
       curr_proj = get_current_project()
+      TimeTracker.external_service.andand.pull_tasks(curr_proj)
       raise Error, "It doesn't look like you've started any tasks yet." if curr_proj.tasks.empty?
       if arg == :last
         task = curr_proj.tasks.last_running
@@ -110,6 +121,7 @@ module TimeTracker
     def resume(arg=nil)
       raise Error, "Yes, but which task do you want to resume? (I'll accept a number or a name.)" unless arg
       curr_proj = get_current_project()
+      TimeTracker.external_service.andand.pull_tasks(curr_proj)
       raise Error, "It doesn't look like you've started any tasks yet." unless TimeTracker::Task.exists?
       already_paused = false
       task = find_task(arg, "resume")
@@ -130,6 +142,7 @@ module TimeTracker
     def upvote(task_name=nil)
       raise Error, "Yes, but which task do you want to upvote? (I'll accept a number or a name.)" unless task_name
       curr_proj = get_current_project()
+      TimeTracker.external_service.andand.pull_tasks(curr_proj)
       if task_name =~ /^\d+$/
         unless task = curr_proj.tasks.first(:number => task_name.to_i)
           raise Error, "I don't think that task exists."
@@ -137,7 +150,7 @@ module TimeTracker
       else
         matching_tasks = curr_proj.tasks.where(:name => task_name).sort(:created_at.desc).to_a
         if matching_tasks.any?
-          unless task = matching_tasks.find(&:created?)
+          unless task = matching_tasks.find(&:unstarted?)
             task = matching_tasks.first
           end
         else
@@ -166,6 +179,8 @@ module TimeTracker
         stdout.puts "It doesn't look like you've started any tasks yet."
         return
       end
+      
+      TimeTracker.external_service.andand.pull_tasks
       
       records = []
       case type
@@ -269,6 +284,7 @@ module TimeTracker
     cmd :search, :args => "QUERY...", :desc => "Search for a task by name"
     def search(*args)
       raise Error, "Okay, but what do you want to search for?" if args.empty?
+      TimeTracker.external_service.andand.pull_tasks
       re = Regexp.new(args.map {|a| Regexp.escape(a) }.join("|"))
       tasks = TimeTracker::Task.where(:name => re).sort(:last_started_at.desc).to_a
       #pp :tasks => tasks
@@ -293,18 +309,13 @@ module TimeTracker
             print_wrong_answer
             false
           else
-            require 'pivotal_tracker'
-            pt = PivotalTracker.new(answer)
-            # let's test it out
-            resp = Net::HTTP.start("www.pivotaltracker.com", 80) do |http|
-              http.head("/services/v3/activities?limit=1", "X-TrackerToken" => answer)
-            end
-            if resp.code == "200"
+            service = TimeTracker::Service::PivotalTracker.new(:api_key => answer)
+            if service.valid?
               stdout.puts "Great, you're all set up to use tt with Pivotal Tracker now!"
-              TimeTracker.pivotal_tracker = pt
+              TimeTracker.external_service = service
               TimeTracker.config.update_many(
-                "integration" => "pivotal_tracker",
-                "pt_api_key" => answer
+                "external_service" => "pivotal_tracker",
+                "external_service_options" => {"api_key" => answer}
               )
               true
             else
@@ -400,15 +411,15 @@ module TimeTracker
     def keep_prompting(msg)
       msg += " " unless msg =~ /[ ]$/
       @wrong_answer_index = 0
-      debug_stdout.puts "Writing to stdout in child..." if Ribeye.debug?
+      debug_stdout.puts "Writing to stdout in child..." if self.class.ribeye_debug?
       stdout.print(msg)
       stdout.flush
       ret = nil
       num_blank_answers = 0
       loop do
-        debug_stdout.puts "Reading stdin in child..." if Ribeye.debug?
+        debug_stdout.puts "Reading stdin in child..." if self.class.ribeye_debug?
         answer = stdin.gets.to_s.strip
-        debug_stdout.puts "Answer: #{answer.inspect}" if Ribeye.debug?
+        debug_stdout.puts "Answer: #{answer.inspect}" if self.class.ribeye_debug?
         #if answer.blank?
         #  print_wrong_answer
         #  num_blank_answers += 1
@@ -418,7 +429,8 @@ module TimeTracker
         #  end
         #  next
         #end
-        ret = yield(answer) and break
+        ret = yield(answer)
+        break if ret or $RUNNING_TESTS == :units
       end
       ret
     end

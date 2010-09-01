@@ -20,7 +20,7 @@ module TimeTracker
         require 'readline'
         require 'term/ansicolor'
         stdout.puts "Welcome to TimeTracker."
-        if curr_proj = TimeTracker::Project.find(TimeTracker.config["current_project_id"])
+        if curr_proj = TimeTracker.current_project
           stdout.puts %{You're currently in the "#{curr_proj.name}" project.}
         end
         stdout.puts "What would you like to do?"

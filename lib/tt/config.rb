@@ -21,8 +21,8 @@ module TimeTracker
     end
     
     def save
-      id = self.class.collection.save(@doc)
-      @doc["_id"] = id # just in case this doesn't happen
+      self.class.collection.save(@doc)
+      @doc["_id"] = @doc.delete(:_id)
     end
     
     def [](key)

@@ -18,11 +18,13 @@ module TimeTracker
     
     set_collection_name "tasks"
     
+    key :external_id, Integer
     key :number, Integer
     key :project_id, ObjectId
     key :name, String
-    key :state, String, :default => "created"
+    key :state, String, :default => "unstarted"
     key :num_votes, Integer, :default => 1
+    key :tags, Array
     timestamps!
     key :last_started_at, Time
     
@@ -31,13 +33,15 @@ module TimeTracker
     
     before_create :set_number, :unless => :number?
     before_create :copy_created_at_to_last_started_at, :unless => :last_started_at?
+    before_create :call_external_service, :if => Proc.new { TimeTracker.external_service }
+    before_update :check_external_task_exists!, :if => Proc.new { TimeTracker.external_service }
     
     state_machine do
-      initial_state :created
+      initial_state :unstarted
       event :start do
         sets_state :running
         transitions do
-          allows :created
+          allows :unstarted
           disallows \
             :paused => "Aren't you still working on that task?",
             :running => "Aren't you already working on that task?"
@@ -52,7 +56,7 @@ module TimeTracker
           allows :running, :paused
           disallows \
             :stopped => "I think you've stopped that task already.",
-            :created => "You can't stop a task without starting it first!"
+            :unstarted => "You can't stop a task without starting it first!"
         end
         runs_callback :after_save do |task|
           unless task.state_was == "paused"
@@ -74,7 +78,7 @@ module TimeTracker
         transitions do
           allows :paused, :stopped
           disallows \
-            :created => "You can't resume a task that you haven't started yet!",
+            :unstarted => "You can't resume a task that you haven't started yet!",
             :running => "Aren't you working on that task already?"
         end
         runs_callback :before_save do |task|
@@ -145,6 +149,15 @@ module TimeTracker
     
     def copy_created_at_to_last_started_at
       self.last_started_at = created_at
+    end
+    
+    def call_external_service
+      external_task = TimeTracker.external_service.add_task(self.project, self.name)
+      self.external_id = external_task.id
+    end
+    
+    def check_external_task_exists!
+      TimeTracker.external_service.check_task_exists!(self.external_id)
     end
   end
 end

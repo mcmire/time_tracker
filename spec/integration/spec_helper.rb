@@ -1,7 +1,21 @@
 require File.expand_path(File.dirname(__FILE__) + '/../spec_helper')
 
 module IntegrationExampleMethods
-  # The actual integration methods are in support/integration_example_methods.rb, so look there.
+  def pt_add_project(name)
+    body = <<-EOT
+      <?xml version="1.0" encoding="UTF-8"?>
+      <project>
+        <id>1</id>
+        <name>#{name}</name>
+      </project>
+    EOT
+    stub_request(:post, "www.pivotaltracker.com/services/v3/projects").
+      with(:headers => {"X-TrackerToken" => "xxxx"}).
+      to_return(:body => body, :status => 200)
+    tt %{add project "#{project}"}
+  end
+  
+  # More of the integration-specific methods are in support/integration_example_methods.rb, so look there.
 end
 
 # We would put this in support/integration_example_methods.rb, except that that

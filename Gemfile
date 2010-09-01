@@ -2,7 +2,10 @@ gem "bson_ext"#, :require => false
 gem "mongo_mapper"#, :require => false
 gem "highline"
 gem "term-ansicolor", :require => "term/ansicolor"
-gem "pivotal_tracker"
+gem "httparty"
+gem "crack", :require => "crack/xml"
+gem "hashie"
+gem "andand"
 
 group :test do
   gem "rake"

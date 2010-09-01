@@ -14,21 +14,32 @@ require 'tt/project'
 require 'tt/task'
 require 'tt/time_period'
 
+require 'tt/service'
+require 'tt/service/pivotal_tracker'
+
 module TimeTracker
   class << self
-    attr_accessor :current_project, :pivotal_tracker
+    attr_writer :current_project, :external_service
     
     def config
       # TODO: Maybe this should not be stored in the db, but just in memory or in /tmp
       @config || reload_config
     end
     
+    # TODO: config.reload
     def reload_config
       @config = TimeTracker::Config.find()
     end
     
     def current_project
       TimeTracker::Project.find(TimeTracker.config["current_project_id"])
+    end
+    
+    def external_service
+      return @external_service if @external_service
+      if config["external_service"] && config["external_service_options"]
+        @external_service = TimeTracker::Service.get_service(config["external_service"]).new(config["external_service_options"])
+      end
     end
   end
 end

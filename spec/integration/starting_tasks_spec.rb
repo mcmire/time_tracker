@@ -40,9 +40,9 @@ feature "Starting tasks" do
     tt 'start "some task"'
     stdout.readpartial(1024).must == %{I can't find this task. Did you want to create it? (y/n) }
     stdin << "q\n"
-    stderr.readpartial(1024).must == %{What's that, now? }
+    stderr.readpartial(1024).must == %{I'm sorry, I didn't understand you. Try that again: }
     stdin << "q\n"
-    stderr.readpartial(1024).must == %{Say that again? }
+    stderr.readpartial(1024).must == %{I'm not sure what you mean. Try again: }
     stdin << "n\n"
     stdout.readpartial(1024).must == %{Okay, never mind then.\n}
   end
