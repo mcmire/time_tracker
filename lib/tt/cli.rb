@@ -51,8 +51,8 @@ module TimeTracker
       TimeTracker.external_service.andand.pull_projects
       project = TimeTracker::Project.first(:name => project_name)
       unless project
-        project = yes_or_no "I can't find this project. Did you want to create it? (y/n)" do
-          TimeTracker::Project.create!(:name => project_name)
+        if yes?("I can't find this project. Did you want to create it? (y/n)")
+          project = TimeTracker::Project.create!(:name => project_name)
         end
       end
       if curr_proj = TimeTracker.current_project
@@ -81,8 +81,8 @@ module TimeTracker
         end
       end
       unless task
-        task = yes_or_no "I can't find this task. Did you want to create it? (y/n)" do
-          curr_proj.tasks.build(:name => task_name)
+        if yes?("I can't find this task. Did you want to create it? (y/n)")
+          task = curr_proj.tasks.build(:name => task_name)
         end
       end
       if running_task = curr_proj.tasks.last_running
@@ -298,35 +298,75 @@ module TimeTracker
     end
     
     cmd :configure, :desc => "Configures tt"
-    def configure
-      yes_or_no "Do you want to sync projects and tasks with Pivotal Tracker? (y/n) " do
-        if TimeTracker::Project.exists? || TimeTracker::Task.exists?
-          stderr.puts "Actually -- you can't do that if you've already created a project or task. Sorry."
-          raise Abort
-        end
-        keep_prompting "What's your API key?" do |answer|
-          if answer.blank?
-            print_wrong_answer
-            false
-          else
-            service = TimeTracker::Service::PivotalTracker.new(:api_key => answer)
-            if service.valid?
-              stdout.puts "Great, you're all set up to use tt with Pivotal Tracker now!"
-              TimeTracker.external_service = service
-              TimeTracker.config.update_many(
-                "external_service" => "pivotal_tracker",
-                "external_service_options" => {"api_key" => answer}
-              )
-              true
+    CONFIGURE_USAGES = {
+      "pivotal" => "configure external_service pivotal --api-key KEY --full-name NAME"
+    }
+    def configure(*args)
+      if args.any?
+        subcommand = args.shift
+        if subcommand == "external_service"
+          if service = args.shift
+            if service =~ /^pivotal(_tracker)?$/
+              options = {}
+              while arg = args.shift
+                case arg
+                when "--api-key", "-k"
+                  options[:api_key] = args.shift
+                when "--full-name", "-n"
+                  options[:full_name] = args.shift
+                end
+              end
+              unless options[:api_key]
+                raise Error, "I'm missing the API key.\n\n" + "Try this: " + @program_name + " " + CONFIGURE_USAGES["pivotal"]
+              end
+              unless options[:full_name]
+                raise Error, "I'm missing your full name.\n\n" + "Try this: " + @program_name + " " + CONFIGURE_USAGES["pivotal"]
+              end
+              _configure_check_no_projects_or_tasks_exist
+              _configure_handle_service(options[:api_key], options[:full_name])
             else
-              stderr.print "Hmm, I'm not able to connect using that key. Try that again: "
-              stderr.flush
-              false
+              raise Error, "Sorry, tt doesn't have support for the '#{service}' service. Try one of these:\n\n" +
+              CONFIGURE_USAGES.values.map {|x| "  " + @program_name + " " + x }.join("\n")
             end
+          else
+            raise Error, "Right, but which external service do you want to integrate with? Try one of these:\n\n" +
+            CONFIGURE_USAGES.values.map {|x| "  " + @program_name + " " + x }.join("\n")
           end
+        else
+          raise Error, %{Oops! That isn't the right way to call "configure". Try one of these:\n\n} +
+          CONFIGURE_USAGES.values.map {|x| "  " + @program_name + " " + x }.join("\n")
+        end
+      else
+        if yes?("Do you want to sync projects and tasks with Pivotal Tracker? (y/n)")
+          _configure_check_no_projects_or_tasks_exist
+          api_key = ask("What's your API key?")
+          full_name = ask("Okay, what's your full name?")
+          _configure_handle_service(api_key, full_name)
         end
       end
     end
+    def _configure_check_no_projects_or_tasks_exist
+      if TimeTracker::Project.exists? || TimeTracker::Task.exists?
+        raise Error, "Actually -- you can't do that if you've already created a project or task. Sorry."
+      end
+    end
+    def _configure_handle_service(api_key, full_name)
+      service = TimeTracker::Service::PivotalTracker.new(:api_key => api_key, :full_name => full_name)
+      if service.valid?
+        stdout.puts "Great, you're all set up to use tt with Pivotal Tracker now!"
+        TimeTracker.external_service = service
+        TimeTracker.config.update_many(
+          "external_service" => "pivotal_tracker",
+          "external_service_options" => {"api_key" => api_key, "full_name" => full_name}
+        )
+        true
+      else
+        stderr.print "Hmm, I'm not able to connect using that key. Try that again: "
+        stderr.flush
+        false
+      end
+    end
+    private :_configure_check_no_projects_or_tasks_exist, :_configure_handle_service
     
     cmd :clear, :desc => "Clears everything"
     def clear
@@ -417,35 +457,42 @@ module TimeTracker
       ret = nil
       num_blank_answers = 0
       loop do
-        debug_stdout.puts "Reading stdin in child..." if self.class.ribeye_debug?
-        answer = stdin.gets.to_s.strip
-        debug_stdout.puts "Answer: #{answer.inspect}" if self.class.ribeye_debug?
-        #if answer.blank?
-        #  print_wrong_answer
-        #  num_blank_answers += 1
-        #  if num_blank_answers == 2
-        #    stderr.puts "Okay, never mind then."
-        #    raise Abort
-        #  end
-        #  next
-        #end
-        ret = yield(answer)
-        break if ret or $RUNNING_TESTS == :units
+        begin
+          debug_stdout.puts "Reading stdin in child..." if self.class.ribeye_debug?
+          answer = stdin.gets.to_s.strip
+          debug_stdout.puts "Answer: #{answer.inspect}" if self.class.ribeye_debug?
+          ret = yield(answer)
+        rescue Break => e
+          raise Abort if e.message == false && $RUNNING_TESTS == :units
+          ret = e.message
+          break
+        end
       end
       ret
     end
     
-    def yes_or_no(msg, &block)
+    def yes?(msg)
       keep_prompting(msg) do |answer|
         case answer
         when /^y(es)?$/i
-          yield
+          raise Break, true
         when /^n(o)?$/i
           stdout.puts %{Okay, never mind then.}
-          raise Abort
+          raise Break, false
         else
           print_wrong_answer
           false
+        end
+      end
+    end
+    
+    def ask(msg)
+      keep_prompting(msg) do |answer|
+        if answer.blank?
+          print_wrong_answer
+          false
+        else
+          raise Break, answer
         end
       end
     end

@@ -3,7 +3,7 @@ require File.expand_path(File.dirname(__FILE__) + '/spec_helper')
 describe TimeTracker::Cli do
   before do
     @stdin, @stdout, @stderr = Array.new(3) { StringIO.new }
-    @cli = TimeTracker::Cli.new(:stdin => @stdin, :stdout => @stdout, :stderr => @stderr)
+    @cli = TimeTracker::Cli.new(:stdin => @stdin, :stdout => @stdout, :stderr => @stderr, :program_name => "tt")
   end
   
   def stdout
@@ -1466,54 +1466,110 @@ describe TimeTracker::Cli do
     before do
       TimeTracker.external_service = nil
     end
-    it "allows the user to set an API key and password for Pivotal Tracker" do
-      stdin.sneak("y\nxxxx\n")
-      stub.proxy(TimeTracker::Service::PivotalTracker).new do |service|
-        stub(service).valid? { true }
+    it "bails if the subcommand is invalid" do
+      expect { @cli.run_command!("configure", "sadjklf") }.to \
+        raise_error("Oops! That isn't the right way to call \"configure\". Try one of these:\n\n" +
+        "  tt configure external_service pivotal --api-key KEY --full-name NAME")
+    end
+    context "with external_service argument" do
+      it "bails if service not given" do
+        expect { @cli.run_command!("configure", "external_service") }.to \
+          raise_error("Right, but which external service do you want to integrate with? Try one of these:\n\n" +
+          "  tt configure external_service pivotal --api-key KEY --full-name NAME")
       end
-      @cli.run_command!("configure")
-      TimeTracker.external_service.must be_a(TimeTracker::Service::PivotalTracker)
-      TimeTracker.reload_config
-      TimeTracker.config["external_service"].must == "pivotal_tracker"
-      TimeTracker.config["external_service_options"].must == {"api_key" => "xxxx"}
-    end
-    it "bails if the credentials are incorrect" do
-      stdin.sneak("y\nxxxx\nyyyy")
-      stub.proxy(TimeTracker::Service::PivotalTracker).new(:api_key => "xxxx") do |service|
-        stub(service).valid? { false }
+      it "bails if service is not valid" do
+        expect { @cli.run_command!("configure", "external_service", "adslkf") }.to \
+          raise_error("Sorry, tt doesn't have support for the 'adslkf' service. Try one of these:\n\n" +
+          "  tt configure external_service pivotal --api-key KEY --full-name NAME")
       end
-      @cli.run_command!("configure")
-      TimeTracker.external_service.must be_nil
-      TimeTracker.reload_config
-      TimeTracker.config["external_service"].must be_nil
-      TimeTracker.config["external_service_options"].must be_nil
+      context "using pivotal_tracker service" do
+        it "bails if no api key given" do
+          expect { @cli.run_command!("configure", "external_service", "pivotal", "--full-name", "Joe Bloe") }.to \
+            raise_error("I'm missing the API key.\n\n" +
+            "Try this: tt configure external_service pivotal --api-key KEY --full-name NAME")
+        end
+        it "bails if no full name given" do
+          expect { @cli.run_command!("configure", "external_service", "pivotal", "--api-key", "xxxx") }.to \
+            raise_error("I'm missing your full name.\n\n" +
+            "Try this: tt configure external_service pivotal --api-key KEY --full-name NAME")
+        end
+        it "aborts if the API key is incorrect" do
+          stub.proxy(TimeTracker::Service::PivotalTracker).new do |service|
+            stub(service).valid? { false }
+          end
+          @cli.run_command!("configure", "external_service", "pivotal", "--api-key", "xxxx", "--full-name", "Joe Bloe")
+          TimeTracker.external_service.must be_nil
+          TimeTracker.reload_config
+          TimeTracker.config["external_service"].must be_nil
+          TimeTracker.config["external_service_options"].must be_nil
+        end
+        it "bails if projects already exist" do
+          Factory(:project)
+          expect { @cli.run_command!("configure", "external_service", "pivotal", "--api-key", "xxxx", "--full-name", "Joe Bloe") }.to \
+            raise_error("Actually -- you can't do that if you've already created a project or task. Sorry.")
+        end
+        it "bails if tasks already exist" do
+          project = Factory(:project)
+          Factory(:task, :project => project)
+          expect { @cli.run_command!("configure", "external_service", "pivotal", "--api-key", "xxxx", "--full-name", "Joe Bloe") }.to \
+            raise_error("Actually -- you can't do that if you've already created a project or task. Sorry.")
+        end
+        it "stores the api key and full name with the service" do
+          stub.proxy(TimeTracker::Service::PivotalTracker).new do |service|
+            stub(service).valid? { true }
+          end
+          @cli.run_command!("configure", "external_service", "pivotal", "--api-key", "xxxx", "--full-name", "Joe Bloe")
+          TimeTracker.external_service.must be_a(TimeTracker::Service::PivotalTracker)
+          TimeTracker.reload_config
+          TimeTracker.config["external_service"].must == "pivotal_tracker"
+          TimeTracker.config["external_service_options"].must == {"api_key" => "xxxx", "full_name" => "Joe Bloe"}
+        end
+      end
     end
-    it "aborts if the user doesn't want to integrate with Pivotal Tracker" do
-      stdin.sneak("n\n")
-      @cli.run_command!("configure")
-      TimeTracker.external_service.must be_nil
-      TimeTracker.reload_config
-      TimeTracker.config["external_service"].must be_nil
-      TimeTracker.config["external_service_options"].must be_nil
-    end
-    it "bails if projects already exist" do
-      Factory(:project)
-      stdin.sneak("y\n")
-      @cli.run_command!("configure")
-      TimeTracker.external_service.must be_nil
-      TimeTracker.reload_config
-      TimeTracker.config["external_service"].must be_nil
-      TimeTracker.config["external_service_options"].must be_nil
-    end
-    it "bails if tasks already exist" do
-      project = Factory(:project)
-      Factory(:task, :project => project)
-      stdin.sneak("y\n")
-      @cli.run_command!("configure")
-      TimeTracker.external_service.must be_nil
-      TimeTracker.reload_config
-      TimeTracker.config["external_service"].must be_nil
-      TimeTracker.config["external_service_options"].must be_nil
+    context "with no arguments" do
+      it "prompts the user for an API key for Pivotal Tracker" do
+        stdin.sneak("y\nxxxx\nJoe Bloe\n")
+        stub.proxy(TimeTracker::Service::PivotalTracker).new(:api_key => "xxxx", :full_name => "Joe Bloe") do |service|
+          stub(service).valid? { true }
+        end
+        @cli.run_command!("configure")
+        TimeTracker.external_service.must be_a(TimeTracker::Service::PivotalTracker)
+        TimeTracker.reload_config
+        TimeTracker.config["external_service"].must == "pivotal_tracker"
+        TimeTracker.config["external_service_options"].must == {"api_key" => "xxxx", "full_name" => "Joe Bloe"}
+      end
+      it "aborts if the user doesn't want to integrate with Pivotal Tracker" do
+        stdin.sneak("n\n")
+        @cli.run_command!("configure")
+        TimeTracker.external_service.must be_nil
+        TimeTracker.reload_config
+        TimeTracker.config["external_service"].must be_nil
+        TimeTracker.config["external_service_options"].must be_nil
+      end
+      it "aborts if the Pivotal Tracker credentials are incorrect" do
+        stdin.sneak("y\nxxxx\nJoe Bloe\n")
+        stub.proxy(TimeTracker::Service::PivotalTracker).new(:api_key => "xxxx", :full_name => "Joe Bloe") do |service|
+          stub(service).valid? { false }
+        end
+        @cli.run_command!("configure")
+        TimeTracker.external_service.must be_nil
+        TimeTracker.reload_config
+        TimeTracker.config["external_service"].must be_nil
+        TimeTracker.config["external_service_options"].must be_nil
+      end
+      it "bails if projects already exist" do
+        Factory(:project)
+        stdin.sneak("y\n")
+        expect { @cli.run_command!("configure") }.to \
+          raise_error("Actually -- you can't do that if you've already created a project or task. Sorry.")
+      end
+      it "bails if tasks already exist" do
+        project = Factory(:project)
+        Factory(:task, :project => project)
+        stdin.sneak("y\n")
+        expect { @cli.run_command!("configure") }.to \
+          raise_error("Actually -- you can't do that if you've already created a project or task. Sorry.")
+      end
     end
   end
   

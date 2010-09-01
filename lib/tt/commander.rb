@@ -6,6 +6,7 @@ module TimeTracker
     class UnknownCommandError < Error; end
     class InvalidInvocationError < Error; end
     class Abort < StandardError; end
+    class Break < StandardError; end
     
     class << self
       def execute(options={})
@@ -81,6 +82,7 @@ module TimeTracker
     rescue Abort => e
       # All we're trying to do here is exit the command method,
       # not necessarily the whole program
+      stderr.puts(e.message) if e.message.present?
       return
     rescue Error => e     
       handle_command_error(e)
