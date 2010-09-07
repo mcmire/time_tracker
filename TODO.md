@@ -1,13 +1,15 @@
 * Pivotal Tracker integration
 
-  unstarted -> started -> stopped -> completed -> ( staged -> ) committed
+  unstarted -> running -> stopped -> completed -> ( staged -> ) committed
                   ^         |
                    \________/
 
   * Flesh out config command - tt config external_service pivotal --api-key xxxx --full-name "Joe Bloe"
+  * When changing state for a task, push the new state to PT
   * Add a "completed" state, and a "finish" command that stops the task and marks it as completed 
     * When a feature is finished, send accepted + delivered to PT, or completed if that's all that necessary
   * Remove "paused" state; disallow a completed task to be resumed
+* Add an "add feature/chore/bug" command, and also "start feature/chore/bug NAME"
 * Modify add task (and auto-adding before starting) to search before adding a new one, and suggest pre-existing tasks to up-vote instead
 * Sort lists by number of votes
 * Modify search command so it says "no tasks found" if no tasks found

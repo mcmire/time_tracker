@@ -13,13 +13,15 @@ module TimeTracker
       
       STATES = {
         "unscheduled" => "unstarted",
-        "unstarted" => "unstarted",
-        "started" => "running",
-        "finished" => "finished",
-        "delivered" => "finished",
-        "accepted" => "finished",
-        "rejected" => "finished"
+        "unstarted"   => "unstarted",
+        "started"     => "running",
+        "finished"    => "finished",
+        "delivered"   => "finished",
+        "accepted"    => "finished",
+        "rejected"    => "finished"
       }
+      
+      TYPES = %w(feature chore bug)
       
       attr_reader :api_key, :headers, :base_uri
       
@@ -35,7 +37,7 @@ module TimeTracker
         response.code != 401
       end
       
-      def pull_tasks(project=nil)
+      def pull_tasks!(project=nil)
         if TimeTracker.config["last_pulled_times"]
           if project
             time = TimeTracker.config["last_pulled_times"][project.external_id.to_s]
@@ -76,6 +78,54 @@ module TimeTracker
           end
         end
         TimeTracker.config.save
+      end
+      
+      def check_task_exists!(task)
+        path = "/projects/#{task.project.external_id}/stories/#{task.external_id}"
+        response = get_response(:get, path)
+        raise_errors(response)
+        return true
+      end
+      
+      def push_task!(task)
+        path = "/projects/#{task.project.external_id}/stories/#{task.external_id}"
+        response = get_response(:put, path, :body => task_to_xml(task))
+        raise_errors(response)
+        return true
+      end
+      
+      def task_to_xml(task)
+        <<EOT.strip
+<story>
+  <name>#{task.name}</name>
+  <story_type>#{task_type(task)}</story_type>
+  <current_state>#{task_state(task)}</current_state>
+  <requested_by>#{task.created_by}</requested_by>
+  <owned_by>#{task.owned_by}</owned_by>
+  <labels>#{task_labels(task)}</labels>
+</story>
+EOT
+      end
+      
+      def task_type(task)
+        for tag in task.tags
+          if tag =~ /^t:(.+)$/
+            return $1
+          end
+        end
+        return nil
+      end
+      
+      def task_state(task)
+        case task.state
+          when "unstarted" then "unscheduled"
+          when "running"   then "started"
+          when "finished"  then (task_type(task) == "feature") ? "accepted" : "finished"
+        end
+      end
+      
+      def task_labels(task)
+        task.tags.reject {|t| t =~ /^t:/ }.join(",")
       end
       
     private

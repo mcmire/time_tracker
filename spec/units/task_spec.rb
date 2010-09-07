@@ -33,7 +33,7 @@ describe TimeTracker::Task do
       @service = Object.new
       stub(TimeTracker).external_service { @service }
       stub(@task = Object.new).id { 5 }
-      mock(@service).add_task(project, "some task") { @task }
+      mock(@service).add_task!(project, "some task") { @task }
       task = Factory(:task, :name => "some task", :project => project)
       task.external_id.must == 5
     end
@@ -54,15 +54,15 @@ describe TimeTracker::Task do
       task.reload
       task.last_started_at == last_started_at
     end
-    it "hits the external service to ensure the task still exists" do
+    it "pushes the task to the external service" do
       task = Factory(:task, :external_id => 1)
-      mock(@service = Object.new).check_task_exists!(1)
+      mock(@service = Object.new).push_task!(task)
       stub(TimeTracker).external_service { @service }
       task.save!
     end
     it "bails if the task doesn't exist in the external service" do
       task = Factory(:task, :external_id => 1)
-      mock(@service = Object.new).check_task_exists!(1) do
+      mock(@service = Object.new).push_task!(task) do
         raise TimeTracker::Service::ResourceNotFoundError.new(nil, nil)
       end
       stub(TimeTracker).external_service { @service }
@@ -209,13 +209,21 @@ describe TimeTracker::Task do
       task.state.must == "running"
       task.must_not be_a_new_record
     end
+    it "bails if the task is paused" do
+      task = Factory(:task, :state => "paused")
+      expect { task.start! }.to raise_error("Validation failed: Aren't you still working on that task?")
+    end
+    it "bails if the task is running" do
+      task = Factory(:task, :state => "running")
+      expect { task.start! }.to raise_error("Validation failed: Aren't you already working on that task?")
+    end
   end
   
   describe '#stop!' do
     it "creates a new time period" do
       started_at = Time.local(2010, 1, 1, 0, 0, 0)
       ended_at = Time.local(2010, 1, 1, 3, 29, 0)
-      task = Factory.build(:task, :created_at => started_at, :state => "running")
+      task = Factory(:task, :created_at => started_at, :state => "running")
       Timecop.freeze(ended_at) do
         task.stop!
       end
@@ -236,13 +244,21 @@ describe TimeTracker::Task do
       task.state.must == "stopped"
       task.must_not be_a_new_record
     end
+    it "bails if the task is stopped" do
+      task = Factory(:task, :state => "stopped")
+      expect { task.stop! }.to raise_error("Validation failed: I think you've stopped that task already.")
+    end
+    it "bails if the task hasn't been started yet" do
+      task = Factory(:task, :state => "unstarted")
+      expect { task.stop! }.to raise_error("Validation failed: You can't stop a task without starting it first!")
+    end
   end
   
   describe '#pause!' do
     it "creates a new time period just like #stop" do
       started_at = Time.local(2010, 1, 1, 0, 0, 0)
       paused_at = Time.local(2010, 1, 1, 3, 29, 0)
-      task = Factory.build(:task, :created_at => started_at, :state => "running")
+      task = Factory(:task, :created_at => started_at, :state => "running")
       Timecop.freeze(paused_at) do
         task.pause!
       end
@@ -257,6 +273,60 @@ describe TimeTracker::Task do
       task.pause!
       task.state.must == "paused"
       task.must_not be_a_new_record
+    end
+    it "bails if the task hasn't been started yet" do
+      task = Factory(:task, :state => "unstarted")
+      expect { task.pause! }.to raise_error("Validation failed: You can't pause a task without starting it first!")
+    end
+    it "bails if the task is stopped" do
+      task = Factory(:task, :state => "stopped")
+      expect { task.pause! }.to raise_error("Validation failed: It looks like you've already stopped this task.")
+    end
+    it "bails if the task is completed" do
+      task = Factory(:task, :state => "completed")
+      expect { task.pause! }.to raise_error("Validation failed: It looks like you've already completed this task.")
+    end
+  end
+  
+  describe '#finish!' do
+    it "creates a new time period just like #stop if the task was running" do
+      started_at = Time.local(2010, 1, 1, 0, 0, 0)
+      finished_at = Time.local(2010, 1, 1, 3, 29, 0)
+      task = Factory(:task, :created_at => started_at, :state => "running")
+      Timecop.freeze(finished_at) do
+        task.finish!
+      end
+      task.reload
+      task.time_periods.size.must == 1
+      time_period = task.time_periods.first
+      time_period.started_at.must == started_at
+      time_period.ended_at.must == finished_at
+    end
+    it "doesn't create a time period if the task was paused" do
+      task = Factory(:task, :state => "paused")
+      task.finish!
+      task.reload
+      task.time_periods.size.must == 0
+    end
+    it "doesn't create a time period if the task was stopped" do
+      task = Factory(:task, :state => "stopped")
+      task.finish!
+      task.reload
+      task.time_periods.size.must == 0
+    end
+    it "sets the state to 'completed' and saves" do
+      task = Factory.build(:task, :state => "running")
+      task.finish!
+      task.state.must == "completed"
+      task.must_not be_a_new_record
+    end
+    it "bails if the task hasn't been started yet" do
+      task = Factory(:task, :state => "unstarted")
+      expect { task.finish! }.to raise_error("Validation failed: You can't finish a task without starting it first!")
+    end
+    it "bails if the task is already completed" do
+      task = Factory(:task, :state => "completed")
+      expect { task.finish! }.to raise_error("Validation failed: It looks like you've already completed this task.")
     end
   end
   
@@ -274,6 +344,14 @@ describe TimeTracker::Task do
       task.resume!
       task.state.must == "running"
       task.must_not be_new
+    end
+    it "bails if the task hasn't been started yet" do
+      task = Factory(:task, :state => "unstarted")
+      expect { task.resume! }.to raise_error("Validation failed: You can't resume a task without starting it first!")
+    end
+    it "bails if the task is still running" do
+      task = Factory(:task, :state => "running")
+      expect { task.resume! }.to raise_error("Validation failed: Aren't you working on that task already?")
     end
   end
   

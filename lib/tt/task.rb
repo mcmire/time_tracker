@@ -25,6 +25,8 @@ module TimeTracker
     key :state, String, :default => "unstarted"
     key :num_votes, Integer, :default => 1
     key :tags, Array
+    key :created_by, String
+    key :owned_by, String
     timestamps!
     key :last_started_at, Time
     
@@ -33,18 +35,18 @@ module TimeTracker
     
     before_create :set_number, :unless => :number?
     before_create :copy_created_at_to_last_started_at, :unless => :last_started_at?
-    before_create :call_external_service, :if => Proc.new { TimeTracker.external_service }
-    before_update :check_external_task_exists!, :if => Proc.new { TimeTracker.external_service }
+    before_create :add_to_external_service, :if => Proc.new { TimeTracker.external_service }
+    before_update :push_to_external_service, :if => Proc.new { TimeTracker.external_service }
     
     state_machine do
       initial_state :unstarted
       event :start do
         sets_state :running
         transitions do
-          allows :unstarted
+          allows :unstarted#, :completed ?
           disallows \
-            :paused => "Aren't you still working on that task?",
-            :running => "Aren't you already working on that task?"
+            :running => "Aren't you already working on that task?",
+            :paused => "Aren't you still working on that task?"
         end
         runs_callback :before_save do |task|
           task.last_started_at = Time.zone.now
@@ -55,11 +57,11 @@ module TimeTracker
         transitions do
           allows :running, :paused
           disallows \
-            :stopped => "I think you've stopped that task already.",
-            :unstarted => "You can't stop a task without starting it first!"
+            :unstarted => "You can't stop a task without starting it first!",
+            :stopped => "I think you've stopped that task already."
         end
         runs_callback :after_save do |task|
-          unless task.state_was == "paused"
+          if task.state_was == "running"
             task.time_periods.create!(:started_at => task.last_started_at, :ended_at => Time.zone.now)
           end
         end
@@ -68,9 +70,27 @@ module TimeTracker
         sets_state :paused
         transitions do
           allows :running
+          disallows \
+            :unstarted => "You can't pause a task without starting it first!",
+            :stopped => "It looks like you've already stopped this task.",
+            :completed => "It looks like you've already completed this task."
         end
         runs_callback :after_save do |task|
           task.time_periods.create!(:started_at => task.last_started_at, :ended_at => Time.zone.now)
+        end
+      end
+      event :finish do
+        sets_state :completed
+        transitions do
+          allows :running, :stopped, :paused
+          disallows \
+            :unstarted => "You can't finish a task without starting it first!",
+            :completed => "It looks like you've already completed this task."
+        end
+        runs_callback :after_save do |task|
+          if task.state_was == "running"
+            task.time_periods.create!(:started_at => task.last_started_at, :ended_at => Time.zone.now)
+          end
         end
       end
       event :resume do
@@ -78,7 +98,7 @@ module TimeTracker
         transitions do
           allows :paused, :stopped
           disallows \
-            :unstarted => "You can't resume a task that you haven't started yet!",
+            :unstarted => "You can't resume a task without starting it first!",
             :running => "Aren't you working on that task already?"
         end
         runs_callback :before_save do |task|
@@ -151,13 +171,13 @@ module TimeTracker
       self.last_started_at = created_at
     end
     
-    def call_external_service
-      external_task = TimeTracker.external_service.add_task(self.project, self.name)
+    def add_to_external_service
+      external_task = TimeTracker.external_service.add_task!(self.project, self.name)
       self.external_id = external_task.id
     end
     
-    def check_external_task_exists!
-      TimeTracker.external_service.check_task_exists!(self.external_id)
+    def push_to_external_service
+      TimeTracker.external_service.push_task!(self)
     end
   end
 end

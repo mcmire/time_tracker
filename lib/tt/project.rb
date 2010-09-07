@@ -19,7 +19,7 @@ module TimeTracker
     
   private
     def call_external_service
-      external_task = TimeTracker.external_service.add_project(self.name)
+      external_task = TimeTracker.external_service.add_project!(self.name)
       self.external_id = external_task.id
     end
   end

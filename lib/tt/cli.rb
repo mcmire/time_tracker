@@ -20,7 +20,7 @@ module TimeTracker
       case what
       when "project"
         raise Error, "Right, but what do you want to call the new project?" unless name
-        TimeTracker.external_service.andand.pull_projects
+        TimeTracker.external_service.andand.pull_projects!
         if project = TimeTracker::Project.first(:name => name)
           raise Error, "It looks like this project already exists."
         else
@@ -30,7 +30,7 @@ module TimeTracker
       when "task"
         raise Error, "Right, but what do you want to call the new task?" unless name
         curr_proj = get_current_project()
-        TimeTracker.external_service.andand.pull_tasks(curr_proj)
+        TimeTracker.external_service.andand.pull_tasks!(curr_proj)
         if existing_task = curr_proj.tasks.find_by_name(name)
           if existing_task.unstarted?
             raise Error, "It looks like you've already added that task. Perhaps you'd like to upvote it instead?"
@@ -48,7 +48,7 @@ module TimeTracker
     cmd :switch, :args => "PROJECT", :desc => "Switches to a certain project. The project is created if it does not already exist."
     def switch(project_name=nil)
       raise Error, "Right, but which project do you want to switch to?" unless project_name
-      TimeTracker.external_service.andand.pull_projects
+      TimeTracker.external_service.andand.pull_projects!
       project = TimeTracker::Project.first(:name => project_name)
       unless project
         if yes?("I can't find this project. Did you want to create it? (y/n)")
@@ -56,7 +56,7 @@ module TimeTracker
         end
       end
       if curr_proj = TimeTracker.current_project
-        TimeTracker.external_service.andand.pull_tasks(curr_proj)
+        TimeTracker.external_service.andand.pull_tasks!(curr_proj)
         if running_task = curr_proj.tasks.last_running
           running_task.pause!
           stdout.puts %{(Pausing clock for "#{running_task.name}", at #{running_task.total_running_time}.)}
@@ -74,7 +74,7 @@ module TimeTracker
     def start(task_name=nil)
       raise Error, "Right, but which task do you want to start?" unless task_name
       curr_proj = get_current_project()
-      TimeTracker.external_service.andand.pull_tasks(curr_proj)
+      TimeTracker.external_service.andand.pull_tasks!(curr_proj)
       if task = curr_proj.tasks.not_stopped.first(:name => task_name)
         if message = task.invalid_message_for_transition_to("start")
           raise Error, message
@@ -96,7 +96,7 @@ module TimeTracker
     cmd :stop, :args => "[TASK]", :desc => "Stops the clock for a task, or the last task if no task given"
     def stop(arg=:last)
       curr_proj = get_current_project()
-      TimeTracker.external_service.andand.pull_tasks(curr_proj)
+      TimeTracker.external_service.andand.pull_tasks!(curr_proj)
       raise Error, "It doesn't look like you've started any tasks yet." if curr_proj.tasks.empty?
       if arg == :last
         task = curr_proj.tasks.last_running
@@ -121,7 +121,7 @@ module TimeTracker
     def resume(arg=nil)
       raise Error, "Yes, but which task do you want to resume? (I'll accept a number or a name.)" unless arg
       curr_proj = get_current_project()
-      TimeTracker.external_service.andand.pull_tasks(curr_proj)
+      TimeTracker.external_service.andand.pull_tasks!(curr_proj)
       raise Error, "It doesn't look like you've started any tasks yet." unless TimeTracker::Task.exists?
       already_paused = false
       task = find_task(arg, "resume")
@@ -142,7 +142,7 @@ module TimeTracker
     def upvote(task_name=nil)
       raise Error, "Yes, but which task do you want to upvote? (I'll accept a number or a name.)" unless task_name
       curr_proj = get_current_project()
-      TimeTracker.external_service.andand.pull_tasks(curr_proj)
+      TimeTracker.external_service.andand.pull_tasks!(curr_proj)
       if task_name =~ /^\d+$/
         unless task = curr_proj.tasks.first(:number => task_name.to_i)
           raise Error, "I don't think that task exists."
@@ -180,7 +180,7 @@ module TimeTracker
         return
       end
       
-      TimeTracker.external_service.andand.pull_tasks
+      TimeTracker.external_service.andand.pull_tasks!
       
       records = []
       case type
@@ -284,7 +284,7 @@ module TimeTracker
     cmd :search, :args => "QUERY...", :desc => "Search for a task by name"
     def search(*args)
       raise Error, "Okay, but what do you want to search for?" if args.empty?
-      TimeTracker.external_service.andand.pull_tasks
+      TimeTracker.external_service.andand.pull_tasks!
       re = Regexp.new(args.map {|a| Regexp.escape(a) }.join("|"))
       tasks = TimeTracker::Task.where(:name => re).sort(:last_started_at.desc).to_a
       #pp :tasks => tasks

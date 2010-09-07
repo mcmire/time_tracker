@@ -197,7 +197,7 @@ module TimeTracker
           
           def validate_state_transition
             if message = invalid_message_for_transition_to(@next_event)
-              self.errors.add(message)
+              self.errors.add_to_base(message)
             end
           end
           
