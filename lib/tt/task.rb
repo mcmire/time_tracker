@@ -2,7 +2,7 @@ module TimeTracker
   class Task
     module TaskExtensions
       # Put this in state machine?
-      [:running, :stopped, :paused].each do |state|
+      [:running, :paused].each do |state|
         class_eval <<-EOT, __FILE__, __LINE__
           def last_#{state}
             last(:state => "#{state}", :order => :updated_at)
@@ -43,7 +43,7 @@ module TimeTracker
       event :start do
         sets_state :running
         transitions do
-          allows :unstarted#, :completed ?
+          allows :unstarted#, :finished ?
           disallows \
             :running => "Aren't you already working on that task?",
             :paused => "Aren't you still working on that task?"
@@ -52,57 +52,43 @@ module TimeTracker
           task.last_started_at = Time.zone.now
         end
       end
-      event :stop do
-        sets_state :stopped
-        transitions do
-          allows :running, :paused
-          disallows \
-            :unstarted => "You can't stop a task without starting it first!",
-            :stopped => "I think you've stopped that task already."
-        end
-        runs_callback :after_save do |task|
-          if task.state_was == "running"
-            task.time_periods.create!(:started_at => task.last_started_at, :ended_at => Time.zone.now)
-          end
-        end
-      end
       event :pause do
         sets_state :paused
         transitions do
           allows :running
           disallows \
-            :unstarted => "You can't pause a task without starting it first!",
-            :stopped => "It looks like you've already stopped this task.",
-            :completed => "It looks like you've already completed this task."
+            :unstarted => "You can't pause a task you haven't started yet!",
+            :paused => "It looks like you've already paused this task.",
+            :finished => "It looks like you've already finished this task."
         end
         runs_callback :after_save do |task|
           task.time_periods.create!(:started_at => task.last_started_at, :ended_at => Time.zone.now)
         end
       end
-      event :finish do
-        sets_state :completed
+      event :resume do
+        sets_state :running
         transitions do
-          allows :running, :stopped, :paused
+          allows :paused
           disallows \
-            :unstarted => "You can't finish a task without starting it first!",
-            :completed => "It looks like you've already completed this task."
+            :unstarted => "You can't resume a task you haven't started yet!",
+            :running => "Aren't you working on that task already?"
+        end
+        runs_callback :before_save do |task|
+          task.last_started_at = Time.zone.now
+        end
+      end
+      event :finish do
+        sets_state :finished
+        transitions do
+          allows :running, :paused
+          disallows \
+            :unstarted => "You can't finish a task you haven't started yet!",
+            :finished => "It looks like you've already finished this task."
         end
         runs_callback :after_save do |task|
           if task.state_was == "running"
             task.time_periods.create!(:started_at => task.last_started_at, :ended_at => Time.zone.now)
           end
-        end
-      end
-      event :resume do
-        sets_state :running
-        transitions do
-          allows :paused, :stopped
-          disallows \
-            :unstarted => "You can't resume a task without starting it first!",
-            :running => "Aren't you working on that task already?"
-        end
-        runs_callback :before_save do |task|
-          task.last_started_at = Time.zone.now
         end
       end
     end

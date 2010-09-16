@@ -52,14 +52,14 @@ feature "Upvoting tasks" do
     output.must == %{There isn't any point in upvoting a task you're already working on.\n}
   end
   
-  scenario "Upvoting a task by name that's stopped" do
+  scenario "Upvoting a task by name that's finished" do
     tt 'switch "some project"'
     stdin << "y\n"
     tt 'start "some task"'
     stdin << "y\n"
-    tt 'stop'
+    tt 'finish'
     tt 'upvote "some task"'
-    output.must == %{There isn't any point in upvoting a task you've already completed.\n}
+    output.must == %{There isn't any point in upvoting a task you've already finished.\n}
   end
   
   scenario "Upvoting a task by name that's paused" do
@@ -107,14 +107,14 @@ feature "Upvoting tasks" do
     output.must == %{There isn't any point in upvoting a task you're already working on.\n}
   end
   
-  scenario "Upvoting a task by number that's stopped" do
+  scenario "Upvoting a task by number that's finished" do
     tt 'switch "some project"'
     stdin << "y\n"
     tt 'start "some task"'
     stdin << "y\n"
-    tt 'stop'
+    tt 'finish'
     tt 'upvote 1'
-    output.must == %{There isn't any point in upvoting a task you've already completed.\n}
+    output.must == %{There isn't any point in upvoting a task you've already finished.\n}
   end
   
   scenario "Upvoting a task by number that's paused" do

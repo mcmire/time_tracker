@@ -8,7 +8,7 @@ describe TimeTracker::Project do
       @service = Object.new
       stub(TimeTracker).external_service { @service }
       stub(@project = Object.new).id { 5 }
-      mock(@service).add_project("some project") { @project }
+      mock(@service).add_project!("some project") { @project }
       project = Factory(:project, :name => "some project")
       project.external_id.must == 5
     end

@@ -75,7 +75,7 @@ module TimeTracker
       raise Error, "Right, but which task do you want to start?" unless task_name
       curr_proj = get_current_project()
       TimeTracker.external_service.andand.pull_tasks!(curr_proj)
-      if task = curr_proj.tasks.not_stopped.first(:name => task_name)
+      if task = curr_proj.tasks.not_finished.first(:name => task_name)
         if message = task.invalid_message_for_transition_to("start")
           raise Error, message
         end
@@ -93,8 +93,8 @@ module TimeTracker
       stdout.puts %{Started clock for "#{task.name}".}
     end
     
-    cmd :stop, :args => "[TASK]", :desc => "Stops the clock for a task, or the last task if no task given"
-    def stop(arg=:last)
+    cmd :finish, :args => "[TASK]", :desc => "Stops the clock for a task, or the last task if no task given, and marks it as finished"
+    def finish(arg=:last)
       curr_proj = get_current_project()
       TimeTracker.external_service.andand.pull_tasks!(curr_proj)
       raise Error, "It doesn't look like you've started any tasks yet." if curr_proj.tasks.empty?
@@ -102,10 +102,10 @@ module TimeTracker
         task = curr_proj.tasks.last_running
         raise Error, "It doesn't look like you're working on anything at the moment." unless task
       else
-        task = find_task(arg, "stop")
+        task = find_task(arg, "finish")
       end
       was_paused = task.paused?
-      task.stop!
+      task.finish!
       if was_paused
         stdout.puts %{Stopped clock for "#{task.name}".}
       else
@@ -157,17 +157,18 @@ module TimeTracker
           raise Error, "I don't think that task exists."
         end
       end
+      # TODO: Move these into the model
       if task.running? || task.paused?
         raise Error, "There isn't any point in upvoting a task you're already working on."
       end
-      if task.stopped?
-        raise Error, "There isn't any point in upvoting a task you've already completed."
+      if task.finished?
+        raise Error, "There isn't any point in upvoting a task you've already finished."
       end
       task.upvote!
       stdout.puts %{This task now has #{task.num_votes} votes.\n}
     end
 
-    LIST_SUBCOMMANDS = ["lastfew", "completed", "all", "today", "this week"]
+    LIST_SUBCOMMANDS = ["lastfew", "finished", "all", "today", "this week"]
     cmd :list, :args => '{'+LIST_SUBCOMMANDS.join("|")+'}', :desc => "List tasks"
     def list(*args)
       type = args.join(" ")
@@ -187,7 +188,7 @@ module TimeTracker
       when "lastfew"
         records = TimeTracker::TimePeriod.sort(:ended_at.desc).limit(5).to_a
         header = "Latest tasks:"
-      when "completed"
+      when "finished"
         records = TimeTracker::TimePeriod.sort(:ended_at.desc).to_a
         header = "Completed tasks:"
       when "all"
@@ -201,7 +202,7 @@ module TimeTracker
         header = "This week's tasks:"
       end
       
-      unless type == "completed"
+      unless type == "finished"
         if task = TimeTracker::Task.last_running
           records.pop if type == "lastfew" && records.size == 5
           if type == "this week"

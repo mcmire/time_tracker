@@ -75,12 +75,12 @@ feature "Starting tasks" do
     output.must == %{Aren't you still working on that task?\n}
   end
   
-  scenario "Starting a stopped task" do
+  scenario "Starting a finished task" do
     tt 'switch "some project"'
     stdin << "y\n"
     tt 'start "some task"'
     stdin << "y\n"
-    tt 'stop'
+    tt 'finish'
     tt 'start "some task"'
     stdin << "y\n"
     output.must end_with(%{Started clock for "some task".\n})

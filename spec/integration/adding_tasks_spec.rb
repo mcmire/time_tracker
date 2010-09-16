@@ -51,12 +51,12 @@ feature "Adding tasks" do
     output.must == %{Aren't you still working on that task?\n}
   end
   
-  scenario "Adding a task that exists, but is stopped" do
+  scenario "Adding a task that exists, but is finished" do
     tt 'switch "some project"'
     stdin << "y\n"
     tt 'start "some task"'
     stdin << "y\n"
-    tt 'stop'
+    tt 'finish'
     tt 'add task "some task"'
     output.must == %{Task "some task" created.\n}
   end

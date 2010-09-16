@@ -21,7 +21,7 @@ feature "Listing tasks" do
       Timecop.freeze Time.zone.local(2010, 1, 3, 10, 10)
       tt 'resume 1'
       Timecop.freeze Time.zone.local(2010, 1, 3, 15, 15)
-      tt 'stop'
+      tt 'finish'
       tt 'start "yet another task"'
       stdin << "y\n"
       tt 'add task "even yet another task"'
@@ -53,7 +53,7 @@ feature "Listing tasks" do
       Timecop.freeze Time.zone.local(2010, 1, 3, 10, 10)
       tt 'resume 1'
       Timecop.freeze Time.zone.local(2010, 1, 3, 15, 15)
-      tt 'stop'
+      tt 'finish'
       tt 'start "yet another task"'
       stdin << "y\n"
       tt 'add task "even yet another task"'
@@ -79,7 +79,7 @@ feature "Listing tasks" do
     output.must == "It doesn't look like you've started any tasks yet.\n"
   end
   
-  scenario "Listing stopped tasks with 'list completed'" do
+  scenario "Listing finished tasks with 'list finished'" do
     with_manual_time_override do
       Timecop.freeze Time.zone.local(2010, 1, 1, 0, 0)
       tt 'switch "some project"'
@@ -87,17 +87,17 @@ feature "Listing tasks" do
       tt 'start "some task"'
       stdin << "y\n"
       Timecop.freeze Time.zone.local(2010, 1, 2, 5, 5)
-      tt 'stop'
+      tt 'finish'
       tt 'switch "another project"'
       stdin << "y\n"
       tt 'start "another task"'
       stdin << "y\n"
       Timecop.freeze Time.zone.local(2010, 1, 3, 10, 10)
-      tt 'stop'
+      tt 'finish'
       Timecop.freeze Time.zone.local(2010, 1, 3, 15, 15)
       tt 'start "yet another task"'
       stdin << "y\n"
-      tt 'list completed'
+      tt 'list finished'
     end
     output.lines.must smart_match([
       "",
@@ -115,12 +115,12 @@ feature "Listing tasks" do
       ""
     ])
   end
-  #scenario "Listing stopped tasks with just 'stopped'"
-  scenario "Listing stopped tasks with 'list completed' when no tasks created yet" do
-    tt 'list completed'
+  #scenario "Listing finished tasks with just 'finished'"
+  scenario "Listing finished tasks with 'list finished' when no tasks created yet" do
+    tt 'list finished'
     output.must == "It doesn't look like you've started any tasks yet.\n"
   end
-  #scenario "Listing stopped tasks with 'stopped' when no tasks created yet"
+  #scenario "Listing finished tasks with 'finished' when no tasks created yet"
   
   scenario "Listing all tasks with 'list all'" do
     with_manual_time_override do
@@ -137,7 +137,7 @@ feature "Listing tasks" do
       Timecop.freeze Time.zone.local(2010, 1, 3, 10, 10)
       tt 'resume 1'
       Timecop.freeze Time.zone.local(2010, 1, 3, 15, 15)
-      tt 'stop'
+      tt 'finish'
       tt 'start "yet another task"'
       stdin << "y\n"
       Timecop.freeze Time.zone.local(2010, 1, 4, 20, 20)
@@ -185,7 +185,7 @@ feature "Listing tasks" do
   end
   #scenario "Listing all tasks with 'all' when no tasks created yet"
   
-  scenario "Listing today's completed tasks with 'list today'" do
+  scenario "Listing today's finished tasks with 'list today'" do
     with_manual_time_override do
       tt 'switch "some project"'
       stdin << "y\n"
@@ -196,7 +196,7 @@ feature "Listing tasks" do
       tt 'start "another task"'
       stdin << "y\n"
       Timecop.freeze Time.zone.local(2010, 1, 2, 3, 3)
-      tt 'stop'
+      tt 'finish'
       Timecop.freeze Time.zone.local(2010, 1, 2, 8, 8)
       tt 'switch "another project"'
       stdin << "y\n"
@@ -205,7 +205,7 @@ feature "Listing tasks" do
       Timecop.freeze Time.zone.local(2010, 1, 2, 13, 13)
       tt 'resume 1'
       Timecop.freeze Time.zone.local(2010, 1, 2, 18, 18)
-      tt 'stop'
+      tt 'finish'
       tt 'list today'
     end
     output.lines.must smart_match([
@@ -219,14 +219,14 @@ feature "Listing tasks" do
       ""
     ])
   end
-  #scenario "Listing today's completed tasks with just 'today'"
-  scenario "Listing today's completed tasks with 'list today' when no tasks created yet" do
+  #scenario "Listing today's finished tasks with just 'today'"
+  scenario "Listing today's finished tasks with 'list today' when no tasks created yet" do
     tt 'list today'
     output.must == "It doesn't look like you've started any tasks yet.\n"
   end
-  #scenario "Listing today's completed tasks with 'completed' when no tasks created yet"
+  #scenario "Listing today's finished tasks with 'finished' when no tasks created yet"
   
-  scenario "Listing this week's completed tasks with 'list this week'" do
+  scenario "Listing this week's finished tasks with 'list this week'" do
     with_manual_time_override do
       tt 'switch "some project"'
       stdin << "y\n"
@@ -234,11 +234,11 @@ feature "Listing tasks" do
       tt 'start "some task"'
       stdin << "y\n"
       Timecop.freeze Time.zone.local(2010, 8, 2, 5, 5)
-      tt 'stop'
+      tt 'finish'
       tt 'start "another task"'
       stdin << "y\n"
       Timecop.freeze Time.zone.local(2010, 8, 3, 15, 15)
-      tt 'stop'
+      tt 'finish'
       tt 'switch "another project"'
       stdin << "y\n"
       tt 'start "yet another task"'
@@ -272,12 +272,12 @@ feature "Listing tasks" do
       ""
     ])
   end
-  #scenario "Listing today's completed tasks with just 'this week'"
-  scenario "Listing this week's completed tasks with 'list this week' when no tasks created yet" do
+  #scenario "Listing today's finished tasks with just 'this week'"
+  scenario "Listing this week's finished tasks with 'list this week' when no tasks created yet" do
     tt 'list this week'
     output.must == "It doesn't look like you've started any tasks yet.\n"
   end
-  #scenario "Listing today's completed tasks with 'this week' when no tasks created yet"
+  #scenario "Listing today's finished tasks with 'this week' when no tasks created yet"
   
   scenario "Unknown subcommand" do
     tt 'list yourmom'
