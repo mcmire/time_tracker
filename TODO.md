@@ -4,9 +4,6 @@
                   ^         |
                    \________/
 
-  * Remove "stop" event, rename "stopped" to "paused", rename "completed" to "finished", remove .last_stopped
-  * Rename "stop" command to "finish", etc.
-  * Disallow a completed task to be resumed
 * Add an "add feature/chore/bug" command, and also "start feature/chore/bug NAME"
 * Modify add task (and auto-adding before starting) to search before adding a new one, and suggest pre-existing tasks to up-vote instead
 * Sort lists by number of votes
