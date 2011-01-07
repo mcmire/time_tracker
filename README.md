@@ -121,7 +121,7 @@ Okay, and super. I keep issues in [Issues](http://github.com/mcmire/time_tracker
 
 ## This looks interesting. Can I help out?
 
-Sure! Right now I've got a to-do list under [TODO.md](TODO.md). PM or email me and we'll talk.
+Sure! Right now I've got a to-do list under [TODO.md](https://github.com/mcmire/time_tracker/blob/master/TODO.md). PM or email me and we'll talk.
 
 ## Similar projects
 
