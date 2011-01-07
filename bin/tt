@@ -7,7 +7,7 @@
 $:.unshift File.dirname(__FILE__) + '/../lib'
 $USE_TEST_DB = (ENV["TEST"] == "1")
 
-puts "Loading..." if ARGV.reject {|a| a =~ /^-/ }.empty?
+puts "Loading..." if ARGV.empty?
 
 begin
   require 'bundler'

@@ -22,12 +22,15 @@ module TimeTracker
       alias :cmd :command
       
       def commands
-        @commands ||= {}
+        @@commands ||= {}
       end
 
       def command_list
         arr = []
-        commands = self.commands.map {|name, info| [[name, info[:args]].join(" "), info[:desc]] }
+        commands = self.commands.keys.sort.map do |name|
+          info = self.commands[name]
+          [ [name, info[:args]].join(" "), info[:desc] ]
+        end
         width = commands.map {|(usage, desc)| usage.length }.max
         width = 25 if width < 25
         commands.each do |(usage, desc)|
@@ -52,6 +55,11 @@ module TimeTracker
     end
     
     def execute!
+      if @argv.include?("--help") or @argv.include?("-h")
+        help
+        exit
+      end
+      
       name, args = @argv[0], @argv[1..-1]
       begin
         run_command!(name, *args)
@@ -97,6 +105,12 @@ module TimeTracker
       end
     end
     
+    cmd :help, :desc => "Prints the available tasks"
+    def help
+      stdout.puts "Available tasks:"
+      print_available_tasks
+    end
+    
   private
     def raise_unknown_command_error(name)
       msg = %{Oops! "#{name}" isn't a command. Try one of these instead:\n}
@@ -109,6 +123,12 @@ module TimeTracker
     def raise_invalid_invocation_error(cmd)      
       msg = %{Oops! That isn't the right way to call "#{cmd[:name]}". Try this instead: #{@program_name} #{cmd[:name]} #{cmd[:args]}}
       raise InvalidInvocationError, msg
+    end
+    
+    def print_available_tasks
+      stdout.puts "\n"
+      stdout.puts self.class.command_list.map {|str| "  #{str}\n" }.join
+      stdout.puts "\n"
     end
   end
 end

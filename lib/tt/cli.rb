@@ -13,8 +13,6 @@ module TimeTracker
       "Must be the static. Let's try that again:"
     ]
     
-    REPL_REGEX = /(?:^|[ ])(?:"([^"]+)"|'([^']+)'|([^ ]+))/
-    
     cmd :add, :args => "{task|project} NAME", :desc => "Adds a task or a project."
     def add(what, name=nil)
       case what
@@ -51,9 +49,8 @@ module TimeTracker
       TimeTracker.external_service.andand.pull_projects!
       project = TimeTracker::Project.first(:name => project_name)
       unless project
-        if yes?("I can't find this project. Did you want to create it? (y/n)")
-          project = TimeTracker::Project.create!(:name => project_name)
-        end
+        return if no?("I can't find this project. Did you want to create it? (y/n)")
+        project = TimeTracker::Project.create!(:name => project_name)
       end
       if curr_proj = TimeTracker.current_project
         TimeTracker.external_service.andand.pull_tasks!(curr_proj)
@@ -81,9 +78,8 @@ module TimeTracker
         end
       end
       unless task
-        if yes?("I can't find this task. Did you want to create it? (y/n)")
-          task = curr_proj.tasks.build(:name => task_name)
-        end
+        return if no?("I can't find this task. Did you want to create it? (y/n)")
+        task = curr_proj.tasks.build(:name => task_name)
       end
       if running_task = curr_proj.tasks.last_running
         running_task.pause!
@@ -338,12 +334,11 @@ module TimeTracker
           CONFIGURE_USAGES.values.map {|x| "  " + @program_name + " " + x }.join("\n")
         end
       else
-        if yes?("Do you want to sync projects and tasks with Pivotal Tracker? (y/n)")
-          _configure_check_no_projects_or_tasks_exist
-          api_key = ask("What's your API key?")
-          full_name = ask("Okay, what's your full name?")
-          _configure_handle_service(api_key, full_name)
-        end
+        return if no?("Do you want to sync projects and tasks with Pivotal Tracker? (y/n)")
+        _configure_check_no_projects_or_tasks_exist
+        api_key = ask("What's your API key?")
+        full_name = ask("Okay, what's your full name?")
+        _configure_handle_service(api_key, full_name)
       end
     end
     def _configure_check_no_projects_or_tasks_exist
@@ -369,8 +364,9 @@ module TimeTracker
     end
     private :_configure_check_no_projects_or_tasks_exist, :_configure_handle_service
     
-    cmd :clear, :desc => "Clears everything"
+    cmd :clear, :desc => "Removes all data from the database"
     def clear
+      return if no?("WARNING! This will remove all data from the database. There is no going back.\nSure you want to do this? (y/n)")
       TimeTracker::Project.delete_all
       TimeTracker::Task.delete_all
       TimeTracker::TimePeriod.delete_all
@@ -472,17 +468,17 @@ module TimeTracker
       ret
     end
     
-    def yes?(msg)
+    def no?(msg)
       keep_prompting(msg) do |answer|
         case answer
         when /^y(es)?$/i
-          raise Break, true
+          raise Break, false
         when /^n(o)?$/i
           stdout.puts %{Okay, never mind then.}
-          raise Break, false
+          raise Break, true
         else
           print_wrong_answer
-          false
+          true
         end
       end
     end

@@ -1,9 +1,11 @@
 module TimeTracker
   class Cli < Commander
     module Repl
+      REPL_REGEX = /(?:^|[ ])(?:"([^"]+)"|'([^']+)'|([^ ]+))/
+      
       # Override method in Commander
       def execute!
-        if @argv.reject {|a| a =~ /^-/ }.empty?
+        if @argv.empty?
           start_repl
         else
           super
@@ -37,8 +39,9 @@ module TimeTracker
             end_repl if line =~ /^(exit|quit|q)$/
             Readline::HISTORY << line
             Readline::HISTORY.unshift if Readline::HISTORY.size > 100
-            args = line.scan(REPL_REGEX).map {|a| a.compact.first }
-            start(args)
+            all = line.scan(REPL_REGEX).map {|a| a.compact.first }
+            name, *args = all
+            run_command!(name, *args)
           rescue Interrupt => e
             stdout.print Color.clear
             stdout.puts 'Type "exit", "quit", or "q" to quit.'
@@ -51,7 +54,7 @@ module TimeTracker
 
       def end_repl(interrupted=false)
         stdout.puts if interrupted
-        stdout.puts "Thanks for playing!"
+        stdout.puts "Adios!"
         save_history
         exit
       end
