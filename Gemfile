@@ -1,5 +1,9 @@
+source :rubygems
+
 gem "bson_ext"#, :require => false
 gem "mongo_mapper"#, :require => false
+gem "tzinfo"
+gem "i18n"
 gem "highline"
 gem "term-ansicolor", :require => "term/ansicolor"
 gem "httparty"
@@ -16,7 +20,6 @@ group :test do
   
   gem "ribeye", :require => false, :path => "/Users/elliot/code/common/lib/ruby/ribeye.master"
   gem "rspec"#, :require => false
-  gem "capybara-envjs"#, :require => false
   #gem "aruba", :require => "aruba/cli"
   #gem "ruby-debug", :require => false
   #gem "ParseTree", :require => "parse_tree_extensions"
