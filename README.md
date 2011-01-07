@@ -1,7 +1,5 @@
 # TimeTracker
 
-## The pitch
-
 How much time did you spend frobulizing the gazzlewonker just now? How many times have you been asked to make a report for the bossman or Joe in accounting this month?
 
 TimeTracker is a command-line utility that helps you answer these questions and, more importantly, keep your sanity.
@@ -70,7 +68,7 @@ TimeTracker is still a work in progress, but here are the sorts of things it can
 * Show finished tasks (`tt list finished`)
 * Show all tasks (`tt list all`)
 * Search for a task (`tt search "search text"`)
-* Upvoting a task (`tt upvote "some task"`)
+* Upvote a task (`tt upvote "some task"`)
 
 <!--
 Additionally, TimeTracker has support for pushing and pulling updates to and from Pivotal Tracker. To set this up, you first have to tell TimeTracker your api key and name:
@@ -123,20 +121,22 @@ Okay, and super. I keep issues in [Issues](http://github.com/mcmire/time_tracker
 
 ## This looks interesting. Can I help out?
 
-Sure! Right now I've got a to-do list under TODO.md. PM or email me and we'll talk.
+Sure! Right now I've got a to-do list under [TODO.md](TODO.md). PM or email me and we'll talk.
 
 ## Similar projects
+
+There are a couple I've found:
 
 * <http://github.com/ymendel/one_inch_punch>
 * <http://github.com/samg/timetrap>
 
 ## Author
 
-(c) 2010-2011 Elliot Winkler.
+&copy; 2010-2011 Elliot Winkler.
 
 * **Email:** <elliot.winkler@gmail.com>
 * **Twitter:** [@mcmire](http://twitter.com/mcmire)
-* **Blog:** http://lostincode.net
+* **Blog:** <http://lostincode.net>
 
 ## License
 
