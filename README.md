@@ -40,13 +40,13 @@ Whew! That took a while, but the site's finally back up. What were we working on
     > finish
     Stopped clock for "fix the site", at 3h:39m.
     (Resuming clock for "add a report for the bossman".)
-    
+
 Before we know it, it's the end of the day. Guess the bossman's going to have to wait till tomorrow to see that report. So what took up our time today, anyway? Let's just find out:
-    
+
     > list today
-    
+
     Today's tasks:
-    
+
     12:14pm -         [#2] acme widgets / add a report for the bossman
      9:40am -  1:19pm [#3] pete's popsicles / fix the site
      9:39am -  9:40am [#2] acme widgets / add a report for the bossman
@@ -106,20 +106,28 @@ Now for TimeTracker itself. Ideally it would be a gem, but I'm not to that point
 
     git clone http://github.com/mcmire/time_tracker.git
     cd time_tracker
-    
-Now you'll want to install the gems. (If you use RVM, I have a .rvmrc so you should be in a custom gemset.)
+
+Now you'll want to install the gem dependencies. (If you use RVM, I have a .rvmrc so you should be in a custom gemset.)
 
     bundle install --without test
-    
+
 Now you should be able to say:
 
     bin/tt --help
 
-## Something doesn't work! or, I've got an idea!
+## Something is borked!
 
-Okay, and super. I keep issues in [Issues](http://github.com/mcmire/time_tracker/issues), sooo, issue away. Even better, send me a pull request.
+I keep issues in [Issues](http://github.com/mcmire/time_tracker/issues), so issue away and I'll take a look. If you feel like taking the time to submit a pull request, even better. (See below on development.)
 
-## This looks interesting. Can I help out?
+## TimeTracker is great, but I'd like to use it this way...
+
+Seriously, if you have ideas, just ping me (my contact info is at the bottom).
+
+## Anything I need to know when hacking on it?
+
+There are tests in spec/. I've made sure these are up to date, you should too. Presently, I'm using a gem I wrote called [ribeye](http://github.com/mcmire/ribeye) to simulate interaction with the command line, although since I've basically abandoned that project, I need to extract the CLI stuff out. But for now that's what I'm using.
+
+## Can I help out?
 
 Sure! Right now I've got a to-do list under [TODO.md](https://github.com/mcmire/time_tracker/blob/master/TODO.md). PM or email me and we'll talk.
 
@@ -130,14 +138,20 @@ There are a couple I've found:
 * <http://github.com/ymendel/one_inch_punch>
 * <http://github.com/samg/timetrap>
 
-## Author
+## Author/Contact
 
-&copy; 2010-2011 Elliot Winkler.
+This project is (c) 2010-2011 Elliot Winkler. If you have any questions, please
+feel free to contact me through these channels:
 
-* **Email:** <elliot.winkler@gmail.com>
-* **Twitter:** [@mcmire](http://twitter.com/mcmire)
-* **Blog:** <http://lostincode.net>
+* **Twitter**: [@mcmire](http://twitter.com/mcmire)
+* **Email**: <elliot.winkler@gmail.com>
+* (And, of course, on the githubs)
 
 ## License
 
-You're free to do whatever you want with the code here. You know, provided I get some sort of recognition ;)
+All code here is free to use for personal and commercial purposes. If you learn
+something from it, awesome. If it powers your multi-million dollar enterprise,
+even better. If it gets put in a computer on a rocket to Mars, fantastic. I'm
+not going to sue you, I really don't care. You don't even have to attach a
+courtesy if you don't want (though it's the neighborly thing to do). Basically,
+use your powers wisely, and above all, be nice!
