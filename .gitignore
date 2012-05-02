@@ -1,8 +1,5 @@
-.DS_Store
+.*
 tmp/*
-*.tmproj
 failed_examples.txt
-.bundle
-.ribeye
 log/*
 Gemfile.lock
