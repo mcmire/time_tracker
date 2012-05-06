@@ -6,7 +6,7 @@
 #   zing.zip(["zang", /ulla/]).all? {|actual, expected| expected === actual } #=> true
 #   zing.should deep_equal(["zang", /ulla/]) # same thing, only in matcher form
 #
-Spec::Matchers.define :smart_match do |expected|
+RSpec::Matchers.define :smart_match do |expected|
   match do |actual|
     if actual.respond_to?(:zip)
       if actual.size >= expected.size
@@ -31,7 +31,7 @@ end
 
 # Assert that a string starts with a certain substring.
 #
-Spec::Matchers.define :start_with do |expected|
+RSpec::Matchers.define :start_with do |expected|
   match do |actual|
     actual =~ Regexp.new("^" + Regexp.escape(expected))
   end
@@ -48,7 +48,7 @@ end
 
 # Assert that a string starts with a certain substring.
 #
-Spec::Matchers.define :end_with do |expected|
+RSpec::Matchers.define :end_with do |expected|
   match do |actual|
     actual =~ Regexp.new(Regexp.escape(expected) + "$")
   end
