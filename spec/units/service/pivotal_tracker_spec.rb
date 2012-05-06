@@ -154,7 +154,7 @@ EOT
       end
       context "without time last pulled set" do
         before do
-          TimeTracker.config.update("last_pulled_times", nil)
+          TimeTracker.world.update("last_pulled_times", nil)
         end
         def api_url
           "www.pivotaltracker.com/services/v3/projects/5/stories"
@@ -165,12 +165,12 @@ EOT
           stub_api_call("feature", "finished")
           act!
           TimeTracker.reload_config
-          TimeTracker.config["last_pulled_times"]["5"].must == Time.utc(2010, 1, 5)
+          TimeTracker.world["last_pulled_times"]["5"].must == Time.utc(2010, 1, 5)
         end
       end
       context "with time last pulled set" do
         before do
-          TimeTracker.config.update("last_pulled_times", "5" => Time.utc(2010, 1, 5))
+          TimeTracker.world.update("last_pulled_times", "5" => Time.utc(2010, 1, 5))
         end
         def api_url
           "www.pivotaltracker.com/services/v3/projects/5/stories?modified_since=1/5/2010"
@@ -181,7 +181,7 @@ EOT
           stub_api_call("feature", "finished")
           act!
           TimeTracker.reload_config
-          TimeTracker.config["last_pulled_times"]["5"].must == Time.utc(2010, 1, 5)
+          TimeTracker.world["last_pulled_times"]["5"].must == Time.utc(2010, 1, 5)
         end
       end
     end
@@ -196,7 +196,7 @@ EOT
       end
       context "without any times last pulled set" do
         before do
-          TimeTracker.config.update("last_pulled_times", nil)
+          TimeTracker.world.update("last_pulled_times", nil)
         end
         def api_url
           "www.pivotaltracker.com/services/v3/stories"
@@ -207,7 +207,7 @@ EOT
           stub_api_call("feature", "finished")
           act!
           TimeTracker.reload_config
-          TimeTracker.config["last_pulled_times"].must == {
+          TimeTracker.world["last_pulled_times"].must == {
             "5" => Time.utc(2010, 1, 8),
             "10" => Time.utc(2010, 1, 8),
             "15" => Time.utc(2010, 1, 8)
@@ -216,7 +216,7 @@ EOT
       end
       context "with time last pulled set" do
         before do
-          TimeTracker.config.update("last_pulled_times",
+          TimeTracker.world.update("last_pulled_times",
             "5" => Time.utc(2010, 1, 5),
             "10" => Time.utc(2010, 1, 3),
             "15" => Time.utc(2010, 1, 8)
@@ -231,7 +231,7 @@ EOT
           stub_api_call("feature", "finished")
           act!
           TimeTracker.reload_config
-          TimeTracker.config["last_pulled_times"].must == {
+          TimeTracker.world["last_pulled_times"].must == {
             "5" => Time.utc(2010, 1, 8),
             "10" => Time.utc(2010, 1, 8),
             "15" => Time.utc(2010, 1, 8)

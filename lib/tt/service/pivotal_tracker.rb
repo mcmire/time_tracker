@@ -38,11 +38,11 @@ module TimeTracker
       end
 
       def pull_tasks!(project=nil)
-        if TimeTracker.config["last_pulled_times"]
+        if TimeTracker.world["last_pulled_times"]
           if project
-            time = TimeTracker.config["last_pulled_times"][project.external_id.to_s]
+            time = TimeTracker.world["last_pulled_times"][project.external_id.to_s]
           else
-            time = TimeTracker.config["last_pulled_times"].values.min
+            time = TimeTracker.world["last_pulled_times"].values.min
           end
           formatted_date = time.strftime("#{time.month}/#{time.day}/%Y")
         end
@@ -68,7 +68,7 @@ module TimeTracker
           task.add_to_set(:tags => "t:#{story.story_type}")
           task.reload # have to do this to load the new tag into the document
         end
-        last_pulled_times = TimeTracker.config["last_pulled_times"] ||= {}
+        last_pulled_times = TimeTracker.world["last_pulled_times"] ||= {}
         if project
           last_pulled_times[project.external_id.to_s] = Time.now.utc
         else
@@ -77,7 +77,7 @@ module TimeTracker
             last_pulled_times[id.to_s] = Time.now.utc
           end
         end
-        TimeTracker.config.save
+        TimeTracker.world.save
       end
 
       def check_task_exists!(task)

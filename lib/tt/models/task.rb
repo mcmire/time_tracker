@@ -1,3 +1,7 @@
+
+require 'tt/mongo_mapper'
+require 'tt/extensions/ruby'
+
 module TimeTracker
   module Models
     class Task
@@ -31,8 +35,8 @@ module TimeTracker
       timestamps!
       key :last_started_at, Time
 
-      belongs_to :project, :class_name => "TimeTracker::Project"
-      has_many :time_periods, :class_name => "TimeTracker::TimePeriod", :foreign_key => :task_id
+      belongs_to :project, :class_name => "TimeTracker::Models::Project"
+      has_many :time_periods, :class_name => "TimeTracker::Models::TimePeriod", :foreign_key => :task_id
 
       before_create :set_number, :unless => :number?
       before_create :copy_created_at_to_last_started_at, :unless => :last_started_at?

@@ -1,4 +1,6 @@
 
+require 'andand'
+
 require 'tt/core/config'
 require 'tt/core/logging'
 require 'tt/core/time'
@@ -16,7 +18,7 @@ module TimeTracker
     end
 
     def current_project
-      TimeTracker::Project.find(TimeTracker.world["current_project_id"])
+      TimeTracker::Models::Project.find(TimeTracker.world["current_project_id"])
     end
 
     def external_service

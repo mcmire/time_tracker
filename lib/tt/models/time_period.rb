@@ -1,4 +1,6 @@
+
 require 'enumerator'
+require 'tt/mongo_mapper'
 
 module TimeTracker
   module Models
@@ -11,7 +13,7 @@ module TimeTracker
       key :started_at, Time
       key :ended_at, Time
 
-      belongs_to :task, :class_name => "TimeTracker::Task"
+      belongs_to :task, :class_name => "TimeTracker::Models::Task"
 
       scope :ended_today, lambda {
         today = Date.today
@@ -57,7 +59,7 @@ module TimeTracker
           end
           times << ended_at
           times = times.select {|time| options[:where_date].call(time.to_date) } if options[:where_date]
-          times_in_groups = times.enum_slice(2).to_a
+          times_in_groups = times.each_slice(2).to_a
           times_in_groups = times_in_groups.reverse if options[:reverse]
           times_in_groups.each_with_index do |(time1, time2), i|
             parenthesize = case i
