@@ -1,3 +1,15 @@
+
+require 'tt/commander'
+require 'tt/cli/repl'
+
+require 'tt/models/project'
+require 'tt/models/task'
+require 'tt/models/time_period'
+require 'tt/models/world'
+
+require 'tt/columnator'
+require 'tt/service/pivotal_tracker'
+
 module TimeTracker
   class Cli < Commander
     include TimeTracker::Cli::Repl
@@ -19,10 +31,10 @@ module TimeTracker
       when "project"
         raise Error, "Right, but what do you want to call the new project?" unless name
         TimeTracker.external_service.andand.pull_projects!
-        if project = TimeTracker::Project.first(:name => name)
+        if project = Models::Project.first(:name => name)
           raise Error, "It looks like this project already exists."
         else
-          project = TimeTracker::Project.create!(:name => name)
+          project = Models::Project.create!(:name => name)
           stdout.puts %{Project "#{project.name}" created.}
         end
       when "task"
@@ -47,10 +59,10 @@ module TimeTracker
     def switch(project_name=nil)
       raise Error, "Right, but which project do you want to switch to?" unless project_name
       TimeTracker.external_service.andand.pull_projects!
-      project = TimeTracker::Project.first(:name => project_name)
+      project = Models::Project.first(:name => project_name)
       unless project
         return if no?("I can't find this project. Did you want to create it? (y/n)")
-        project = TimeTracker::Project.create!(:name => project_name)
+        project = Models::Project.create!(:name => project_name)
       end
       if curr_proj = TimeTracker.current_project
         TimeTracker.external_service.andand.pull_tasks!(curr_proj)
@@ -59,7 +71,7 @@ module TimeTracker
           stdout.puts %{(Pausing clock for "#{running_task.name}", at #{running_task.total_running_time}.)}
         end
       end
-      TimeTracker.config.update("current_project_id", project.id)
+      TimeTracker.world.update("current_project_id", project.id)
       stdout.puts %{Switched to project "#{project.name}".}
       if paused_task = project.tasks.last_paused
         paused_task.resume!
@@ -118,7 +130,7 @@ module TimeTracker
       raise Error, "Yes, but which task do you want to resume? (I'll accept a number or a name.)" unless arg
       curr_proj = get_current_project()
       TimeTracker.external_service.andand.pull_tasks!(curr_proj)
-      raise Error, "It doesn't look like you've started any tasks yet." unless TimeTracker::Task.exists?
+      raise Error, "It doesn't look like you've started any tasks yet." unless Models::Task.exists?
       already_paused = false
       task = find_task(arg, "resume")
       if running_task = curr_proj.tasks.last_running
@@ -127,7 +139,7 @@ module TimeTracker
       end
       if task.project_id != curr_proj.id
         curr_proj = task.project
-        TimeTracker.config.update("current_project_id", curr_proj.id.to_s)
+        TimeTracker.world.update("current_project_id", curr_proj.id.to_s)
         stdout.puts %{(Switching to project "#{curr_proj.name}".)}
       end
       task.resume!
@@ -172,7 +184,7 @@ module TimeTracker
 
       raise_invalid_invocation_error(@current_command) unless LIST_SUBCOMMANDS.include?(type)
 
-      unless TimeTracker::Task.exists?
+      unless Models::Task.exists?
         stdout.puts "It doesn't look like you've started any tasks yet."
         return
       end
@@ -182,24 +194,24 @@ module TimeTracker
       records = []
       case type
       when "lastfew"
-        records = TimeTracker::TimePeriod.sort(:ended_at.desc).limit(5).to_a
+        records = Models::TimePeriod.sort(:ended_at.desc).limit(5).to_a
         header = "Latest tasks:"
       when "finished"
-        records = TimeTracker::TimePeriod.sort(:ended_at.desc).to_a
+        records = Models::TimePeriod.sort(:ended_at.desc).to_a
         header = "Completed tasks:"
       when "all"
-        records = TimeTracker::TimePeriod.sort(:ended_at.desc).to_a
+        records = Models::TimePeriod.sort(:ended_at.desc).to_a
         header = "All tasks:"
       when "today"
-        records = TimeTracker::TimePeriod.ended_today.sort(:ended_at.desc).to_a
+        records = Models::TimePeriod.ended_today.sort(:ended_at.desc).to_a
         header = "Today's tasks:"
       when "this week"
-        records = TimeTracker::TimePeriod.ended_this_week.sort(:ended_at).to_a
+        records = Models::TimePeriod.ended_this_week.sort(:ended_at).to_a
         header = "This week's tasks:"
       end
 
       unless type == "finished"
-        if task = TimeTracker::Task.last_running
+        if task = Models::Task.last_running
           records.pop if type == "lastfew" && records.size == 5
           if type == "this week"
             records << task
@@ -214,7 +226,7 @@ module TimeTracker
       group_by_date = (type != "lastfew" && type != "today")
       include_day = (
         type == "lastfew" &&
-        records.grep(TimeTracker::TimePeriod).any? {|record| record.started_at.to_date != record.ended_at.to_date }
+        records.grep(Models::TimePeriod).any? {|record| record.started_at.to_date != record.ended_at.to_date }
       )
       reverse = (type != "this week")
       if include_day
@@ -283,7 +295,7 @@ module TimeTracker
       raise Error, "Okay, but what do you want to search for?" if args.empty?
       TimeTracker.external_service.andand.pull_tasks!
       re = Regexp.new(args.map {|a| Regexp.escape(a) }.join("|"))
-      tasks = TimeTracker::Task.where(:name => re).sort(:last_started_at.desc).to_a
+      tasks = Models::Task.where(:name => re).sort(:last_started_at.desc).to_a
       #pp :tasks => tasks
       stdout.puts "Search results:"
       rows = tasks.map {|task| task.info_for_search }
@@ -342,7 +354,7 @@ module TimeTracker
       end
     end
     def _configure_check_no_projects_or_tasks_exist
-      if TimeTracker::Project.exists? || TimeTracker::Task.exists?
+      if Models::Project.exists? || Models::Task.exists?
         raise Error, "Actually -- you can't do that if you've already created a project or task. Sorry."
       end
     end
@@ -351,7 +363,7 @@ module TimeTracker
       if service.valid?
         stdout.puts "Great, you're all set up to use tt with Pivotal Tracker now!"
         TimeTracker.external_service = service
-        TimeTracker.config.update_many(
+        TimeTracker.world.update_many(
           "external_service" => "pivotal_tracker",
           "external_service_options" => {"api_key" => api_key, "full_name" => full_name}
         )
@@ -367,10 +379,10 @@ module TimeTracker
     cmd :clear, :desc => "Removes all data from the database"
     def clear
       return if no?("WARNING! This will remove all data from the database. There is no going back.\nSure you want to do this? (y/n)")
-      TimeTracker::Project.delete_all
-      TimeTracker::Task.delete_all
-      TimeTracker::TimePeriod.delete_all
-      TimeTracker::Config.collection.drop
+      Models::Project.delete_all
+      Models::Task.delete_all
+      Models::TimePeriod.delete_all
+      Models::World.collection.drop
       stdout.puts "Everything cleared."
     end
 
@@ -402,9 +414,9 @@ module TimeTracker
       # would have stopped it automatically anyway)
 
       curr_proj = TimeTracker.current_project
-      event = TimeTracker::Task.state_machine.events[next_event]
+      event = Models::Task.state_machine.events[next_event]
       if arg =~ /^\d+$/
-        tasks = (next_event == "resume" ? TimeTracker::Task : curr_proj.tasks)
+        tasks = (next_event == "resume" ? Models::Task : curr_proj.tasks)
         unless task = tasks.first(:number => arg.to_i)
           raise Error, "I don't think that task exists."
         end
@@ -417,7 +429,7 @@ module TimeTracker
         elsif next_event != "resume"
           raise Error, "I don't think that task exists."
         else
-          tasks = TimeTracker::Task.where(:state => event.allowed_previous_states, :name => arg, :project_id.ne => curr_proj.id)
+          tasks = Models::Task.where(:state => event.allowed_previous_states, :name => arg, :project_id.ne => curr_proj.id)
           if tasks.any?
             # Might be better to do this w/ native Ruby driver
             # See <http://groups.google.com/group/mongomapper/browse_thread/thread/1a5a5b548123e07e/0c65f3e770e04f29>
