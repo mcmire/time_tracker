@@ -8,7 +8,8 @@ gem "highline", '1.6.11'
 gem "term-ansicolor", '1.0.7', :require => "term/ansicolor"
 gem "httparty", '0.8.3'
 gem "hashie", '1.2.0'
-gem "andand", '1.3.3'
+gem "loquacious", '1.9.1'
+gem "logging", '1.7.2'
 
 group :test do
   gem "rspec-core", '~> 2.10.0'

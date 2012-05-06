@@ -1,10 +1,17 @@
 require 'mongo_mapper'
 
-log_dir = File.expand_path('../../../log', __FILE__)
-FileUtils.mkdir_p(log_dir)
-logger = Logger.new(log_dir + "/#{$USE_TEST_DB ? 'mongo.test.log' : 'mongo.log'}")
+config = TimeTracker.config
+mongo_config = config.mongo
+
+log_file = File.join(config.log.path, "mongo.#{config.environment}.log")
+
+FileUtils.mkdir_p File.dirname(log_file)
+
+logger = Logging.logger['Mongo']
+logger.add_appenders Logging.appenders.file(log_file)
+
 MongoMapper.connection = Mongo::Connection.new('127.0.0.1', 27017, :logger => logger)
-MongoMapper.database = $USE_TEST_DB ? "tt_test" : "tt"
+MongoMapper.database = mongo_config.database
 
 Time.zone = "Central Time (US & Canada)"
 
