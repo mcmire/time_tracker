@@ -1,10 +1,10 @@
+
+require 'active_support/concern'
+
 module TimeTracker
   module Extensions
     module MongoMapper
       module StateMachine
-        class Error < StandardError; end
-        class InvalidTransitionError < Error; end
-
         class TransitionCollection
           attr_reader :allowed_previous_states, :disallowed_previous_states
 
@@ -164,6 +164,11 @@ module TimeTracker
           end
         end
 
+        extend ActiveSupport::Concern
+
+        class Error < StandardError; end
+        class InvalidTransitionError < Error; end
+
         module ClassMethods
           def state_machine(options={}, &block)
             if block_given?
@@ -184,38 +189,36 @@ module TimeTracker
           end
         end
 
-        module InstanceMethods
-          # You signal that you want to go to the next state by setting next_state
-          # to something different than it is now.
-          def transition_to_next_state?
-            !!@next_event
-          end
+        # You signal that you want to go to the next state by setting next_state
+        # to something different than it is now.
+        def transition_to_next_state?
+          !!@next_event
+        end
 
-          def state_in_transition?
-            self.class.state_machine.in_transition?
-          end
+        def state_in_transition?
+          self.class.state_machine.in_transition?
+        end
 
-          def validate_state_transition
-            if message = invalid_message_for_transition_to(@next_event)
-              self.errors.add_to_base(message)
-            end
+        def validate_state_transition
+          if message = invalid_message_for_transition_to(@next_event)
+            self.errors.add_to_base(message)
           end
+        end
 
-          def invalid_message_for_transition_to(next_event)
-            self.class.state_machine.invalid_transition_message(self.state, next_event)
-          end
+        def invalid_message_for_transition_to(next_event)
+          self.class.state_machine.invalid_transition_message(self.state, next_event)
+        end
 
-          def start_state_transition
-            self.class.state_machine.start_transition!(self, state, @next_event)
-          end
+        def start_state_transition
+          self.class.state_machine.start_transition!(self, state, @next_event)
+        end
 
-          def save_next_state_as_new_state
-            self.state = self.class.state_machine.transition_info[:event].state
-          end
+        def save_next_state_as_new_state
+          self.state = self.class.state_machine.transition_info[:event].state
+        end
 
-          def finish_state_transition
-            self.class.state_machine.finish_transition
-          end
+        def finish_state_transition
+          self.class.state_machine.finish_transition
         end
       end
     end
