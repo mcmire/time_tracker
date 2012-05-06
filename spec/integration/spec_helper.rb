@@ -24,13 +24,16 @@ module IntegrationExampleGroup
   def self.included(base)
     base.send(:include, IntegrationExampleMethods)
     base.extend(IntegrationExampleGroupMethods)
-    base.metadata[:type] = :unit
+    base.metadata[:type] = :integration
   end
 end
 RSpec.configure do |c|
   c.include IntegrationExampleGroup,
     :type => :integration,
     :example_group => { :file_path => 'spec/integration' }
+  c.before(:suite, :type => :integration) do
+    $RUNNING_TESTS = :integration
+  end
   # If we don't do this and try to run a full spec suite,
   # we get a "too many open files" error after a while
   c.after(:each, :type => :integration) { cleanup_open_io }

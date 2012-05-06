@@ -13,4 +13,7 @@ RSpec.configure do |c|
   c.include UnitExampleGroup,
     :type => :unit,
     :example_group => { :file_path => 'spec/units' }
+  c.before(:suite, :type => :unit) do
+    $RUNNING_TESTS = :units
+  end
 end
