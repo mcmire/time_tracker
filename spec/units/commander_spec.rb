@@ -4,12 +4,12 @@ describe TimeTracker::Commander do
   before do
     @subclass = @metaclass = Class.new(TimeTracker::Commander)
   end
-  
+
   def rescuing(exception_class)
     begin; yield; rescue exception_class => exception; end
     exception
   end
-  
+
   describe '.command' do
     it "stores the given command in @commands" do
       @metaclass.command(:foo)
@@ -42,7 +42,7 @@ describe TimeTracker::Commander do
     #  info[:args] = "{foo|bar|baz}"
     #end
   end
-  
+
   describe '.command_list' do
     it "lists the defined commands, along with their descriptions" do
       stub(@metaclass).commands {
@@ -71,7 +71,7 @@ describe TimeTracker::Commander do
       ])
     end
   end
-  
+
   describe '.new' do
     it "stores the given program name in @program_name" do
       @commander = TimeTracker::Commander.new(:program_name => "program")
@@ -121,7 +121,7 @@ describe TimeTracker::Commander do
       @commander.highline.must be_a(::HighLine)
     end
   end
-  
+
   describe '#execute!' do
     it "dispatches to the appropriate method in the given class" do
       @subclass.class_eval do
@@ -190,5 +190,5 @@ describe TimeTracker::Commander do
       ])
     end
   end
-  
+
 end

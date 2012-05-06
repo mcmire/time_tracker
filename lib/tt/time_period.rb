@@ -3,33 +3,33 @@ require 'enumerator'
 module TimeTracker
   class TimePeriod
     include ::MongoMapper::Document
-    
+
     set_collection_name "time_periods"
-    
+
     key :task_id, ObjectId
     key :started_at, Time
     key :ended_at, Time
-    
+
     belongs_to :task, :class_name => "TimeTracker::Task"
-    
+
     scope :ended_today, lambda {
       today = Date.today
       start_of_today = Time.zone.local(today.year, today.month, today.day, 0, 0, 0)
       where(:ended_at.gte => start_of_today)
     }
-    
+
     scope :ended_this_week, lambda {
       today = Date.today
       sunday = today - today.wday
       start_of_sunday = Time.zone.local(sunday.year, sunday.month, sunday.day, 0, 0, 0)
       where(:ended_at.gte => start_of_sunday)
     }
-    
+
     #def create!(*args)
     #  puts "Calling TimePeriod#create!"
     #  super
     #end
-    
+
     def info(options={})
       lines = []
       if started_at.to_date == ended_at.to_date || options[:include_day]
@@ -102,11 +102,11 @@ module TimeTracker
       line << [task.project.name, task.name].join(' / ')
       line
     end
-    
+
     def duration
       (ended_at - started_at).to_i
     end
-    
+
     def format_time(time, options={})
       fmtstr = []
       fmtstr << "$month/$day/$year" if options[:include_date]

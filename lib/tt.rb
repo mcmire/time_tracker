@@ -20,21 +20,21 @@ require 'tt/service/pivotal_tracker'
 module TimeTracker
   class << self
     attr_writer :current_project, :external_service
-    
+
     def config
       # TODO: Maybe this should not be stored in the db, but just in memory or in /tmp
       @config || reload_config
     end
-    
+
     # TODO: config.reload
     def reload_config
       @config = TimeTracker::Config.find()
     end
-    
+
     def current_project
       TimeTracker::Project.find(TimeTracker.config["current_project_id"])
     end
-    
+
     def external_service
       return @external_service if @external_service
       if config["external_service"] && config["external_service_options"]

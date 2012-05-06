@@ -15,7 +15,7 @@ describe Date do
       Date.new(2010, 1, 6).to_s(:relative_date).must == '1/6/2010'
     end
   end
-  
+
   describe '.to_s(:mdy)' do
     specify "months is 1 digit, days is 1 digit" do
       Date.new(2010, 1, 1).to_s(:mdy).must == '1/1/2010'
@@ -32,7 +32,7 @@ describe Date do
   end
 end
 
-describe Time do  
+describe Time do
   describe ".human_time_duration" do
     context "given a duration in seconds, returns a formatted string if..." do
       specify "the duration is less than a minute" do
@@ -53,7 +53,7 @@ describe Time do
       end
     end
   end
-  
+
   describe '.to_s(:relative_date)' do
     specify "today" do
       stub(Date).today { Date.new(2010, 1, 1) }
@@ -68,7 +68,7 @@ describe Time do
       Time.zone.local(2010, 1, 6).to_s(:relative_date).must == '1/6/2010'
     end
   end
-  
+
   describe '.to_s(:mdy)' do
     specify "months is 1 digit, days is 1 digit" do
       Time.zone.local(2010, 1, 1).to_s(:mdy).must == '1/1/2010'
@@ -83,7 +83,7 @@ describe Time do
       Time.zone.local(2010, 12, 12).to_s(:mdy).must == '12/12/2010'
     end
   end
-  
+
   describe '.to_s(:hms)' do
     specify 'midnight' do
       Time.zone.local(2010, 1, 1, 0, 0, 0).to_s(:hms).must == '12:00am'

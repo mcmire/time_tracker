@@ -1,11 +1,11 @@
 require File.expand_path(File.dirname(__FILE__) + '/spec_helper')
 
 describe TimeTracker::Task do
-  
+
   before do
     @task = TimeTracker::Task.new
   end
-  
+
   context "on create" do
     it "gets assigned a number one higher than the last one regardless of project" do
       Factory(:task).number.must == 1
@@ -38,7 +38,7 @@ describe TimeTracker::Task do
       task.external_id.must == 5
     end
   end
-  
+
   context "on update" do
     it "doesn't touch the number set at creation" do
       task = Factory(:task)
@@ -69,7 +69,7 @@ describe TimeTracker::Task do
       expect { task.save! }.to raise_error(TimeTracker::Service::ResourceNotFoundError)
     end
   end
-  
+
   describe '.last_running' do
     it "returns the last created task regardless of id" do
       project = Factory(:project)
@@ -80,7 +80,7 @@ describe TimeTracker::Task do
       TimeTracker::Task.last_running.must == task2
     end
   end
-  
+
   describe '.last_paused' do
     it "returns the last created task regardless of id" do
       project = Factory(:project)
@@ -91,7 +91,7 @@ describe TimeTracker::Task do
       TimeTracker::Task.last_paused.must == task2
     end
   end
-  
+
   describe '.running' do
     it "includes tasks which are running" do
       running_task = Factory(:task, :state => "running")
@@ -102,7 +102,7 @@ describe TimeTracker::Task do
       TimeTracker::Task.running.to_a.must_not include(paused_task)
     end
   end
-  
+
   describe '.not_running' do
     it "includes tasks which are not running" do
       paused_task = Factory(:task, :state => "paused")
@@ -113,7 +113,7 @@ describe TimeTracker::Task do
       TimeTracker::Task.not_running.to_a.must_not include(running_task)
     end
   end
-  
+
   describe '.paused' do
     it "includes tasks which are paused" do
       paused_task = Factory(:task, :state => "paused")
@@ -124,7 +124,7 @@ describe TimeTracker::Task do
       TimeTracker::Task.paused.to_a.must_not include(running_task)
     end
   end
-  
+
   describe '#unstarted?' do
     it "returns true if state is set to 'unstarted'" do
       @task.state = "unstarted"
@@ -135,7 +135,7 @@ describe TimeTracker::Task do
       @task.must_not be_unstarted
     end
   end
-    
+
   describe '#running?' do
     it "returns true if state is set to 'running'" do
       @task.state = "running"
@@ -146,7 +146,7 @@ describe TimeTracker::Task do
       @task.must_not be_running
     end
   end
-  
+
   describe '#paused?' do
     it "returns true if state is set to 'paused'" do
       @task.state = "paused"
@@ -157,7 +157,7 @@ describe TimeTracker::Task do
       @task.must_not be_paused
     end
   end
-  
+
   describe '#start!' do
     it "sets last_started_at to the current time" do
       time = Time.zone.local(2010)
@@ -181,7 +181,7 @@ describe TimeTracker::Task do
       expect { task.start! }.to raise_error("Validation failed: Aren't you already working on that task?")
     end
   end
-  
+
   describe '#pause!' do
     it "creates a new time period just like #finish" do
       started_at = Time.local(2010, 1, 1, 0, 0, 0)
@@ -215,7 +215,7 @@ describe TimeTracker::Task do
       expect { task.pause! }.to raise_error("Validation failed: It looks like you've already finished this task.")
     end
   end
-  
+
   describe '#finish!' do
     it "creates a new time period just like #finish if the task was running" do
       started_at = Time.local(2010, 1, 1, 0, 0, 0)
@@ -251,7 +251,7 @@ describe TimeTracker::Task do
       expect { task.finish! }.to raise_error("Validation failed: It looks like you've already finished this task.")
     end
   end
-  
+
   describe '#resume!' do
     it "sets last_started_at" do
       task = Factory.build(:task, :state => "paused")
@@ -276,7 +276,7 @@ describe TimeTracker::Task do
       expect { task.resume! }.to raise_error("Validation failed: Aren't you working on that task already?")
     end
   end
-  
+
   describe '#upvote!' do
     it "increments num_votes and saves the record" do
       task = Factory(:task, :num_votes => 2)
@@ -285,7 +285,7 @@ describe TimeTracker::Task do
       task.num_votes.must == 4
     end
   end
-  
+
   describe '#total_running_time' do
     it "adds up the running time for all time periods and returns the time in a readable form" do
       task = Factory(:task)
@@ -300,7 +300,7 @@ describe TimeTracker::Task do
       task.total_running_time.must == "4h:15m"
     end
   end
-  
+
   describe '#info' do
     context "if :include_day not given" do
       it "returns an array containing the time the task was last started, and its name, number, and project name" do
@@ -334,7 +334,7 @@ describe TimeTracker::Task do
     end
     # the time stuff is tested in ruby_spec.rb
   end
-  
+
   describe '#info_for_search' do
     it "returns an array containing the task number, project name, and last started date" do
       project = TimeTracker::Project.new(:name => "some project")

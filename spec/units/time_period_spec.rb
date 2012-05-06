@@ -19,7 +19,7 @@ describe TimeTracker::TimePeriod do
       TimeTracker::TimePeriod.ended_today.to_a.must_not include(yesterday_task)
     end
   end
-  
+
   describe '.ended_this_week' do
     before do
       today = Date.today
@@ -39,7 +39,7 @@ describe TimeTracker::TimePeriod do
       TimeTracker::TimePeriod.ended_this_week.to_a.must_not include(yesterday_task)
     end
   end
-  
+
   describe '#info' do
     before do
       @project = TimeTracker::Project.new(:name => "some project")
@@ -139,7 +139,7 @@ describe TimeTracker::TimePeriod do
     end
     # the time stuff is tested in ruby_spec.rb
   end
-  
+
   describe '#duration' do
     it "returns the seconds between started_at and ended_at" do
       period = TimeTracker::TimePeriod.new(
@@ -149,5 +149,5 @@ describe TimeTracker::TimePeriod do
       period.duration.must == 9000
     end
   end
-  
+
 end

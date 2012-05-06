@@ -6,12 +6,12 @@ feature "Managing projects" do
     so that I know whether or not I need to upvote a task I've already created,
     or whether I need to create a new one.
   EOT
-  
+
   scenario "Searching for a task without specifying a query" do
     tt 'search'
     output.must == "Okay, but what do you want to search for?\n"
   end
-  
+
   scenario "Searching for a task by one term" do
     Timecop.freeze Time.zone.local(2010, 1, 1, 5, 0, 0)
     tt 'switch "moving to a new apartment"'
@@ -38,7 +38,7 @@ feature "Managing projects" do
       "[#1] moving to a new apartment / pack up the foosball table (last active: 1/1/2010)"
     ])
   end
-    
+
   scenario "Searching for a task by two terms is an OR query" do
     Timecop.freeze Time.zone.local(2010, 1, 1, 5, 0, 0)
     tt 'switch "moving to a new apartment"'

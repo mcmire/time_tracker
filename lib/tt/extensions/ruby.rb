@@ -4,7 +4,7 @@ class Time
     # 60..3599 = more than a minute, less than an hour
     # 3600..86399 = more than an hour, less than a day
     # 86400..* = more than a day
-    
+
     seconds    =  difference % 60
     difference = (difference - seconds) / 60
     minutes    =  difference % 60
@@ -12,7 +12,7 @@ class Time
     hours      =  difference % 24
     difference = (difference - hours)   / 24
     days       =  difference % 7
-    
+
     if days > 0
       if minutes > 0
         "%dd, %dh:%0dm" % [days, hours, minutes]
@@ -43,13 +43,13 @@ class Array
     default_words_connector     = ", "
     default_two_words_connector = " and "
     default_last_word_connector = ", and "
-    
+
     options.reverse_merge!(
       :words_connector => default_words_connector,
       :two_words_connector => default_two_words_connector,
       :last_word_connector => default_last_word_connector
     )
-    
+
     case length
     when 0
       ""

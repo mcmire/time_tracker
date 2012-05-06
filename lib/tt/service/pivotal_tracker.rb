@@ -5,12 +5,12 @@ module TimeTracker
     class PivotalTracker
       # A lot of this below was stolen shamelessly from the pivotal-tracker gem
       # So, portions copyright Joslyn Esser
-      
+
       # TODO: Require options
-      
+
       include HTTParty
       format :xml
-      
+
       STATES = {
         "unscheduled" => "unstarted",
         "unstarted"   => "unstarted",
@@ -20,23 +20,23 @@ module TimeTracker
         "accepted"    => "finished",
         "rejected"    => "finished"
       }
-      
+
       TYPES = %w(feature chore bug)
-      
+
       attr_reader :api_key, :headers, :base_uri
-      
+
       def initialize(options)
         options.symbolize_keys!
         @api_key = options[:api_key]
         @headers = {'X-TrackerToken' => @api_key}
         @base_uri = "http#{'s' if options[:ssl]}://www.pivotaltracker.com/services/v3"
       end
-      
+
       def valid?
         response = get_response(:head, "/activities?limit=1")
         response.code != 401
       end
-      
+
       def pull_tasks!(project=nil)
         if TimeTracker.config["last_pulled_times"]
           if project
@@ -79,21 +79,21 @@ module TimeTracker
         end
         TimeTracker.config.save
       end
-      
+
       def check_task_exists!(task)
         path = "/projects/#{task.project.external_id}/stories/#{task.external_id}"
         response = get_response(:get, path)
         raise_errors(response)
         return true
       end
-      
+
       def push_task!(task)
         path = "/projects/#{task.project.external_id}/stories/#{task.external_id}"
         response = get_response(:put, path, :body => task_to_xml(task))
         raise_errors(response)
         return true
       end
-      
+
       def task_to_xml(task)
         <<EOT.strip
 <story>
@@ -106,7 +106,7 @@ module TimeTracker
 </story>
 EOT
       end
-      
+
       def task_type(task)
         for tag in task.tags
           if tag =~ /^t:(.+)$/
@@ -115,7 +115,7 @@ EOT
         end
         return nil
       end
-      
+
       def task_state(task)
         case task.state
           when "unstarted" then "unscheduled"
@@ -123,22 +123,22 @@ EOT
           when "finished"  then (task_type(task) == "feature") ? "accepted" : "finished"
         end
       end
-      
+
       def task_labels(task)
         task.tags.reject {|t| t =~ /^t:/ }.join(",")
       end
-      
+
     private
       def request(method, path, resource, options={})
         response = get_response(method, path, options)
         raise_errors(response)
         parse_response(response, resource)
       end
-      
+
       def get_response(method, path, options={})
         self.class.__send__(method, path, options.merge(:base_uri => @base_uri, :headers => @headers))
       end
-      
+
       def raise_errors(response)
         case response.code
         when 401

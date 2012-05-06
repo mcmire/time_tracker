@@ -1,18 +1,18 @@
 module TimeTracker
   class Cli < Commander
     include TimeTracker::Cli::Repl
-    
+
     def self.ribeye_debug?
       defined?(Ribeye) && Ribeye.respond_to?(:debug) && Ribeye.debug?
     end
-    
+
     WRONG_ANSWERS = [
       "I'm sorry, I didn't understand you. Try that again:",
       "I'm not sure what you mean. Try again:",
       "Okay, but that's not a valid answer. Again?",
       "Must be the static. Let's try that again:"
     ]
-    
+
     cmd :add, :args => "{task|project} NAME", :desc => "Adds a task or a project."
     def add(what, name=nil)
       case what
@@ -42,7 +42,7 @@ module TimeTracker
         stdout.puts %{Task "#{task.name}" created.}
       end
     end
-    
+
     cmd :switch, :args => "PROJECT", :desc => "Switches to a certain project. The project is created if it does not already exist."
     def switch(project_name=nil)
       raise Error, "Right, but which project do you want to switch to?" unless project_name
@@ -66,7 +66,7 @@ module TimeTracker
         stdout.puts %{(Resuming clock for "#{paused_task.name}".)}
       end
     end
-    
+
     cmd :start, :args => "TASK", :desc => "Creates a new task, and starts the clock for it."
     def start(task_name=nil)
       raise Error, "Right, but which task do you want to start?" unless task_name
@@ -88,7 +88,7 @@ module TimeTracker
       task.start!
       stdout.puts %{Started clock for "#{task.name}".}
     end
-    
+
     cmd :finish, :args => "[TASK]", :desc => "Stops the clock for a task, or the last task if no task given, and marks it as finished"
     def finish(arg=:last)
       curr_proj = get_current_project()
@@ -112,7 +112,7 @@ module TimeTracker
         stdout.puts %{(Resuming clock for "#{paused_task.name}".)}
       end
     end
-    
+
     cmd :resume, :args => "[TASK]", :desc => "Resumes the clock for a task, or the last task if no task given"
     def resume(arg=nil)
       raise Error, "Yes, but which task do you want to resume? (I'll accept a number or a name.)" unless arg
@@ -133,7 +133,7 @@ module TimeTracker
       task.resume!
       stdout.puts %{Resumed clock for "#{task.name}".}
     end
-    
+
     cmd :upvote, :args => "[TASK]", :desc => "Records the number of times you've been asked to do a certain task."
     def upvote(task_name=nil)
       raise Error, "Yes, but which task do you want to upvote? (I'll accept a number or a name.)" unless task_name
@@ -169,16 +169,16 @@ module TimeTracker
     def list(*args)
       type = args.join(" ")
       type = "lastfew" if type.empty?
-      
+
       raise_invalid_invocation_error(@current_command) unless LIST_SUBCOMMANDS.include?(type)
-      
+
       unless TimeTracker::Task.exists?
         stdout.puts "It doesn't look like you've started any tasks yet."
         return
       end
-      
+
       TimeTracker.external_service.andand.pull_tasks!
-      
+
       records = []
       case type
       when "lastfew"
@@ -197,7 +197,7 @@ module TimeTracker
         records = TimeTracker::TimePeriod.ended_this_week.sort(:ended_at).to_a
         header = "This week's tasks:"
       end
-      
+
       unless type == "finished"
         if task = TimeTracker::Task.last_running
           records.pop if type == "lastfew" && records.size == 5
@@ -208,9 +208,9 @@ module TimeTracker
           end
         end
       end
-      
+
       raise "Nothing to print?!" if records.empty?
-      
+
       group_by_date = (type != "lastfew" && type != "today")
       include_day = (
         type == "lastfew" &&
@@ -247,11 +247,11 @@ module TimeTracker
         end
       end
       columnated_rows = columnator.columnate
-      
+
       stdout.puts
       stdout.puts(header)
       stdout.puts
-      
+
       if group_by_date
         grouped_lines = columnated_rows.inject(ActiveSupport::OrderedHash.new) do |hash, pairs|
           for pair in pairs
@@ -277,7 +277,7 @@ module TimeTracker
       end
       stdout.print "\n"
     end
-    
+
     cmd :search, :args => "QUERY...", :desc => "Search for a task by name"
     def search(*args)
       raise Error, "Okay, but what do you want to search for?" if args.empty?
@@ -293,7 +293,7 @@ module TimeTracker
         stdout.puts(line)
       end
     end
-    
+
     cmd :configure, :desc => "Configures tt"
     CONFIGURE_USAGES = {
       "pivotal" => "configure external_service pivotal --api-key KEY --full-name NAME"
@@ -363,7 +363,7 @@ module TimeTracker
       end
     end
     private :_configure_check_no_projects_or_tasks_exist, :_configure_handle_service
-    
+
     cmd :clear, :desc => "Removes all data from the database"
     def clear
       return if no?("WARNING! This will remove all data from the database. There is no going back.\nSure you want to do this? (y/n)")
@@ -373,12 +373,12 @@ module TimeTracker
       TimeTracker::Config.collection.drop
       stdout.puts "Everything cleared."
     end
-    
+
   private
     def debug_stdout
       $RUNNING_TESTS == :integration ? $orig_stdout : stdout
     end
-  
+
     # Override method in Commander
     def handle_command_error(e)
       if $RUNNING_TESTS == :units
@@ -388,19 +388,19 @@ module TimeTracker
         exit 1 unless within_repl?
       end
     end
-    
+
     def get_current_project
       curr_proj = TimeTracker.current_project
       raise Error, "Try switching to a project first." unless curr_proj
       curr_proj
     end
-    
+
     def find_task(arg, next_event)
       # Note that we look in other projects only for resume, since it's impossible
       # to have started a task we want to stop without that task being in the same
       # project that we are in right now (since switching to another project
       # would have stopped it automatically anyway)
-      
+
       curr_proj = TimeTracker.current_project
       event = TimeTracker::Task.state_machine.events[next_event]
       if arg =~ /^\d+$/
@@ -415,7 +415,7 @@ module TimeTracker
             task = matching_tasks.first
           end
         elsif next_event != "resume"
-          raise Error, "I don't think that task exists." 
+          raise Error, "I don't think that task exists."
         else
           tasks = TimeTracker::Task.where(:state => event.allowed_previous_states, :name => arg, :project_id.ne => curr_proj.id)
           if tasks.any?
@@ -426,7 +426,7 @@ module TimeTracker
                        to_sentence(:two_words_connector => " or ", :last_word_connector => ", or ")
             raise Error, "That task doesn't exist here. Perhaps you meant to switch to #{projects}?"
           else
-            raise Error, "I don't think that task exists." 
+            raise Error, "I don't think that task exists."
           end
         end
       end
@@ -435,7 +435,7 @@ module TimeTracker
       end
       return task
     end
-  
+
     def print_wrong_answer
       answer = WRONG_ANSWERS[@wrong_answer_index]
       stderr.print(answer + " ")
@@ -444,7 +444,7 @@ module TimeTracker
       @wrong_answer_index += 1
       @wrong_answer_index %= WRONG_ANSWERS.size
     end
-    
+
     def keep_prompting(msg)
       msg += " " unless msg =~ /[ ]$/
       @wrong_answer_index = 0
@@ -467,7 +467,7 @@ module TimeTracker
       end
       ret
     end
-    
+
     def no?(msg)
       keep_prompting(msg) do |answer|
         case answer
@@ -482,7 +482,7 @@ module TimeTracker
         end
       end
     end
-    
+
     def ask(msg)
       keep_prompting(msg) do |answer|
         if answer.blank?

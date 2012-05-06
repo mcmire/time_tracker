@@ -11,7 +11,7 @@ module TimeTracker
     class ResourceNotFoundError < Error; end
     class ResourceInvalidError < Error; end
     class InternalError < Error; end
-    
+
     def self.get_service(service_name)
       TimeTracker::Service.const_get(service_name.classify)
     end

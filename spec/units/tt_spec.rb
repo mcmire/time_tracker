@@ -10,7 +10,7 @@ describe TimeTracker do
       ret.must be_a(TimeTracker::Config)
     end
   end
-  
+
   describe '.reload_config' do
     it "re-runs the query to fetch the config data every time" do
       mock(TimeTracker::Config).find { :config }.twice
@@ -19,7 +19,7 @@ describe TimeTracker do
       ret.must == :config
     end
   end
-  
+
   describe '.external_service' do
     it "makes a Service object from the data in config and caches it on first call" do
       TimeTracker.instance_variable_set("@external_service", nil)

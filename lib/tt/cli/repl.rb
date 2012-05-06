@@ -2,7 +2,7 @@ module TimeTracker
   class Cli < Commander
     module Repl
       REPL_REGEX = /(?:^|[ ])(?:"([^"]+)"|'([^']+)'|([^ ]+))/
-      
+
       # Override method in Commander
       def execute!
         if @argv.empty?
@@ -11,7 +11,7 @@ module TimeTracker
           super
         end
       end
-      
+
     private
       def within_repl?
         @within_repl

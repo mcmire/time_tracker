@@ -5,12 +5,12 @@ feature "Resuming tasks" do
     I want to be able to tell the system that I've resumed work on a task
     so that I can continue to track its time
   EOT
-  
+
   scenario "Resuming a task without specifying a name" do
     tt 'resume'
     output.must == "Yes, but which task do you want to resume? (I'll accept a number or a name.)\n"
   end
-  
+
   scenario "Resuming a task by name without switching to a project first" do
     tt 'resume "some task"'
     output.must == "Try switching to a project first.\n"
@@ -124,7 +124,7 @@ feature "Resuming tasks" do
     tt 'resume "some task"'
     output.must == %{You can't resume a task you haven't started yet!\n}
   end
-  
+
   scenario "Resuming a task by number without switching to a project first" do
     tt 'resume 1'
     output.must == "Try switching to a project first.\n"

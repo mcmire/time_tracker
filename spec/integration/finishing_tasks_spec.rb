@@ -5,7 +5,7 @@ feature "Finishing tasks" do
     I want to be able to mark a task as finished
     so that I can see how long it took me to finish.
   EOT
-  
+
   scenario "Finishing the last task without switching to a project first" do
     tt 'finish'
     output.must == %{Try switching to a project first.\n}
@@ -41,7 +41,7 @@ feature "Finishing tasks" do
     tt 'finish'
     output.must =~ %r{Stopped clock for "some task", at \dm\.\n}
   end
-  
+
   scenario "Finishing a task by name without switching to a project first" do
     tt 'finish "some task"'
     output.must == %{Try switching to a project first.\n}
@@ -118,7 +118,7 @@ feature "Finishing tasks" do
     tt 'finish "some task"'
     output.must == %{You can't finish a task you haven't started yet!\n}
   end
-  
+
   scenario "Finishing a task by number without switching to a project first" do
     tt 'finish 1'
     output.must == %{Try switching to a project first.\n}

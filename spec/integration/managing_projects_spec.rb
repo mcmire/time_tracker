@@ -5,7 +5,7 @@ feature "Managing projects" do
     I want to be able to file tasks under projects,
     so that I can keep my life organized.
   EOT
-  
+
   scenario "Adding a project" do
     tt 'add project "some project"'
     output.must == %{Project "some project" created.\n}
@@ -19,7 +19,7 @@ feature "Managing projects" do
     tt 'add project "some project"'
     output.must == %{It looks like this project already exists.\n}
   end
-  
+
   scenario "Switching to a project for the first time and accepting prompt to create it" do
     tt 'switch "some project"'
     stdout.readpartial(1024).must == %{I can't find this project. Did you want to create it? (y/n) }

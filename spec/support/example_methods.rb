@@ -64,5 +64,5 @@ Spec::Matchers.define :end_with do |expected|
 end
 
 module ExampleMethods
-  
+
 end

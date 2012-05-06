@@ -6,7 +6,7 @@ feature "Integration with Pivotal Tracker" do
     meaning that projects and tasks will stay in sync with Pivotal Tracker as I work with them
     so that I don't have to force other people to switch to another system
   EOT
-  
+
   scenario "Adding a new task that doesn't exist outside of TT" do
     # ordinarily what we'd do is run the command,
     # then check PT to make sure the task is there
@@ -14,7 +14,7 @@ feature "Integration with Pivotal Tracker" do
     # since we can't do that...
     # we're just making sure that the proper request is sent to TT.
     # but we can't really check the external id b/c the user wouldn't know
-    
+
     tt 'config external_service pivotal --api-key xxxx'
     pt_add_project "some project"
     tt 'switch "some project"'
@@ -29,18 +29,18 @@ feature "Integration with Pivotal Tracker" do
       with(:headers => {"X-TrackerToken" => "xxxx"}).
       to_return(:body => body, :status => 200)
     tt 'add task "some task"'
-    
+
   end
-  
+
   scenario "Adding a new task with other new tasks created outside of TT" do
-    
+
   end
-  
+
   scenario "Adding a new task with tasks updated outside of TT"
-  
+
   scenario "Adding a task that was already added and has a different status outside of TT" do
     # ensure that everything is pulled from pt first
     # ensure that the new task is pushed to pt
   end
-  
+
 end

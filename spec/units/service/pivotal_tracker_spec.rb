@@ -1,11 +1,11 @@
 require File.expand_path(File.dirname(__FILE__) + '/../spec_helper')
 
 describe TimeTracker::Service::PivotalTracker do
-  
+
   before do
     @service = TimeTracker::Service::PivotalTracker.new({})
   end
-  
+
   describe '.new' do
     it "stores the given api key in @api_key" do
       TimeTracker::Service::PivotalTracker.new(:api_key => "xxxx").api_key.must == "xxxx"
@@ -14,7 +14,7 @@ describe TimeTracker::Service::PivotalTracker do
       TimeTracker::Service::PivotalTracker.new("api_key" => "xxxx").api_key.must == "xxxx"
     end
   end
-  
+
   describe '#valid?' do
     it "returns true if the credentials are valid" do
       stub_request(:head, "www.pivotaltracker.com/services/v3/activities?limit=1").
@@ -31,7 +31,7 @@ describe TimeTracker::Service::PivotalTracker do
         service.must_not be_valid
     end
   end
-  
+
   describe '#pull_tasks!' do
     before do
       @service = TimeTracker::Service::PivotalTracker.new(:api_key => "xxxx")
@@ -240,7 +240,7 @@ EOT
       end
     end
   end
-  
+
   describe '#check_task_exists!' do
     before do
       @service = TimeTracker::Service::PivotalTracker.new(:api_key => "xxxx")
@@ -274,7 +274,7 @@ EOT
       }.to raise_error(TimeTracker::Service::ResourceNotFoundError)
     end
   end
-  
+
   describe '#push_task!' do
     before do
       @service = TimeTracker::Service::PivotalTracker.new(:api_key => "xxxx")
@@ -323,7 +323,7 @@ EOT
       end
     end
   end
-  
+
   describe '#task_to_xml' do
     TimeTracker::Service::PivotalTracker::STATES.each do |pt_state, tt_state|
       it "serializes a#{'n' if tt_state =~ /^[aeiou]/} #{tt_state} task correctly" do
@@ -378,7 +378,7 @@ EOT
       end
     end
   end
-  
+
   describe '#task_type' do
     it "returns the type of the task which is contained in a tag" do
       task = Factory.build(:task, :tags => ["t:feature"])
@@ -389,7 +389,7 @@ EOT
       @service.task_type(task).must == nil
     end
   end
-  
+
   describe '#task_state' do
     it "returns unscheduled when the state is unstarted" do
       task = Factory.build(:task, :state => "unstarted")
@@ -408,7 +408,7 @@ EOT
       @service.task_state(task).must == "finished"
     end
   end
-  
+
   describe '#task_labels' do
     it "returns a comma-separated list of tags" do
       task = Factory.build(:task, :tags => ["one fish", "two fish"])

@@ -8,13 +8,13 @@ class Columnator
     :left => :ljust,
     :right => :rjust
   }
-  
+
   def self.columnate(*args)
     new(*args).columnate
   end
-  
+
   attr_accessor :table, :alignments, :each_row, :generate_out, :out
-  
+
   def initialize(table_or_options=[], options={})
     if Hash === table_or_options
       @options = table_or_options
@@ -27,11 +27,11 @@ class Columnator
     @each_row = lambda {|data, block| data.each(&block) }
     @generate_out = lambda {|data, block| data.map(&block) }
   end
-  
+
   def <<(row)
     @table << row
   end
-  
+
   def columnate
     calculate_size!
     initialize_column_widths!
@@ -41,7 +41,7 @@ class Columnator
     @out = @generate_out.call(@table, lambda {|row| format_column(row) })
     @out
   end
-  
+
 private
   def calculate_size!
     @each_row.call(@table, lambda {|row|
@@ -49,7 +49,7 @@ private
       next
     })
   end
-  
+
   def initialize_column_widths!
     @column_widths = [0] * @size
   end
@@ -60,7 +60,7 @@ private
       @column_widths[i] = len if len > @column_widths[i]
     end
   end
-  
+
   def format_column(row)
     row2 = []
     row.each_with_index do |col, i|

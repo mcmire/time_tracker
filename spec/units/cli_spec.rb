@@ -5,19 +5,19 @@ describe TimeTracker::Cli do
     @stdin, @stdout, @stderr = Array.new(3) { StringIO.new }
     @cli = TimeTracker::Cli.new(:stdin => @stdin, :stdout => @stdout, :stderr => @stderr, :program_name => "tt")
   end
-  
+
   def stdout
     @stdout.string#.strip
   end
-  
+
   def stderr
     @stderr.string#.strip
   end
-  
+
   def stdin
     @stdin
   end
-  
+
   describe '#add' do
     context "with 'project' argument" do
       context "integration with Pivotal Tracker" do
@@ -103,7 +103,7 @@ describe TimeTracker::Cli do
       end
     end
   end
-  
+
   describe '#switch' do
     context "integration with Pivotal Tracker" do
       before do
@@ -174,7 +174,7 @@ describe TimeTracker::Cli do
       stdout.must end_with(%{Switched to project "some project".\n(Resuming clock for "some task".)\n})
     end
   end
-  
+
   describe '#start' do
     before do
       @project = Factory(:project, :name => "some project")
@@ -276,7 +276,7 @@ describe TimeTracker::Cli do
       stdout.must end_with(%{(Pausing clock for "some task", at 1m.)\nStarted clock for "another task".\n})
     end
   end
-  
+
   describe '#finish' do
     before do
       @project = Factory(:project, :name => "some project")
@@ -488,7 +488,7 @@ describe TimeTracker::Cli do
       end
     end
   end
-  
+
   describe '#resume' do
     before do
       @project = Factory(:project, :name => "some project")
@@ -741,7 +741,7 @@ describe TimeTracker::Cli do
       #end
     end
   end
-  
+
   describe '#upvote' do
     before do
       @project = Factory(:project, :name => "some project")
@@ -775,7 +775,7 @@ describe TimeTracker::Cli do
         task.reload
         task.num_votes.must == 4
         stdout.lines.last.must == %{This task now has 4 votes.}
-      
+
         @cli.run_command!("upvote", "some task")
         task.reload
         task.num_votes.must == 5
@@ -822,7 +822,7 @@ describe TimeTracker::Cli do
         task.reload
         task.num_votes.must == 4
         stdout.lines.last.must == %{This task now has 4 votes.}
-      
+
         @cli.run_command!("upvote", "1")
         task.reload
         task.num_votes.must == 5
@@ -845,7 +845,7 @@ describe TimeTracker::Cli do
       end
     end
   end
-  
+
   describe '#list' do
     context "lastfew subcommand", :shared => true do
       it "prints a list of the last 4 time periods plus the currently running task, ordered by last active" do
@@ -870,8 +870,8 @@ describe TimeTracker::Cli do
         )
         task2 = Factory(:task,
           :number => "2",
-          :project => project2, 
-          :name => "another task", 
+          :project => project2,
+          :name => "another task",
           :state => "finished"
         )
         period2 = Factory(:time_period,
@@ -879,10 +879,10 @@ describe TimeTracker::Cli do
           :started_at => Time.zone.local(2010, 1, 2, 5, 5),
           :ended_at   => Time.zone.local(2010, 1, 3, 10, 10)
         )
-        task3 = Factory(:task, 
-          :number => "3", 
-          :project => project1, 
-          :name => "yet another task", 
+        task3 = Factory(:task,
+          :number => "3",
+          :project => project1,
+          :name => "yet another task",
           :state => "running",
           :last_started_at => Time.zone.local(2010, 1, 3, 15, 15)
         )
@@ -920,8 +920,8 @@ describe TimeTracker::Cli do
         )
         task2 = Factory(:task,
           :number => "2",
-          :project => project2, 
-          :name => "another task", 
+          :project => project2,
+          :name => "another task",
           :state => "finished"
         )
         period2 = Factory(:time_period,
@@ -929,10 +929,10 @@ describe TimeTracker::Cli do
           :started_at => Time.zone.local(2010, 1, 2, 5, 5),
           :ended_at   => Time.zone.local(2010, 1, 3, 10, 10)
         )
-        task3 = Factory(:task, 
-          :number => "3", 
-          :project => project1, 
-          :name => "yet another task", 
+        task3 = Factory(:task,
+          :number => "3",
+          :project => project1,
+          :name => "yet another task",
           :state => "paused"
         )
         period3 = Factory(:time_period,
@@ -1026,8 +1026,8 @@ describe TimeTracker::Cli do
         )
         task2 = Factory(:task,
           :number => "2",
-          :project => project2, 
-          :name => "another task", 
+          :project => project2,
+          :name => "another task",
           :state => "finished"
         )
         period2 = Factory(:time_period,
@@ -1035,10 +1035,10 @@ describe TimeTracker::Cli do
           :started_at => Time.zone.local(2010, 1, 2, 5, 5),
           :ended_at   => Time.zone.local(2010, 1, 3, 10, 10)
         )
-        task3 = Factory(:task, 
-          :number => "3", 
-          :project => project2, 
-          :name => "yet another task", 
+        task3 = Factory(:task,
+          :number => "3",
+          :project => project2,
+          :name => "yet another task",
           :state => "running"
         )
         @cli.run_command!("list", "finished")
@@ -1096,8 +1096,8 @@ describe TimeTracker::Cli do
         )
         task2 = Factory(:task,
           :number => "2",
-          :project => project2, 
-          :name => "another task", 
+          :project => project2,
+          :name => "another task",
           :state => "finished"
         )
         period3 = Factory(:time_period,
@@ -1110,9 +1110,9 @@ describe TimeTracker::Cli do
           :started_at => Time.zone.local(2010, 1, 5, 1, 1),
           :ended_at   => Time.zone.local(2010, 1, 5, 6, 6)
         )
-        task3 = Factory(:task, 
-          :number => "3", 
-          :project => project1, 
+        task3 = Factory(:task,
+          :number => "3",
+          :project => project1,
           :name => "yet another task",
           :state => "paused"
         )
@@ -1134,8 +1134,8 @@ describe TimeTracker::Cli do
         )
         task5 = Factory(:task,
           :number => "5",
-          :project => project2, 
-          :name => "still yet another task", 
+          :project => project2,
+          :name => "still yet another task",
           :state => "running",
           :last_started_at => Time.zone.local(2010, 1, 5, 6, 6)
         )
@@ -1221,7 +1221,7 @@ describe TimeTracker::Cli do
         project2 = Factory(:project, :name => "another project")
         task1 = Factory(:task,
           :number => "1",
-          :project => project1, 
+          :project => project1,
           :name => "some task",
           :state => "finished"
         )
@@ -1253,7 +1253,7 @@ describe TimeTracker::Cli do
         )
         task2 = Factory(:task,
           :number => "3",
-          :project => project2, 
+          :project => project2,
           :name => "yet another task",
           :state => "finished"
         )
@@ -1313,8 +1313,8 @@ describe TimeTracker::Cli do
         )
         task2 = Factory(:task,
           :number => "2",
-          :project => project1, 
-          :name => "another task", 
+          :project => project1,
+          :name => "another task",
           :state => "finished"
         )
         period2 = Factory(:time_period,
@@ -1322,10 +1322,10 @@ describe TimeTracker::Cli do
           :started_at => Time.zone.local(2010, 8, 2, 5, 5),
           :ended_at   => Time.zone.local(2010, 8, 3, 15, 15)
         )
-        task3 = Factory(:task, 
-          :number => "3", 
-          :project => project2, 
-          :name => "yet another task", 
+        task3 = Factory(:task,
+          :number => "3",
+          :project => project2,
+          :name => "yet another task",
           :state => "paused"
         )
         period3 = Factory(:time_period,
@@ -1390,7 +1390,7 @@ describe TimeTracker::Cli do
       end
     end
   end
-  
+
   describe '#search' do
     it "bails if no query given" do
       expect { @cli.search }.to raise_error("Okay, but what do you want to search for?")
@@ -1408,16 +1408,16 @@ describe TimeTracker::Cli do
       Factory(:time_period, :task => task1)
       task2 = Factory(:task,
         :number => "21",
-        :project => project2, 
+        :project => project2,
         :name => "foosball table",
         :last_started_at => Time.zone.local(2010, 1, 21, 10, 24),
         :state => "running"
       )
       Factory(:time_period, :task => task2)
       Factory(:time_period, :task => task2)
-      task3 = Factory(:task, 
-        :number => "3", 
-        :project => project1, 
+      task3 = Factory(:task,
+        :number => "3",
+        :project => project1,
         :name => "nancy pelosi",
         :last_started_at => Time.zone.local(2010, 1, 2, 11, 22),
         :state => "running"
@@ -1443,16 +1443,16 @@ describe TimeTracker::Cli do
       Factory(:time_period, :task => task1)
       task2 = Factory(:task,
         :number => "21",
-        :project => project2, 
+        :project => project2,
         :name => "foosball table",
         :last_started_at => Time.zone.local(2010, 1, 21, 10, 24),
         :state => "finished"
       )
       Factory(:time_period, :task => task2)
       Factory(:time_period, :task => task2)
-      task3 = Factory(:task, 
-        :number => "3", 
-        :project => project1, 
+      task3 = Factory(:task,
+        :number => "3",
+        :project => project1,
         :name => "nancy pelosi",
         :last_started_at => Time.zone.local(2010, 1, 2, 11, 22),
         :state => "running"
@@ -1477,7 +1477,7 @@ describe TimeTracker::Cli do
       end
     end
   end
-  
+
   describe '#configure' do
     before do
       TimeTracker.external_service = nil
@@ -1588,5 +1588,5 @@ describe TimeTracker::Cli do
       end
     end
   end
-  
+
 end

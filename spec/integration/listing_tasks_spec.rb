@@ -5,7 +5,7 @@ feature "Listing tasks" do
     I want to be able to pull back and get a list of the tasks in various ways
     in order to see how I'm spending my time.
   EOT
-  
+
   scenario "Listing last few tasks with 'list lastfew'" do
     with_manual_time_override do
       Timecop.freeze Time.zone.local(2010, 1, 1, 0, 0)
@@ -78,7 +78,7 @@ feature "Listing tasks" do
     tt 'list'
     output.must == "It doesn't look like you've started any tasks yet.\n"
   end
-  
+
   scenario "Listing finished tasks with 'list finished'" do
     with_manual_time_override do
       Timecop.freeze Time.zone.local(2010, 1, 1, 0, 0)
@@ -121,7 +121,7 @@ feature "Listing tasks" do
     output.must == "It doesn't look like you've started any tasks yet.\n"
   end
   #scenario "Listing finished tasks with 'finished' when no tasks created yet"
-  
+
   scenario "Listing all tasks with 'list all'" do
     with_manual_time_override do
       Timecop.freeze Time.zone.local(2010, 1, 1, 0, 0)
@@ -184,7 +184,7 @@ feature "Listing tasks" do
     output.must == "It doesn't look like you've started any tasks yet.\n"
   end
   #scenario "Listing all tasks with 'all' when no tasks created yet"
-  
+
   scenario "Listing today's finished tasks with 'list today'" do
     with_manual_time_override do
       tt 'switch "some project"'
@@ -225,7 +225,7 @@ feature "Listing tasks" do
     output.must == "It doesn't look like you've started any tasks yet.\n"
   end
   #scenario "Listing today's finished tasks with 'finished' when no tasks created yet"
-  
+
   scenario "Listing this week's finished tasks with 'list this week'" do
     with_manual_time_override do
       tt 'switch "some project"'
@@ -278,7 +278,7 @@ feature "Listing tasks" do
     output.must == "It doesn't look like you've started any tasks yet.\n"
   end
   #scenario "Listing today's finished tasks with 'this week' when no tasks created yet"
-  
+
   scenario "Unknown subcommand" do
     tt 'list yourmom'
     output.must =~ /Oops! That isn't the right way to call "list"/

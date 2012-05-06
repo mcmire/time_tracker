@@ -14,7 +14,7 @@ module IntegrationExampleMethods
       to_return(:body => body, :status => 200)
     tt %{add project "#{project}"}
   end
-  
+
   # More of the integration-specific methods are in support/integration_example_methods.rb, so look there.
 end
 
