@@ -86,3 +86,5 @@ Starting session.
 You're in the "amtees" project.
 What do you want to do?
 >
+
+# vi: ft=none
