@@ -9,6 +9,10 @@ module TimeTracker
           @collection ||= ::MongoMapper.database.collection("world")
         end
 
+        def instance
+          @instance ||= find
+        end
+
         def find
           new(collection.find_one || {})
         end

@@ -11,13 +11,7 @@ module TimeTracker
     end
 
     def world
-      # TODO: Maybe this should not be stored in the db, but just in memory or in /tmp
-      @world || reload_world
-    end
-
-    # TODO: world.reload
-    def reload_world
-      @world = TimeTracker::Models::World.find()
+      TimeTracker::Models::World.instance
     end
 
     def current_project
