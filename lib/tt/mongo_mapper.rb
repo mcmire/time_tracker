@@ -15,6 +15,4 @@ logger.add_appenders Logging.appenders.file(log_file)
 MongoMapper.connection = Mongo::Connection.new('127.0.0.1', 27017, :logger => logger)
 MongoMapper.database = mongo_config.database
 
-Time.zone = "Central Time (US & Canada)"
-
 require 'tt/extensions/mongo_mapper'
