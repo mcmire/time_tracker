@@ -3,3 +3,7 @@ tmp/*
 failed_examples.txt
 log/*
 Gemfile.lock
+
+# vi stuff
+*.vim*
+tags
