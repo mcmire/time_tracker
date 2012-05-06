@@ -15,6 +15,9 @@ group :test do
   gem "rspec-expectations", '~> 2.10.0'
   gem "rr", '~> 1.0.4'
 
+  gem 'guard', '~> 1.0.2'
+  gem 'guard-rspec', '~> 0.7.0'
+
   gem "timecop", '~> 0.3.5'
   gem "factory_girl", '~> 3.2.0', :require => false
 
