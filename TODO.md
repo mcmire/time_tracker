@@ -1,3 +1,7 @@
+# TODO
+
+* Don't use MongoDB, just use YAML?
+
 * Pivotal Tracker integration
 
   unstarted -> running -> paused -> finished -> ( staged -> ) committed
