@@ -1,4 +1,6 @@
 
+require 'tt/mongo_mapper'
+
 module TimeTracker
   module Models
     # Since the world collection will only ever have one document in it,
@@ -10,7 +12,11 @@ module TimeTracker
         end
 
         def instance
-          @instance ||= find
+          @instance || reload
+        end
+
+        def reload
+          @instance = find
         end
 
         def find
@@ -48,6 +54,10 @@ module TimeTracker
           self[key] = value
         end
         save
+      end
+
+      def reload
+        self.class.reload
       end
     end
   end
