@@ -1,13 +1,12 @@
-#require 'tt/mongo_mapper'
 
 module TimeTracker
   module Models
-    # Since the config collection will only ever have one document in it,
+    # Since the world collection will only ever have one document in it,
     # just make a little class that lets us retrieve and save that document
-    class Config
+    class World
       class << self
         def collection
-          @collection ||= ::MongoMapper.database.collection("config")
+          @collection ||= ::MongoMapper.database.collection("world")
         end
 
         def find
