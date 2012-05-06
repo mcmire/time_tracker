@@ -1,68 +1,28 @@
-#require 'spork'
 
-lib_dir = File.expand_path(File.dirname(__FILE__) + '/../lib')
-$:.unshift(lib_dir)
+require 'pp'
+require_relative 'support/bundler'
 
-#Spork.prefork do
-  require 'pp'
+#---
 
-  begin
-    require 'bundler'
-  rescue LoadError => e
-    $stderr.puts "tt: Error loading Bundler: #{e}"
-    require 'rubygems'
-    require 'bundler'
-  end
-  Bundler.setup
-  Bundler.require(:default, :test)
+require 'rspec/core'
+require 'rspec/expectations'
 
-  #require 'spec'
-  require 'spec/autorun'
+module ExampleMethods; end
+module ExampleGroupMethods; end
+RSpec.configure do |c|
+  c.include ExampleMethods
+  c.extend  ExampleGroupMethods
+end
 
-  # Copied from Thor specs
-  Kernel.module_eval do
-    alias_method :must, :should
-    alias_method :must_not, :should_not
-    undef_method :should
-    undef_method :should_not
-  end
 
-  $USE_TEST_DB = true
+#---
 
-  class UnitsExampleGroup < Spec::ExampleGroup; end
-  Spec::Example::ExampleGroupFactory.register(:units, UnitsExampleGroup)
-  Spec::Runner.configure do |c|
-    c.before(:each, :type => :units) do
-      $RUNNING_TESTS = :units
-    end
-    c.before(:each, :type => :integration) do
-      $RUNNING_TESTS = :integration
-    end
-  end
+$:.unshift File.expand_path('../../lib', __FILE__)
 
-  #require 'mongo_mapper'
-  #require 'thor'
-  #require "parse_tree"
-  #require "parse_tree_extensions"
-  #require "ruby2ruby"
-  #require "ruby-debug"
+require 'tt/core'
+TimeTracker.config.environment = :test
+TimeTracker.setup
 
-  Dir[File.dirname(__FILE__) + "/support/**/*.rb"].each {|f| require f }
+#---
 
-  Spec::Runner.configuration.include(ExampleMethods)
-#end
-
-#Spork.each_run do
-
-#end
-
-#Spork.each_run do
-  require 'tt'
-
-  require 'factory_girl'
-  Factory.find_definitions
-
-  Spec::Runner.configuration.before(:each) do
-    TimeTracker.reload_config
-  end
-#end
+require_relative 'support/extras/rr'

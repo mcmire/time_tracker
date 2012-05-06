@@ -1,4 +1,6 @@
+
 require 'mongo_mapper'
+require 'bson'
 
 config = TimeTracker.config
 mongo_config = config.mongo

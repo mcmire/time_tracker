@@ -62,7 +62,3 @@ Spec::Matchers.define :end_with do |expected|
     "should end with #{expected.inspect}"
   end
 end
-
-module ExampleMethods
-
-end

@@ -1,6 +1,6 @@
 require 'timecop'
 
-Spec::Runner.configuration.after(:each) do
+RSpec.configure do |c|
   # Ensure that times we freeze with Timecop are unfrozen
-  Timecop.return
+  c.after(:each) { Timecop.return }
 end

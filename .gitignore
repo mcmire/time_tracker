@@ -1,8 +1,10 @@
 .*
-tmp/*
-failed_examples.txt
-log/*
+bin/*
+!bin/tt
+bundle
 Gemfile.lock
+log/*
+tmp/*
 
 # vi stuff
 *.vim*

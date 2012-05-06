@@ -14,7 +14,7 @@ gem "logging", '1.7.2'
 group :test do
   gem "rspec-core", '~> 2.10.0'
   gem "rspec-expectations", '~> 2.10.0'
-  gem "rr", '~> 1.0.4'
+  gem "rr", :git => 'git://github.com/btakita/rr', :branch => 'rspec2'
 
   gem 'guard', '~> 1.0.2'
   gem 'guard-rspec', '~> 0.7.0'

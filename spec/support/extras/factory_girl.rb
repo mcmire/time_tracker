@@ -1,4 +1,3 @@
-#require 'factory_girl'
-#Factory.find_definitions
 
-#Spec::Runner.configuration.ignore_backtrace_patterns %r{gems/mongo_mapper-.+?/lib/factory_girl}
+require 'factory_girl'
+FactoryGirl.find_definitions
