@@ -1,9 +1,9 @@
 require File.expand_path(File.dirname(__FILE__) + '/spec_helper')
 
-describe TimeTracker::Task do
+describe TimeTracker::Models::Task do
 
   before do
-    @task = TimeTracker::Task.new
+    @task = TimeTracker::Models::Task.new
   end
 
   context "on create" do
@@ -77,7 +77,7 @@ describe TimeTracker::Task do
       task2 = Factory(:task, :project => project, :updated_at => Time.local(2010, 1, 4), :state => "running")
       task3 = Factory(:task, :project => project, :updated_at => Time.local(2010, 1, 3), :state => "running")
       task4 = Factory(:task, :project => project, :updated_at => Time.local(2010, 1, 2), :state => "running")
-      TimeTracker::Task.last_running.must == task2
+      TimeTracker::Models::Task.last_running.must == task2
     end
   end
 
@@ -88,40 +88,40 @@ describe TimeTracker::Task do
       task2 = Factory(:task, :project => project, :updated_at => Time.local(2010, 1, 4), :state => "paused")
       task3 = Factory(:task, :project => project, :updated_at => Time.local(2010, 1, 3), :state => "paused")
       task4 = Factory(:task, :project => project, :updated_at => Time.local(2010, 1, 2), :state => "paused")
-      TimeTracker::Task.last_paused.must == task2
+      TimeTracker::Models::Task.last_paused.must == task2
     end
   end
 
   describe '.running' do
     it "includes tasks which are running" do
       running_task = Factory(:task, :state => "running")
-      TimeTracker::Task.running.to_a.must include(running_task)
+      TimeTracker::Models::Task.running.to_a.must include(running_task)
     end
     it "excludes tasks which are not running" do
       paused_task = Factory(:task, :state => "paused")
-      TimeTracker::Task.running.to_a.must_not include(paused_task)
+      TimeTracker::Models::Task.running.to_a.must_not include(paused_task)
     end
   end
 
   describe '.not_running' do
     it "includes tasks which are not running" do
       paused_task = Factory(:task, :state => "paused")
-      TimeTracker::Task.not_running.to_a.must include(paused_task)
+      TimeTracker::Models::Task.not_running.to_a.must include(paused_task)
     end
     it "excludes tasks which are running" do
       running_task = Factory(:task, :state => "running")
-      TimeTracker::Task.not_running.to_a.must_not include(running_task)
+      TimeTracker::Models::Task.not_running.to_a.must_not include(running_task)
     end
   end
 
   describe '.paused' do
     it "includes tasks which are paused" do
       paused_task = Factory(:task, :state => "paused")
-      TimeTracker::Task.paused.to_a.must include(paused_task)
+      TimeTracker::Models::Task.paused.to_a.must include(paused_task)
     end
     it "excludes tasks which aren't paused" do
       running_task = Factory(:task, :state => "running")
-      TimeTracker::Task.paused.to_a.must_not include(running_task)
+      TimeTracker::Models::Task.paused.to_a.must_not include(running_task)
     end
   end
 
@@ -289,11 +289,11 @@ describe TimeTracker::Task do
   describe '#total_running_time' do
     it "adds up the running time for all time periods and returns the time in a readable form" do
       task = Factory(:task)
-      task.time_periods << TimeTracker::TimePeriod.new(
+      task.time_periods << TimeTracker::Models::TimePeriod.new(
         :started_at => Time.local(2010, 1, 1, 0, 0, 0),
         :ended_at => Time.local(2010, 1, 1, 1, 45, 0)
       )
-      task.time_periods << TimeTracker::TimePeriod.new(
+      task.time_periods << TimeTracker::Models::TimePeriod.new(
         :started_at => Time.local(2010, 1, 1, 0, 0, 0),
         :ended_at => Time.local(2010, 1, 1, 2, 30, 0)
       )
@@ -304,8 +304,8 @@ describe TimeTracker::Task do
   describe '#info' do
     context "if :include_day not given" do
       it "returns an array containing the time the task was last started, and its name, number, and project name" do
-        project = TimeTracker::Project.new(:name => "some project")
-        task = TimeTracker::Task.new(
+        project = TimeTracker::Models::Project.new(:name => "some project")
+        task = TimeTracker::Models::Task.new(
           :project => project,
           :number => "1",
           :name => "some task",
@@ -321,8 +321,8 @@ describe TimeTracker::Task do
     end
     context "if :include_day given" do
       it "includes the day part" do
-        project = TimeTracker::Project.new(:name => "some project")
-        task = TimeTracker::Task.new(
+        project = TimeTracker::Models::Project.new(:name => "some project")
+        task = TimeTracker::Models::Task.new(
           :project => project,
           :number => "1",
           :name => "some task",
@@ -337,8 +337,8 @@ describe TimeTracker::Task do
 
   describe '#info_for_search' do
     it "returns an array containing the task number, project name, and last started date" do
-      project = TimeTracker::Project.new(:name => "some project")
-      task = TimeTracker::Task.new(
+      project = TimeTracker::Models::Project.new(:name => "some project")
+      task = TimeTracker::Models::Task.new(
         :project => project,
         :number => "1",
         :name => "some task",
@@ -349,8 +349,8 @@ describe TimeTracker::Task do
         [ "[", "#1", "]", " ", "some project", " / ", "some task", " ", "(last active: ", "1/1/2010)" ]
     end
     it "adds an asterisk after the task name if it's running" do
-      project = TimeTracker::Project.new(:name => "some project")
-      task = TimeTracker::Task.new(
+      project = TimeTracker::Models::Project.new(:name => "some project")
+      task = TimeTracker::Models::Task.new(
         :project => project,
         :number => "1",
         :name => "some task",

@@ -1,6 +1,6 @@
 require File.expand_path(File.dirname(__FILE__) + '/spec_helper')
 
-describe TimeTracker::Project do
+describe TimeTracker::Models::Project do
 
   context "on create" do
     it "adds the project to whichever external service is selected and saves the external id" do
