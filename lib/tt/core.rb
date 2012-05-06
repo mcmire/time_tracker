@@ -1,6 +1,6 @@
 
-require 'tt/config'
-require 'tt/logging'
+require 'tt/core/config'
+require 'tt/core/logging'
 
 module TimeTracker
   class << self

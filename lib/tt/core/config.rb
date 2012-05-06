@@ -27,7 +27,7 @@ module TimeTracker
   # Returns the configuration path for TimeTracker.
   #
   def self.config_path(*args)
-    dir = File.expand_path('../../../config', __FILE__)
+    dir = File.expand_path('../../../../config', __FILE__)
     File.join(dir, *args)
   end
 end
