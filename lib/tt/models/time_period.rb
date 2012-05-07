@@ -16,13 +16,13 @@ module TimeTracker
       belongs_to :task, :class_name => "TimeTracker::Models::Task"
 
       scope :ended_today, lambda {
-        today = Date.today
+        today = Time.zone.now.to_date
         start_of_today = Time.zone.local(today.year, today.month, today.day, 0, 0, 0)
         where(:ended_at.gte => start_of_today)
       }
 
       scope :ended_this_week, lambda {
-        today = Date.today
+        today = Time.zone.now.to_date
         sunday = today - today.wday
         start_of_sunday = Time.zone.local(sunday.year, sunday.month, sunday.day, 0, 0, 0)
         where(:ended_at.gte => start_of_sunday)
