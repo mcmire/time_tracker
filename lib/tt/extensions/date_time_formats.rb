@@ -1,4 +1,6 @@
 
+require 'tt/core/time'
+
 Date::DATE_FORMATS[:relative_date] = lambda do |date|
   case date - Time.zone.now.to_date
     when  0 then 'Today'

@@ -1,15 +1,5 @@
 
-# require_relative '../spec_helper'
-
-require 'pp'
-require_relative '../../support/bundler'
-require 'rspec/core'
-require 'rspec/expectations'
-$:.unshift File.expand_path('../../../../lib', __FILE__)
-require_relative '../../support/extras/rr'
-require_relative '../../support/must'
-require_relative '../../support/matchers'
-
+require_relative '../spec_helper'
 require 'tt/core/core'
 
 describe TimeTracker::Core do

@@ -159,11 +159,10 @@ describe TimeTracker::Commander do
       end
       cli = @subclass.new(:argv => ["foo", "bar", "baz"])
       e = rescuing(TimeTracker::Commander::Error) { cli.execute! }
-      e.message.lines.must smart_match([
+      e.message.split(/\n/).must smart_match([
         %{Oops! "foo" isn't a command. Try one of these instead:},
         "",
-        "  bar                         # Does the bar",
-        ""
+        "  bar                         # Does the bar"
       ])
     end
     it "bails if method called with the wrong arguments" do
@@ -192,11 +191,10 @@ describe TimeTracker::Commander do
       end
       cli = @subclass.new(:argv => ["foo", "bar", "baz"])
       e = rescuing(TimeTracker::Commander::Error) { cli.execute! }
-      e.message.lines.must smart_match([
+      e.message.split(/\n/).must smart_match([
         %{Oops! "foo" isn't a command. Try one of these instead:},
         "",
-        "  bar                         # Does the bar",
-        ""
+        "  bar                         # Does the bar"
       ])
     end
   end

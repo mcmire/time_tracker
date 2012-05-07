@@ -1,3 +1,6 @@
+
+require 'active_support/core_ext/string/inflections'
+
 module TimeTracker
   module Service
     class Error < StandardError

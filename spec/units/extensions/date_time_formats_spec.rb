@@ -1,19 +1,20 @@
 
 require_relative '../spec_helper'
+require_relative '../../support/extras/timecop'
 require 'tt/extensions/date_time_formats'
 
 describe Date do
   describe '.to_s(:relative_date)' do
     specify "today" do
-      stub(Date).today { Date.new(2010, 1, 1) }
+      Timecop.freeze Date.new(2010, 1, 1)
       Date.new(2010, 1, 1).to_s(:relative_date).must == 'Today'
     end
     specify "yesterday" do
-      stub(Date).today { Date.new(2010, 1, 2) }
+      Timecop.freeze Date.new(2010, 1, 2)
       Date.new(2010, 1, 1).to_s(:relative_date).must == 'Yesterday'
     end
     specify "before yesterday" do
-      stub(Date).today { Date.new(2010, 1, 1) }
+      Timecop.freeze Date.new(2010, 1, 1)
       Date.new(2010, 1, 6).to_s(:relative_date).must == '1/6/2010'
     end
   end
@@ -37,15 +38,15 @@ end
 describe Time do
   describe '.to_s(:relative_date)' do
     specify "today" do
-      stub(Date).today { Date.new(2010, 1, 1) }
+      Timecop.freeze Date.new(2010, 1, 1)
       Time.zone.local(2010, 1, 1).to_s(:relative_date).must == 'Today'
     end
     specify "yesterday" do
-      stub(Date).today { Date.new(2010, 1, 2) }
+      Timecop.freeze Date.new(2010, 1, 2)
       Time.zone.local(2010, 1, 1).to_s(:relative_date).must == 'Yesterday'
     end
     specify "before yesterday" do
-      stub(Date).today { Date.new(2010, 1, 1) }
+      Timecop.freeze Date.new(2010, 1, 1)
       Time.zone.local(2010, 1, 6).to_s(:relative_date).must == '1/6/2010'
     end
   end

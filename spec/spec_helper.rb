@@ -19,10 +19,6 @@ end
 
 $:.unshift File.expand_path('../../lib', __FILE__)
 
-require 'tt/core'
-TimeTracker.config.environment = :test
-TimeTracker.setup
-
 #---
 
 require_relative 'support/extras/rr'
