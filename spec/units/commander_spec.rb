@@ -1,4 +1,14 @@
-require File.expand_path(File.dirname(__FILE__) + '/spec_helper')
+
+require_relative 'spec_helper'
+require 'tt/commander'
+require 'active_support/ordered_hash'
+
+describe TimeTracker::Commander::Break do
+  it "stores true/false without stringifying it" do
+    e = described_class.new(true)
+    e.message.must == true
+  end
+end
 
 describe TimeTracker::Commander do
   before do
@@ -44,7 +54,7 @@ describe TimeTracker::Commander do
   end
 
   describe '.command_list' do
-    it "lists the defined commands, along with their descriptions" do
+    it "lists the defined commands sorted by name, along with their descriptions" do
       stub(@metaclass).commands {
         ActiveSupport::OrderedHash[
           :foo, {:args => "[BAR]", :desc => "This command does something"},
@@ -54,8 +64,8 @@ describe TimeTracker::Commander do
       }
       @metaclass.command_list.must smart_match([
         "foo [BAR]                   # This command does something",
-        "zing                        # Ying yang yoodle",
-        "pizzazz --wang [--wing]     # Razzmatazz"
+        "pizzazz --wang [--wing]     # Razzmatazz",
+        "zing                        # Ying yang yoodle"
       ])
     end
     it "handles really long usage strings" do

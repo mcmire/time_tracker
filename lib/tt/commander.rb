@@ -6,7 +6,12 @@ module TimeTracker
     class UnknownCommandError < Error; end
     class InvalidInvocationError < Error; end
     class Abort < StandardError; end
-    class Break < StandardError; end
+    class Break < StandardError
+      attr_reader :message
+      def initialize(value)
+        @message = value
+      end
+    end
 
     class << self
       def execute(options={})
@@ -22,7 +27,7 @@ module TimeTracker
       alias :cmd :command
 
       def commands
-        @@commands ||= {}
+        @commands ||= {}
       end
 
       def command_list
@@ -101,7 +106,9 @@ module TimeTracker
         raise(e)
       else
         stderr.puts(e.message)
-        exit 1 unless self.class.within_repl?
+        if self.class.respond_to?(:within_repl?) and !self.class.within_repl?
+          exit 1
+        end
       end
     end
 
