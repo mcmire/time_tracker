@@ -1,4 +1,12 @@
-require File.expand_path(File.dirname(__FILE__) + '/spec_helper')
+
+require_relative 'spec_helper'
+require 'tt/service'
+
+module TimeTracker
+  module Service
+    class PivotalTracker; end
+  end
+end
 
 describe TimeTracker::Service do
 
