@@ -1,6 +1,6 @@
 
 Date::DATE_FORMATS[:relative_date] = lambda do |date|
-  case date - Date.today
+  case date - Time.zone.now.to_date
     when  0 then 'Today'
     when -1 then 'Yesterday'
     else         date.to_s(:mdy)
