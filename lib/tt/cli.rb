@@ -90,7 +90,9 @@ module TimeTracker
         end
       end
       unless task
-        return if no?("I can't find this task. Did you want to create it? (y/n)")
+        if no?("I can't find this task. Did you want to create it? (y/n)")
+          return
+        end
         task = curr_proj.tasks.build(:name => task_name)
       end
       if running_task = curr_proj.tasks.last_running
@@ -346,7 +348,10 @@ module TimeTracker
           CONFIGURE_USAGES.values.map {|x| "  " + @program_name + " " + x }.join("\n")
         end
       else
-        return if no?("Do you want to sync projects and tasks with Pivotal Tracker? (y/n)")
+        if no?("Do you want to sync projects and tasks with Pivotal Tracker? (y/n)")
+          puts "Nope"
+          return
+        end
         _configure_check_no_projects_or_tasks_exist
         api_key = ask("What's your API key?")
         full_name = ask("Okay, what's your full name?")
@@ -389,16 +394,6 @@ module TimeTracker
   private
     def debug_stdout
       $RUNNING_TESTS == :integration ? $orig_stdout : stdout
-    end
-
-    # Override method in Commander
-    def handle_command_error(e)
-      if $RUNNING_TESTS == :units
-        raise(e)
-      else
-        stderr.puts(e.message)
-        exit 1 unless within_repl?
-      end
     end
 
     def get_current_project
@@ -472,7 +467,7 @@ module TimeTracker
           debug_stdout.puts "Answer: #{answer.inspect}" if self.class.ribeye_debug?
           ret = yield(answer)
         rescue Break => e
-          raise Abort if e.message == false && $RUNNING_TESTS == :units
+          raise Abort if e.message == true && $RUNNING_TESTS == :units
           ret = e.message
           break
         end
@@ -484,10 +479,10 @@ module TimeTracker
       keep_prompting(msg) do |answer|
         case answer
         when /^y(es)?$/i
-          raise Break, false
+          raise Break.new(false)
         when /^n(o)?$/i
           stdout.puts %{Okay, never mind then.}
-          raise Break, true
+          raise Break.new(true)
         else
           print_wrong_answer
           true
@@ -501,7 +496,7 @@ module TimeTracker
           print_wrong_answer
           false
         else
-          raise Break, answer
+          raise Break.new(answer)
         end
       end
     end

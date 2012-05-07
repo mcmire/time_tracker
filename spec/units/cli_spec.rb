@@ -7,11 +7,7 @@ require 'tt/cli'
 
 shared_examples_for "lastfew subcommand" do
   it "prints a list of the last 4 time periods plus the currently running task, ordered by last active" do
-    Timecop.freeze Time.zone.local(2010, 1, 3)
-    puts "Time.now: #{Time.now}"
-    puts "Time.zone.now: #{Time.zone.now}"
-    puts "Date.today: #{Date.today}"
-    exit
+    Timecop.freeze Time.local(2010, 1, 3)
     project1 = FactoryGirl.create(:project, :name => "some project")
     project2 = FactoryGirl.create(:project, :name => "another project")
     task1 = FactoryGirl.create(:task,
@@ -164,6 +160,7 @@ describe TimeTracker::Cli do
 
   before do
     TimeTracker.world.reload
+    TimeTracker.external_service = nil
     @stdin, @stdout, @stderr = Array.new(3) { StringIO.new }
     @cli = TimeTracker::Cli.new(:stdin => @stdin, :stdout => @stdout, :stderr => @stderr, :program_name => "tt")
   end
@@ -341,7 +338,7 @@ describe TimeTracker::Cli do
     before do
       @project = FactoryGirl.create(:project, :name => "some project")
       TimeTracker.world.update("current_project_id", @project.id.to_s)
-      @time = Time.zone.local(2010)
+      @time = Time.local(2010)
     end
     it "bails if no name given" do
       expect { @cli.start }.to raise_error("Right, but which task do you want to start?")
@@ -400,11 +397,11 @@ describe TimeTracker::Cli do
       end
     end
     it "auto-creates the task under the current project (given user accepts prompt) and starts the clock for it" do
+      stdin.sneak("y\n")
       Timecop.freeze(@time) do
-        stdin.sneak("y\n")
         @cli.run_command!("start", "some task")
-        stdout.must start_with(%{I can't find this task. Did you want to create it? (y/n) })
       end
+      stdout.must start_with(%{I can't find this task. Did you want to create it? (y/n) })
       Models::Task.count.must == 1
       task = Models::Task.last(:order => :number)
       task.project.name.must == "some project"
@@ -423,10 +420,11 @@ describe TimeTracker::Cli do
       time1 = Time.zone.local(2010, 1, 1, 0, 0, 0)
       time2 = Time.zone.local(2010, 1, 1, 0, 1, 0)
       task1 = FactoryGirl.create(:task, :project => @project, :name => "some task", :created_at => time1, :state => "running")
+      stdin.sneak("y\n")
       Timecop.freeze(time2) do
-        stdin.sneak("y\n")
         @cli.run_command!("start", "another task")
       end
+      pp :stdout => stdout
       Models::Task.count.must == 2
       task1.time_periods.first.ended_at.must == time2
       task1.must be_paused
@@ -1228,7 +1226,7 @@ describe TimeTracker::Cli do
     end
     context "today" do
       before do
-        Timecop.freeze Time.zone.local(2010, 1, 2)
+        Timecop.freeze Time.local(2010, 1, 2)
       end
       it "prints a list of time periods that ended today, ordered by ended_at" do
         project1 = FactoryGirl.create(:project, :name => "some project")
