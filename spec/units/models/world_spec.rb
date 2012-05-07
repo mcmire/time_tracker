@@ -25,6 +25,14 @@ describe TimeTracker::Models::World do
       world.must_not be_nil
     end
   end
+  describe '.reload' do
+    it "re-runs the query to fetch the config data every time" do
+      mock(TimeTracker::World).find { :world }.twice
+      ret = TimeTracker::World.reload
+      ret = TimeTracker::World.reload
+      ret.must == :world
+    end
+  end
   describe '.new' do
     it "stores the given document" do
       TimeTracker::Models::World.new(:doc).doc.must == :doc
