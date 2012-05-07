@@ -30,7 +30,7 @@ end
 RSpec.configure do |c|
   c.include IntegrationExampleGroup,
     :type => :integration,
-    :example_group => { :file_path => 'spec/integration' }
+    :example_group => { :file_path => %r{spec/integration} }
   c.before(:suite, :type => :integration) do
     $RUNNING_TESTS = :integration
   end
