@@ -32,7 +32,6 @@ module TimeTracker
 
       def save
         self.class.collection.save(@doc)
-        @doc["_id"] = @doc.delete(:_id)
       end
 
       def [](key)

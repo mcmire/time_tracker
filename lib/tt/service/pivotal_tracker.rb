@@ -1,4 +1,7 @@
+
 require 'httparty'
+require 'hashie/mash'
+require 'tt/service'
 
 module TimeTracker
   module Service
@@ -53,7 +56,7 @@ module TimeTracker
         ].compact.join
         stories = request(:get, path, "stories")
         for story in stories
-          p = project || TimeTracker::Project.first(:external_id => story.project_id)
+          p = project || Models::Project.first(:external_id => story.project_id)
           opts = { :external_id => story.id }
           task = p.tasks.first(opts) || p.tasks.build(opts)
           task.update_attributes!(
@@ -72,7 +75,7 @@ module TimeTracker
         if project
           last_pulled_times[project.external_id.to_s] = Time.now.utc
         else
-          external_ids = TimeTracker::Project.fields(:external_id).map(&:external_id)
+          external_ids = Models::Project.fields(:external_id).map(&:external_id)
           for id in external_ids
             last_pulled_times[id.to_s] = Time.now.utc
           end
