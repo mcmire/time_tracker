@@ -32,6 +32,7 @@ module TimeTracker
 
       def save
         self.class.collection.save(@doc)
+        @doc['_id'] = @doc.delete(:_id) if @doc.key?(:_id)
       end
 
       def [](key)
