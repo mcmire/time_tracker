@@ -424,7 +424,7 @@ module TimeTracker
         elsif next_event != "resume"
           raise Error, "I don't think that task exists."
         else
-          tasks = Models::Task.where(:state => event.allowed_previous_states, :name => arg, :project_id.ne => curr_proj.id)
+          tasks = Models::Task.where(:state => event.allowed_previous_states, :name => arg, :project_id.ne => curr_proj.id).order(:created_at)
           if tasks.any?
             # Might be better to do this w/ native Ruby driver
             # See <http://groups.google.com/group/mongomapper/browse_thread/thread/1a5a5b548123e07e/0c65f3e770e04f29>

@@ -8,6 +8,10 @@ FactoryGirl.define do
     f.name "some task"
   end
 
+  factory :task_with_project, :parent => :task do |f|
+    f.association :project
+  end
+
   factory :time_period, :class => 'TimeTracker::Models::TimePeriod' do |f|
     f.started_at { Time.zone.local(2010) }
     f.ended_at { Time.zone.local(2010) }

@@ -146,7 +146,7 @@ shared_examples_for "lastfew subcommand" do
   end
   context "Pivotal Tracker integration" do
     it "pulls the latest tasks from the API" do
-      task = FactoryGirl.create(:task)
+      task = FactoryGirl.create(:task_with_project)
       FactoryGirl.create(:time_period, :task => task)
       @service = Object.new
       stub(TimeTracker).external_service { @service }
@@ -718,7 +718,9 @@ describe TimeTracker::Cli do
         FactoryGirl.create(:task, :project => project2, :name => "some task", :state => "paused")
         project3 = FactoryGirl.create(:project, :name => "a different project")
         TimeTracker.world.update("current_project_id", project3.id.to_s)
-        expect { @cli.run_command!("resume", "some task") }.to raise_error(%{That task doesn't exist here. Perhaps you meant to switch to "some project" or "another project"?})
+        expect {
+          @cli.run_command!("resume", "some task")
+        }.to raise_error(TimeTracker::Commander::Error, %{That task doesn't exist here. Perhaps you meant to switch to "some project" or "another project"?})
       end
       it "ignores created tasks when listing other projects our paused task might be in" do
         project1 = FactoryGirl.create(:project, :name => "some project")
@@ -1077,7 +1079,7 @@ describe TimeTracker::Cli do
       end
       context "Pivotal Tracker integration" do
         it "pulls the latest tasks from the API" do
-          task = FactoryGirl.create(:task, :state => "finished")
+          task = FactoryGirl.create(:task_with_project, :state => "finished")
           FactoryGirl.create(:time_period, :task => task)
           @service = Object.new
           stub(TimeTracker).external_service { @service }
@@ -1216,7 +1218,7 @@ describe TimeTracker::Cli do
       end
       context "Pivotal Tracker integration" do
         it "pulls the latest tasks from the API" do
-          task = FactoryGirl.create(:task, :state => "finished")
+          task = FactoryGirl.create(:task_with_project, :state => "finished")
           FactoryGirl.create(:time_period, :task => task)
           @service = Object.new
           stub(TimeTracker).external_service { @service }
@@ -1293,7 +1295,7 @@ describe TimeTracker::Cli do
       end
       context "Pivotal Tracker integration" do
         it "pulls the latest tasks from the API" do
-          task = FactoryGirl.create(:task, :state => "finished")
+          task = FactoryGirl.create(:task_with_project, :state => "finished")
           FactoryGirl.create(:time_period,
             :task => task,
             :started_at => Time.zone.local(2010, 1, 2),
@@ -1384,7 +1386,7 @@ describe TimeTracker::Cli do
       end
       context "Pivotal Tracker integration" do
         it "pulls the latest tasks from the API" do
-          task = FactoryGirl.create(:task, :state => "finished")
+          task = FactoryGirl.create(:task_with_project, :state => "finished")
           FactoryGirl.create(:time_period,
             :task => task,
             :started_at => Time.zone.local(2010, 8, 5),
@@ -1482,7 +1484,7 @@ describe TimeTracker::Cli do
     # TODO: show a different message if no search results found
     context "Pivotal Tracker integration" do
       it "pulls the latest tasks from the API" do
-        FactoryGirl.create(:task, :name => "foosball table")
+        FactoryGirl.create(:task_with_project, :name => "foosball table")
         @service = Object.new
         stub(TimeTracker).external_service { @service }
         mock(@service).pull_tasks!
