@@ -1,5 +1,6 @@
 
 require 'tt/mongo_mapper'
+require 'tt/models/world'
 require 'tt/models/task'
 
 module TimeTracker
