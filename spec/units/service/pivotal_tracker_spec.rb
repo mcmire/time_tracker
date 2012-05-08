@@ -1,8 +1,8 @@
 
-require_relative '../spec_helper'
-require_relative '../../support/extras/webmock'
-require_relative '../../support/extras/timecop'
-require_relative '../support/models'
+require 'units/spec_helper'
+require 'support/extras/webmock'
+require 'support/extras/timecop'
+require 'units/support/models'
 require 'tt/models'
 require 'tt/service/pivotal_tracker'
 

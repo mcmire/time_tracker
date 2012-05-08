@@ -1,9 +1,9 @@
 
-require_relative 'spec_helper'
-require_relative '../support/tt'
-require_relative '../support/extras/mongo_mapper'
-require_relative '../support/extras/factory_girl'
-require_relative '../support/extras/timecop'
+require 'units/spec_helper'
+require 'support/tt'
+require 'support/extras/mongo_mapper'
+require 'support/extras/factory_girl'
+require 'support/extras/timecop'
 require 'tt/cli'
 
 shared_examples_for "lastfew subcommand" do

@@ -1,4 +1,5 @@
-require_relative '../spec_helper'
+
+require 'units/spec_helper'
 require 'tt/extensions/ruby'
 
 describe Time do

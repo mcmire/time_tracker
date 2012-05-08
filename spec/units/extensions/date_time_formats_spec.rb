@@ -1,6 +1,6 @@
 
-require_relative '../spec_helper'
-require_relative '../../support/extras/timecop'
+require 'units/spec_helper'
+require 'support/extras/timecop'
 require 'tt/extensions/date_time_formats'
 
 describe Date do

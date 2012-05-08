@@ -1,5 +1,5 @@
 
-require_relative 'spec_helper'
+require 'units/spec_helper'
 require 'tt/commander'
 require 'active_support/ordered_hash'
 

@@ -1,5 +1,5 @@
 
-require_relative '../spec_helper'
+require 'units/spec_helper'
 require 'tt/core/core'
 
 describe TimeTracker::Core do
