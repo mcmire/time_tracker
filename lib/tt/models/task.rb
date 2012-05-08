@@ -1,6 +1,7 @@
 
 require 'tt/mongo_mapper'
 require 'tt/extensions/ruby'
+require 'tt/models/time_period'
 
 module TimeTracker
   module Models
@@ -15,6 +16,12 @@ module TimeTracker
           EOT
         end
       end
+    end
+
+    # Project requires TaskExtensions
+    require 'tt/models/project'
+
+    class Task
       extend TaskExtensions
 
       include ::MongoMapper::Document

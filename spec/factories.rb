@@ -5,8 +5,6 @@ FactoryGirl.define do
   end
 
   factory :task, :class => 'TimeTracker::Models::Task' do |f|
-    # TODO: I do not like associations
-    f.association :project
     f.name "some task"
   end
 

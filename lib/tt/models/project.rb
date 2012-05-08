@@ -21,6 +21,7 @@ module TimeTracker
 
     private
       def call_external_service
+        # FIXME
         external_task = TimeTracker.external_service.add_project!(self.name)
         self.external_id = external_task.id
       end
